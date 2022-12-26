@@ -1,5 +1,6 @@
 from game_model.card import Card
 from game_model.resource_types import ResourceType
+from utilities.print_utils import stringify_resources
 
 
 class Actor:
@@ -36,5 +37,16 @@ class Actor:
             if wildcard_bank <= 0:
                 return False
         return True
+
+    def describe_state(self) -> str:
+        result = ""
+        result += "Tokens: " + stringify_resources(self.resource_tokens, ignore_empty=True) + "\n"
+        result += "Cards : " + stringify_resources(self.resource_persistent, ignore_empty=True) + "\n"
+        result += "Reserved Cards: \n"
+        for card in self.reserved_cards:
+            if card is None:
+                continue
+            result += card.describe_state() + "\n"
+        return result
     
 

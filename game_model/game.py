@@ -4,6 +4,8 @@ from game_model.actor import Actor
 from random import sample, shuffle
 from game_model.card import Card
 from game_model.noble import Noble
+from game_model.resource_types import ResourceType
+from utilities.print_utils import stringify_resources
 from utilities.subsamples import draw_n
 
 class Game:
@@ -78,7 +80,11 @@ class Game:
         for tier, cards in reversed(list(enumerate(self.open_cards))):
             result_str += "Tier " + str(tier + 1) + ":\n"
             for card in cards:
-                result_str += card.describe_self() + "\n"
+                result_str += card.describe_state() + "\n"
+        result_str += "\nBank:\n" + stringify_resources(self.available_resources) + "\n"
+
+        for idx, player in enumerate(self.players):
+            result_str += "\n-----Player " + str(idx + 1) + "-----\n" + player.describe_state()
         return result_str
 
     def clone(self) -> Game:

@@ -14,7 +14,7 @@ class Card:
         self.points = reward_points
         self.id = card_id
         
-    def describe_self(self) -> str:
+    def describe_state(self) -> str:
         result = ""
         result += "Points: " + str(self.points).ljust(3)
         result += "Cost: ["
