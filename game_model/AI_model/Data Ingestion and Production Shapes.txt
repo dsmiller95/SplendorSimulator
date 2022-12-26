@@ -6,16 +6,18 @@ Players[4]--->Temp Resources[6]
                                     ->Returns[5]
                                     ->Points[1]
 
-Board[4]----->Nobles[4]-------------->Available[1]
-                                    ->Costs[5]
-                                    ->Points[1]
-            ->Cards[4]--------------->Costs[5]
-                                    ->Returns[5]
-                                    ->Points[5]
+>Nobles[4]--->Costs[5]
+            ->Points[1]
+->Cards[4]--->Costs[5]
+            ->Returns[5]
+            ->Points[5]
 
 
 For production:
 
-Reserve buy[1]
-Board[3]--->Cards[4]
-Noble buy[1]
+Action?[1]--->Board[3]--->Cards[4]
+            ->Reserve buy[1]
+            ->Coin triplet draw[3]
+            ->Coin doublet draw[1]
+Noble draw?[1]--->Noble choice[1]
+Discard tokens?[1]--->How many[6]
