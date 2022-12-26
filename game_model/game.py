@@ -1,6 +1,6 @@
 from __future__ import annotations
 from game_data.game_config_data import GameConfigData
-from game_model.action import Action
+from game_model.action import Turn
 from game_model.actor import Actor
 from random import sample, shuffle
 from game_model.card import Card
@@ -10,13 +10,27 @@ from utilities.subsamples import draw_n
 
 class Game:
     def __init__(self, player_count: int, game_config: GameConfigData):
+
+        if player_count <= 1 or player_count > 4:
+            raise "Invalid player number, must have 2, 3, or 4 players"
+
         self.players = [Actor() for x in range(0, player_count)]
         self.active_index = 0
         self.config = game_config
         
         self.active_nobles : list[Noble]
-        self.remaining_cards_by_level : list[list[Card]] = [[], [], []]
-        self.open_cards : list[list[Card]] = [[], [], []]
+        self.remaining_cards_by_level : list[list[Card]] = [[] for x in range(0, game_config.tiers)]
+        self.open_cards : list[list[Card]] = [[] for x in range(0, game_config.tiers)]
+
+        res_base : int
+        match player_count:
+            case 2:
+                res_base = 4
+            case 3:
+                res_base = 5
+            case 4:
+                res_base = 7
+        self.available_resources : list[int] = [res_base, res_base, res_base, res_base, res_base, 5]
         
         ## Nobles
         self.active_nobles = sample(game_config.nobles, player_count + 1)
@@ -31,7 +45,14 @@ class Game:
 
         for idx, cards in enumerate(self.remaining_cards_by_level):
             self.open_cards[idx] = draw_n(cards, game_config.open_cards_per_tier)
-
+    
+    """
+    card index orders from tier 1 to tier 3, left to right. total of 12 in base game.
+    """
+    def get_card_by_index(self, card_index: int) -> Card:
+        tier = card_index // self.config.tiers
+        selected_card = card_index % self.config.open_cards_per_tier
+        return self.open_cards[tier][selected_card]
 
     def get_player(self, player_index: int) -> Actor:
         raise self.players[player_index]
@@ -49,14 +70,14 @@ class Game:
             result_str += "Tier " + str(tier + 1) + ":\n"
             for card in cards:
                 result_str += card.describe_self() + "\n"
-        return result_str;
+        return result_str
 
 
 
     def clone(self) -> Game:
         raise "not implemented"
     
-    def step_game(self, action: Action):
+    def step_game(self, action: Turn):
         action.validate()
         next = self.players[self.active_index]
         next.execute_action(action)

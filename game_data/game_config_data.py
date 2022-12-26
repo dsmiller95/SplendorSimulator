@@ -12,8 +12,13 @@ class GameConfigData:
         self.nobles = nobles
 
         self.open_cards_per_tier = 4
+        self.max_reserved_cards = 3
+        self.max_resource_tokens = 10
+        self.tiers = 3
         pass
     
+    def total_available_cards(self) -> int:
+        return self.tiers * self.open_cards_per_tier
 
     @staticmethod
     def read_file(card_file_path: str) -> GameConfigData:
