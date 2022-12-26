@@ -1,10 +1,11 @@
 from __future__ import annotations
+from game_data.game_config_data import GameConfigData
 from game_model.action import Action
 from game_model.actor import Actor
 
 
 class Game:
-    def __init__(self, player_count: int):
+    def __init__(self, player_count: int, game_config: GameConfigData):
         self.players = [Actor() for x in range(0, player_count)]
         self.active_index = 0
     

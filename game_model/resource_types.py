@@ -1,9 +1,9 @@
 from enum import Enum;
 
 class ResourceType(Enum):
-    RUBY = 1,
-    SAPPHIRE = 2,
-    EMERALD = 3,
-    ONYX = 4,
-    DIAMOND = 5,
-    GOLD = 6
+    RUBY = 0,
+    SAPPHIRE = 1,
+    EMERALD = 2,
+    ONYX = 3,
+    DIAMOND = 4,
+    GOLD = 5
