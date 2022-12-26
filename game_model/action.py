@@ -83,10 +83,12 @@ class Turn:
             if is_reserved_card:
                 ## cannot reserve already reserved card
                 return False
-            ##if player.can_reserve_another
+            if not player.can_reserve_another():
+                return False
             target_card : Card = game_state.get_card_by_index(self.card_index)
             if target_card is None:
                 ## no card in reserve at that index, or no card available in game due to card exhaustion
                 return False
+            
         
-        raise "not implemented"
+        return True
