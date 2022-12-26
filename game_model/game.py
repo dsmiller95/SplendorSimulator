@@ -1,12 +1,10 @@
 from __future__ import annotations
 from game_data.game_config_data import GameConfigData
-from game_model.action import Turn
 from game_model.actor import Actor
 from random import sample, shuffle
 from game_model.card import Card
 from game_model.noble import Noble
 from utilities.subsamples import draw_n
-
 
 class Game:
     def __init__(self, player_count: int, game_config: GameConfigData):
@@ -53,6 +51,17 @@ class Game:
         tier = card_index // self.config.tiers
         selected_card = card_index % self.config.open_cards_per_tier
         return self.open_cards[tier][selected_card]
+    
+    def take_card_by_index(self, card_index: int) -> Card:
+        tier = card_index // self.config.tiers
+        selected_card = card_index % self.config.open_cards_per_tier
+        taken_card = self.open_cards[tier][selected_card]
+        if len(self.remaining_cards_by_level[tier]) <= 0:
+            self.open_cards[tier][selected_card] = None
+            return taken_card
+        self.open_cards[tier][selected_card] = self.remaining_cards_by_level[tier].pop()
+        return taken_card
+
 
     def get_player(self, player_index: int) -> Actor:
         raise self.players[player_index]
@@ -72,13 +81,6 @@ class Game:
                 result_str += card.describe_self() + "\n"
         return result_str
 
-
-
     def clone(self) -> Game:
         raise "not implemented"
     
-    def step_game(self, action: Turn):
-        action.validate()
-        next = self.players[self.active_index]
-        next.execute_action(action)
-        self.active_index = (self.active_index + 1) % len(self.players)

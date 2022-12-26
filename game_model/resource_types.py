@@ -1,6 +1,6 @@
-from enum import Enum;
+from enum import IntEnum;
 
-class ResourceType(Enum):
+class ResourceType(IntEnum):
     RUBY = 0
     EMERALD = 1
     SAPPHIRE = 2

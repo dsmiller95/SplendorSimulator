@@ -1,16 +1,17 @@
 from game_data.game_config_data import GameConfigData
-from game_model.action import Turn, Action_Type
+from game_model.game_runner import step_game
+from game_model.turn import Turn, Action_Type
 from game_model.game import Game
-from game_model.resource_types import ResourceType
-
 
 print("hello there")
 
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=3, game_config=game_config)
+
 print(game.describe_common_state())
 first_action = Turn(
-    action_type=Action_Type.TAKE_TWO,
-    resources=[ResourceType.DIAMOND, ResourceType.ONYX, ResourceType.EMERALD]
+    action_type=Action_Type.TAKE_THREE_UNIQUE,
+    resources=[0, 1, 1, 0, 1]
     )
-game.step_game(first_action)
+step_game(game, first_action)
+print(game.describe_common_state())
