@@ -11,3 +11,12 @@ def draw_n(deck: list[T], draw_num: int) -> list[T]:
 
 def draw_one(deck: list[T]) -> T:
     return deck.pop(0)
+
+def parse_int(string: str, default: int) -> int:
+  try:
+    return int(string)
+  except ValueError:
+    return default
+
+def parse_all_int(strings: list[str], default: int) -> list[int]:
+    return [parse_int(x, default) for x in strings]

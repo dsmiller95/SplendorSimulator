@@ -4,6 +4,8 @@ from game_model.noble import Noble
 from game_model.resource_types import ResourceType
 import csv
 
+from utilities.subsamples import parse_all_int, parse_int
+
 class GameConfigData:
     def __init__(self, cards: list[Card], nobles: list[Noble]) -> None:
         self.cards = cards
@@ -34,21 +36,23 @@ class GameConfigData:
     def ingest_cards(data_table : list[list[str]]) -> list[Card]:
         result: list[Card] = []
         for row in data_table:
-            if row[0] == "Card":
-                card_level = row[1]
-                card_costs =  row[2:6]
-                reward_resource = ResourceType(row[7:12].index("1"))
-                reward_points = row[13]
+            if row[1] == "Regular":
+                reward_index = row[8:13].index("1")
 
-                result.append(Card(card_level, card_costs, reward_resource, reward_points))
+                result.append(Card(
+                    card_level= int(row[2]),
+                    resource_cost=parse_all_int(row[3:8], 0),
+                    reward_resource=ResourceType(reward_index),
+                    reward_points=parse_int(row[13], 0),
+                    card_id=int(row[0])))
         return result
 
+    @staticmethod
     def ingest_nobles(data_table : list[list[str]]) -> list[Noble]:
         result: list[Noble] = []
         for row in data_table:
-            if row[0] == "Noble":
-                card_costs =  row[2:6]
-                reward_points = row[13]
-
-                result.append(Noble(card_costs, reward_points))
+            if row[1] == "Noble":
+                result.append(Noble(
+                    resource_cost=parse_all_int(row[3:8], 0),
+                    reward_points=parse_int(row[13], 0)))
         return result

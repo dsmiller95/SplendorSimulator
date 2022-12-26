@@ -6,7 +6,7 @@ from game_model.resource_types import ResourceType
 
 print("hello there")
 
-game_config = GameConfigData("./game_data/game_config.csv")
+game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=3, game_config=game_config)
 first_action = Action(
     action_type=Action_Type.TAKE_THREE,
