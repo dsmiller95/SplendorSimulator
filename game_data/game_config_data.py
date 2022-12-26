@@ -40,7 +40,7 @@ class GameConfigData:
                 reward_index = row[8:13].index("1")
 
                 result.append(Card(
-                    card_level= int(row[2]),
+                    card_level= int(row[2]) - 1,
                     resource_cost=parse_all_int(row[3:8], 0),
                     reward_resource=ResourceType(reward_index),
                     reward_points=parse_int(row[13], 0),

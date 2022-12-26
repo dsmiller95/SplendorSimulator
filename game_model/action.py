@@ -9,7 +9,11 @@ class Action_Type(Enum):
     RESERVE_CARD = 4
 
 class Action:
-    def __init__(self, action_type: Action_Type, resources: list[ResourceType] = None, card_id: int = None):
+    def __init__(
+        self,
+        action_type: Action_Type,
+        resources: list[ResourceType] = None,
+        card_id: int = None):
         self.action_type = action_type
         self.resources = resources
         self.card_id = card_id
