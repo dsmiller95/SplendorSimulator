@@ -4,7 +4,6 @@ from game_model.actor import Actor
 from random import sample, shuffle
 from game_model.card import Card
 from game_model.noble import Noble
-from game_model.resource_types import ResourceType
 from utilities.print_utils import stringify_resources
 from utilities.subsamples import draw_n
 

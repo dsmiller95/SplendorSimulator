@@ -1,11 +1,11 @@
-from enum import Enum
+from enum import IntEnum
 from game_model.actor import Actor
 from game_model.card import Card
 from game_model.game import Game
 
 from game_model.resource_types import ResourceType
 
-class Action_Type(Enum):
+class Action_Type(IntEnum):
     TAKE_THREE_UNIQUE = 1,
     TAKE_TWO = 2,
     BUY_CARD = 3,
@@ -24,10 +24,12 @@ class Turn:
         resources: list[int] = None,
         card_index: int = None):
         self.action_type = action_type
+        if len(resources) < 5:
+            raise "only 5 valid resources to grab, 6 provided"
         self.resources = resources
         self.card_index = card_index
     
-    def validate(self, game_state: Game, player: Actor) -> bool:
+    def validate(self, game_state: Game, player: Actor) -> str:
         ## Validating resource taking moves
         if (self.action_type == Action_Type.TAKE_THREE_UNIQUE or
             self.action_type == Action_Type.TAKE_TWO):
@@ -38,32 +40,28 @@ class Turn:
                         continue
                     total_buy += resource
                     if resource > 1:
-                        ## cannot pick more than one from each resource on a unique take
-                        return False
+                        return "cannot pick more than one from each resource on a unique take"
                     if game_state.available_resources[idx] < self.resources[idx]:
-                        ## cannot take more resources than available in bank
-                        return False
+                        return "cannot take more resources than available in bank"
                     
                 if total_buy > 3:
-                    ## cannot take more than 3 total on unique take
-                    return False
+                    return "cannot take more than 3 total on unique take"
             if self.action_type == Action_Type.TAKE_TWO:
                 for idx, resource in enumerate(self.resources):
                     if resource <= 0:
                         continue
                     if(total_buy > 0):
-                        ## cannot pick more than one resource type on a Take Two
-                        return False
+                        return "cannot pick more than one resource type on a Take Two"
                     total_buy += resource
                     if resource > 2:
-                        ## cannot pick more than one on a unique take
-                        return False
-                    if game_state.available_resources[idx] < self.resourcesp[idx]:
-                        ## cannot take more resources than available in bank
-                        return False
+                        ## 
+                        return "cannot pick more than one on a unique take"
+                    if game_state.available_resources[idx] < self.resources[idx]:
+                        ## 
+                        return "cannot take more resources than available in bank"
             if total_buy + player.total_tokens() > game_state.config.max_resource_tokens:
-                ## cannot take tokens which would increase player bank above limit
-                return False
+                ## 
+                return "cannot take tokens which would increase player bank above limit"
         else:
             is_reserved_card = self.card_index >= game_state.config.total_available_cards()
             reserved_card_index = self.card_index - game_state.config.total_available_cards()
@@ -76,24 +74,24 @@ class Turn:
                 else:
                     target_card = game_state.get_card_by_index(self.card_index)
                 if target_card is None:
-                    ## no card in reserve at that index, or no card available in game due to card exhaustion
-                    return False
+                    ## 
+                    return "no card in reserve at that index, or no card available in game due to card exhaustion"
                 if not player.can_purchase(target_card):
-                    return False
+                    return "cannot purchase this card"
             
             if self.action_type == Action_Type.RESERVE_CARD:
                 if is_reserved_card:
-                    ## cannot reserve already reserved card
-                    return False
+                    ## 
+                    return "cannot reserve already reserved card"
                 if not player.can_reserve_another():
-                    return False
+                    return "maximum number of cards already reserved"
                 target_card : Card = game_state.get_card_by_index(self.card_index)
                 if target_card is None:
-                    ## no card in reserve at that index, or no card available in game due to card exhaustion
-                    return False
+                    ## 
+                    return "no card in reserve at that index, or no card available in game due to card exhaustion"
                 
             
-            return True
+            return None
     
 
     """
