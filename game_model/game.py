@@ -15,12 +15,8 @@ class Game:
         self.config = game_config
         
         self.active_nobles : list[Noble]
-        self.remaining_cards_by_level: tuple[list[Card], list[Card], list[Card]]
-        self.open_cards : tuple[
-            list[Card],
-            list[Card],
-            list[Card]
-            ]
+        self.remaining_cards_by_level : list[list[Card]] = [[], [], []]
+        self.open_cards : list[list[Card]] = [[], [], []]
         
         ## Nobles
         self.active_nobles = sample(game_config.nobles, player_count + 1)
@@ -43,6 +39,20 @@ class Game:
     def get_current_player_index(self) -> int:
         return self.active_index
     
+    def describe_common_state(self) -> str:
+        result_str = ""
+        result_str += "Nobles:\n"
+        for noble in self.active_nobles:
+            result_str += noble.describe_self() + "\n"
+        result_str += "\n"
+        for tier, cards in reversed(list(enumerate(self.open_cards))):
+            result_str += "Tier " + str(tier + 1) + ":\n"
+            for card in cards:
+                result_str += card.describe_self() + "\n"
+        return result_str;
+
+
+
     def clone(self) -> Game:
         raise "not implemented"
     
