@@ -13,6 +13,11 @@ class Actor:
     
     def can_reserve_another(self):
         return None in self.reserved_cards
+    def has_reserved_cards(self):
+        for card in self.reserved_cards:
+            if not(card is None):
+                return True
+        return False
 
     def total_tokens(self) -> int:
         return sum(self.resource_tokens)

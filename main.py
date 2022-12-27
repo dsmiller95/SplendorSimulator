@@ -14,7 +14,7 @@ while True:
     print("player " + str(game.get_current_player_index() + 1) + "'s turn!")
     next_action: Turn = None
     while next_action is None:
-        next_action = get_action_from_user()
+        next_action = get_action_from_user(game.get_player(game.get_current_player_index()), game)
         if next_action == False:
             print("exiting")
             exit(0)

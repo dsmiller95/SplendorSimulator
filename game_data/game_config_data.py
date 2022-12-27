@@ -17,8 +17,8 @@ class GameConfigData:
         self.tiers = 3
         pass
     
-    def total_available_cards(self) -> int:
-        return self.tiers * self.open_cards_per_tier
+    def total_available_card_indexes(self) -> int:
+        return self.tiers * (self.open_cards_per_tier + 1)
 
     @staticmethod
     def read_file(card_file_path: str) -> GameConfigData:

@@ -4,6 +4,7 @@ from game_model.card import Card
 from game_model.game import Game
 
 from game_model.resource_types import ResourceType
+from game_model.turn_actions import add_reserved_card
 
 class Action_Type(IntEnum):
     TAKE_THREE_UNIQUE = 1,
@@ -13,8 +14,12 @@ class Action_Type(IntEnum):
 
 """
 Card indexes:
-[0... tiers * open_cards_per_tier) : board reserve
-[(tiers * open_cards_per_tier)...+max_reserved_cards) : card reserve
+0: tier 1 top of deck
+2: tier 1 2nd revealed card
+5: tier 2 top of deck
+9: tier 2 4th revealed card
+[0... tiers * (open_cards_per_tier + 1)) : board reserve
+[(tiers * (open_cards_per_tier + 1)...+max_reserved_cards) : card reserve
 """
 
 class Turn:
@@ -24,7 +29,7 @@ class Turn:
         resources: list[int] = None,
         card_index: int = None):
         self.action_type = action_type
-        if len(resources) < 5:
+        if not(resources is None) and len(resources) < 5:
             raise "only 5 valid resources to grab, 6 provided"
         self.resources = resources
         self.card_index = card_index
@@ -63,8 +68,8 @@ class Turn:
                 ## 
                 return "cannot take tokens which would increase player bank above limit"
         else:
-            is_reserved_card = self.card_index >= game_state.config.total_available_cards()
-            reserved_card_index = self.card_index - game_state.config.total_available_cards()
+            is_reserved_card = self.card_index >= game_state.config.total_available_card_indexes()
+            reserved_card_index = self.card_index - game_state.config.total_available_card_indexes()
 
             ## Validate card purchasing
             if self.action_type == Action_Type.BUY_CARD:
@@ -72,6 +77,8 @@ class Turn:
                 if is_reserved_card:
                     target_card = player.get_reserved_card(reserved_card_index)
                 else:
+                    if game_state.is_top_deck_index(self.card_index) :
+                        return "Cannot buy card from top teck"
                     target_card = game_state.get_card_by_index(self.card_index)
                 if target_card is None:
                     ## 
@@ -106,8 +113,8 @@ class Turn:
                 player.resource_tokens[idx] += amount
             return
         
-        is_reserved_card = self.card_index >= game_state.config.total_available_cards()
-        reserved_card_index = self.card_index - game_state.config.total_available_cards()
+        is_reserved_card = self.card_index >= game_state.config.total_available_card_indexes()
+        reserved_card_index = self.card_index - game_state.config.total_available_card_indexes()
 
         if self.action_type == Action_Type.BUY_CARD:
             target_card : Card = None
@@ -118,4 +125,4 @@ class Turn:
             player.purchase_card(target_card)
         elif self.action_type == Action_Type.RESERVE_CARD:
             target_card = game_state.take_card_by_index(self.card_index)
-            player.add_reserved_card(target_card)
+            add_reserved_card(player, game_state, target_card)

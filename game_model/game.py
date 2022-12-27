@@ -45,27 +45,46 @@ class Game:
         for idx, cards in enumerate(self.remaining_cards_by_level):
             self.open_cards[idx] = draw_n(cards, game_config.open_cards_per_tier)
     
+    def get_tier_and_selected(self, card_index: int) -> tuple[int, int]:
+        tier_width = self.config.open_cards_per_tier + 1
+        tier = card_index // tier_width
+        selected_card = card_index % tier_width
+        return (tier, selected_card)
+
+    def is_top_deck_index(self, card_index: int) -> bool :
+        (tier, card) = self.get_tier_and_selected(card_index)
+        return card <= 0
+
     """
     card index orders from tier 1 to tier 3, left to right. total of 12 in base game.
     """
     def get_card_by_index(self, card_index: int) -> Card:
-        tier = card_index // self.config.tiers
-        selected_card = card_index % self.config.open_cards_per_tier
-        return self.open_cards[tier][selected_card]
+        (tier, selected_card) = self.get_tier_and_selected(card_index)
+
+        if selected_card == 0:
+            if len(self.remaining_cards_by_level[tier]) <= 0:
+                return None
+            return self.remaining_cards_by_level[tier][-1]
+        return self.open_cards[tier][selected_card - 1]
     
     def take_card_by_index(self, card_index: int) -> Card:
-        tier = card_index // self.config.tiers
-        selected_card = card_index % self.config.open_cards_per_tier
-        taken_card = self.open_cards[tier][selected_card]
+        (tier, selected_card) = self.get_tier_and_selected(card_index)
+
+        if selected_card == 0:
+            if len(self.remaining_cards_by_level[tier]) <= 0:
+                return None
+            return self.remaining_cards_by_level[tier].pop()
+
+        taken_card = self.open_cards[tier][selected_card - 1]
         if len(self.remaining_cards_by_level[tier]) <= 0:
-            self.open_cards[tier][selected_card] = None
+            self.open_cards[tier][selected_card - 1] = None
             return taken_card
-        self.open_cards[tier][selected_card] = self.remaining_cards_by_level[tier].pop()
+        self.open_cards[tier][selected_card - 1] = self.remaining_cards_by_level[tier].pop()
         return taken_card
 
 
     def get_player(self, player_index: int) -> Actor:
-        raise self.players[player_index]
+        return self.players[player_index]
 
     def get_current_player_index(self) -> int:
         return self.active_index
