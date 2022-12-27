@@ -97,6 +97,10 @@ class Game:
         self.open_cards[tier][selected_card - 1] = self.remaining_cards_by_level[tier].pop(0)
         return taken_card
 
+    def give_tokens_to_player(self, player: Actor, token_index: int, token_num: int = 1):
+            player.resource_tokens[token_index] += token_num
+            self.available_resources[token_index] -= token_num
+
     def get_player(self, player_index: int) -> Actor:
         return self.players[player_index]
 

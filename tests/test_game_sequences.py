@@ -130,7 +130,9 @@ def test_attempt_take_more_than_maximum_token_capacity():
         assert step_result == None, step_result
 
     step_result = step_game(game, Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 1, 1, 0, 1]))
-    assert step_result == "cannot take tokens which would increase player bank above limit", step_result
+    assert step_result == None, step_result
+
+    assert_banks([2, 3, 3, 1, 1, 0], game.players[0].resource_tokens)
 
 def test_attempt_buy_topdeck_card():
     game = Game(2, test_config, force_shuffle=False)
@@ -318,6 +320,46 @@ def test_game_gather_and_achieve_nobles():
             lambda game: assert_points(game.players[0], 22 + 4 + 5 + 4), ## claimed noble 2
             lambda game: assert_noble_claimed(game.players[0], 17),
         ]
+    ]
+    for i, verify_list in enumerate(branched_verify):
+        cloned_game = game.clone()
+        try:
+            run_turns(verify_list, cloned_game)
+        except:
+            print("on verify branch " + str(i))
+            raise
+    
+def test_discard_tokens_when_max_reached():
+    game = Game(2, test_config, force_shuffle=False)
+    single_player_turns = [
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1]),
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+    ]
+
+    run_turns(single_player_turns, game)
+
+    branched_verify = [
+        [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.RUBY, ResourceType.SAPPHIRE]),
+            lambda cur_game : assert_banks([1, 2, 3, 2, 2, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.RUBY, ResourceType.RUBY]),
+            lambda cur_game : assert_banks([0, 2, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.GOLD, ResourceType.ONYX, ResourceType.DIAMOND]),
+            lambda cur_game : assert_banks([2, 2, 4, 1, 1, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.GOLD, ResourceType.EMERALD]),
+            lambda cur_game : assert_banks([2, 0, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.GOLD, ResourceType.GOLD]),
+            lambda cur_game : assert_banks([1, 1, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
+        ],
     ]
     for i, verify_list in enumerate(branched_verify):
         cloned_game = game.clone()
