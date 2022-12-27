@@ -67,7 +67,7 @@ class Game:
         if selected_card == 0:
             if len(self.remaining_cards_by_level[tier]) <= 0:
                 return None
-            return self.remaining_cards_by_level[tier][-1]
+            return self.remaining_cards_by_level[tier][0]
         return self.open_cards[tier][selected_card - 1]
     
     def take_card_by_index(self, card_index: int) -> Card:
@@ -76,15 +76,14 @@ class Game:
         if selected_card == 0:
             if len(self.remaining_cards_by_level[tier]) <= 0:
                 return None
-            return self.remaining_cards_by_level[tier].pop()
+            return self.remaining_cards_by_level[tier].pop(0)
 
         taken_card = self.open_cards[tier][selected_card - 1]
         if len(self.remaining_cards_by_level[tier]) <= 0:
             self.open_cards[tier][selected_card - 1] = None
             return taken_card
-        self.open_cards[tier][selected_card - 1] = self.remaining_cards_by_level[tier].pop()
+        self.open_cards[tier][selected_card - 1] = self.remaining_cards_by_level[tier].pop(0)
         return taken_card
-
 
     def get_player(self, player_index: int) -> Actor:
         return self.players[player_index]

@@ -3,7 +3,8 @@
 from game_model.resource_types import ResourceType
 
 class Noble:
-    def __init__(self, resource_cost: list[int], reward_points: int):
+    def __init__(self, resource_cost: list[int], reward_points: int, card_id: int):
+        self.id = card_id
         self.costs = resource_cost
         self.points = reward_points
     

@@ -1,10 +1,12 @@
+from __future__ import annotations
 from game_model.card import Card
+from game_model.noble import Noble
 from game_model.resource_types import ResourceType
 from utilities.print_utils import stringify_resources
 
-
 class Actor:
     def __init__(self):
+        self.claimed_nobles : list[Noble] = []
         self.reserved_cards : list[Card] = [None, None, None]
         self.resource_tokens : list[int] = [0, 0, 0, 0, 0, 0]
         self.purchased_cards : list[Card] = []
@@ -43,6 +45,14 @@ class Actor:
             if wildcard_bank < 0:
                 return False
         return True
+    
+    def clone(self) -> Actor:
+        new = Actor()
+        new.claimed_nobles = self.claimed_nobles[0:]
+        new.reserved_cards = self.reserved_cards[0:]
+        new.resource_tokens = self.resource_tokens[0:]
+        new.purchased_cards = self.purchased_cards[0:]
+
 
     def describe_state(self) -> str:
         result = ""
