@@ -5,6 +5,7 @@ from game_model.game import Game
 
 from game_model.resource_types import ResourceType
 from game_model.turn_actions import add_reserved_card, purchase_card
+from utilities.print_utils import stringify_resources
 
 class Action_Type(IntEnum):
     TAKE_THREE_UNIQUE = 1,
@@ -34,6 +35,27 @@ class Turn:
         self.resources = resources
         self.card_index = card_index
     
+    def describe_state(self, game_state: Game, player: Actor) -> str:
+        result = ""
+        result += self.action_type.name + ": "
+        if self.action_type == Action_Type.TAKE_THREE_UNIQUE or self.action_type == Action_Type.TAKE_TWO:
+            result += stringify_resources(self.resources, ignore_empty=True)
+        else:
+            is_reserved_card = self.card_index >= game_state.config.total_available_card_indexes()
+            reserved_card_index = self.card_index - game_state.config.total_available_card_indexes()
+            if is_reserved_card:
+                result += "reserved card " + str(reserved_card_index+1) + " [" + player.get_reserved_card(reserved_card_index).describe_state() + "]"
+            else:
+                (tier, select) = game_state.get_tier_and_selected(self.card_index)
+                is_topdeck = select == 0
+
+                result += "tier " + str(tier)
+                if is_topdeck:
+                    result += ", topdeck"
+                else:
+                    result += " card " + str(self.card_index) + ": [" + game_state.get_card_by_index(self.card_index).describe_state() + "]"
+        return result
+
     def validate(self, game_state: Game, player: Actor) -> str:
         ## Validating resource taking moves
         if (self.action_type == Action_Type.TAKE_THREE_UNIQUE or

@@ -89,6 +89,9 @@ class Game:
     def get_current_player_index(self) -> int:
         return self.active_index
     
+    def get_current_player(self) -> Actor:
+        return self.players[self.active_index]
+    
     def describe_common_state(self) -> str:
         result_str = ""
         result_str += "Nobles:\n"
