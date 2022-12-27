@@ -64,7 +64,9 @@ Enter the type of action you would like to take, or "exit":
         case Action_Type.BUY_CARD:
             if player.has_reserved_cards() and make_choice("purchase a reserved card?"):
                 print("which reserved card will you purchase? 1/2/3")
-                reserved_index = get_option(["1", "2", "3"], "enter a number in the range [1-3]")
+                for i, card in enumerate(player.reserved_cards):
+                    print(str(i + 1) + ": " + ("None" if card is None else card.describe_state()))
+                reserved_index = int(get_option(["1", "2", "3"], "enter a number in the range [1-3]")) - 1
                 complete_index = game.config.total_available_card_indexes() + reserved_index
                 return Turn(Action_Type.BUY_CARD, card_index=complete_index)
             selected_index = select_game_board_card(game, include_decks=False)

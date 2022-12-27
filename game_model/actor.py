@@ -9,6 +9,7 @@ class Actor:
         self.resource_tokens : list[int] = [0, 0, 0, 0, 0, 0]
         self.purchased_cards : list[Card] = []
         self.resource_persistent: list[int] = [0, 0, 0, 0, 0]
+        self.sum_points = 0
         pass
     
     def can_reserve_another(self):
@@ -39,12 +40,13 @@ class Actor:
             if remaining <= 0:
                 continue
             wildcard_bank = wildcard_bank - remaining
-            if wildcard_bank <= 0:
+            if wildcard_bank < 0:
                 return False
         return True
 
     def describe_state(self) -> str:
         result = ""
+        result += "Points: " + str(self.sum_points) + "\n"
         result += "Tokens: " + stringify_resources(self.resource_tokens, ignore_empty=True) + "\n"
         result += "Cards : " + stringify_resources(self.resource_persistent, ignore_empty=True) + "\n"
         result += "Reserved Cards: \n"
