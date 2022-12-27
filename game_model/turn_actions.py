@@ -28,6 +28,7 @@ def purchase_card(player: Actor, game: Game, card: Card):
         if remaining > 0:
             raise "not enough spend. move is invalid"
     player.resource_persistent[card.reward.value] += 1
+    player.sum_points += card.points
     
 
 """
