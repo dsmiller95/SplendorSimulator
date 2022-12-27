@@ -63,6 +63,10 @@ def test_game_shuffled():
     assert False
 
 
+def assert_banks(expected: list[int], actual: list[int]):
+    for i, x in enumerate(expected):
+        assert actual[i] == x, "Expected bank of " + stringify_resources(expected) + ", got " + stringify_resources(actual)
+
 def test_game_gather_and_purchase():
     game = Game(2, test_config, force_shuffle=False)
     turns = [
@@ -90,7 +94,16 @@ def test_game_gather_and_purchase():
     assert_banks([0, 0, 1, 0, 0], game.players[1].resource_persistent)
     assert game.players[1].sum_points == 0
 
-def assert_banks(expected: list[int], actual: list[int]):
-    for i, x in enumerate(expected):
-        assert actual[i] == x, "Expected bank of " + stringify_resources(expected) + ", got " + stringify_resources(actual)
+
+def test_attempt_take_two_when_less():
+    game = Game(2, test_config, force_shuffle=False)
+    turns = [
+        Turn(Action_Type.TAKE_TWO, [2, 0, 0, 0, 0]),
+        Turn(Action_Type.TAKE_TWO, [2, 0, 0, 0, 0]),
+    ]
+
     
+    step_result = step_game(game, turns[0])
+    assert step_result == None, step_result
+    step_result = step_game(game, turns[0])
+    assert step_result == "cannot take two from bank with less than 4 available", step_result

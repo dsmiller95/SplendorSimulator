@@ -83,9 +83,9 @@ class Turn:
                     if resource > 2:
                         ## 
                         return "cannot pick more than one on a unique take"
-                    if game_state.available_resources[idx] < self.resources[idx]:
+                    if game_state.available_resources[idx] < 4:
                         ## 
-                        return "cannot take more resources than available in bank"
+                        return "cannot take two from bank with less than 4 available"
             if total_buy + player.total_tokens() > game_state.config.max_resource_tokens:
                 ## 
                 return "cannot take tokens which would increase player bank above limit"
