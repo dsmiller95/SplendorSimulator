@@ -29,12 +29,15 @@ class Turn:
         self,
         action_type: Action_Type,
         resources: list[int] = None,
-        card_index: int = None):
+        card_index: int = None,
+        noble_preference: float = 0 ## which noble to pick. if more than one noble available, will pick the one closest to this index
+        ):
         self.action_type = action_type
         if not(resources is None) and len(resources) < 5:
             raise "only 5 valid resources to grab, 6 provided"
         self.resources = resources
         self.card_index = card_index
+        self.noble_preference = noble_preference
     
     def describe_state(self, game_state: Game, player: Actor) -> str:
         result = ""
@@ -134,6 +137,10 @@ class Turn:
     be sure to validate this action against the game state and player before executing it
     """
     def execute(self, game_state: Game, player: Actor):
+        self._execute_primary(game_state, player)
+        self._reward_nobles(game_state, player)
+    
+    def _execute_primary(self, game_state: Game, player: Actor):
         if self.action_type == Action_Type.NOOP:
             return
         
@@ -157,3 +164,19 @@ class Turn:
         elif self.action_type == Action_Type.RESERVE_CARD:
             target_card = game_state.take_card_by_index(self.card_index)
             add_reserved_card(player, game_state, target_card)
+    
+    def _reward_nobles(self, game_state: Game, player: Actor):
+        valid_noble_indexes = [i for i, x in enumerate(game_state.active_nobles) if x.satisfied_by(player.resource_persistent)]
+        min_noble_dist = 100000
+        chosen_noble_index = None
+        for noble_index in valid_noble_indexes:
+            dist = abs(noble_index - self.noble_preference)
+            if dist < min_noble_dist:
+                min_noble_dist = dist
+                chosen_noble_index = noble_index
+        
+        if chosen_noble_index is None:
+            return
+        chosen_noble = game_state.active_nobles.pop(chosen_noble_index)
+        player.claimed_nobles.append(chosen_noble)
+        player.sum_points += chosen_noble.points

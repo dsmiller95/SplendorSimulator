@@ -72,7 +72,7 @@ def assert_banks(expected: list[int], actual: list[int]):
 def assert_points(player: Actor, points: int):
     assert player.sum_points == points
 def assert_noble_n(player: Actor, noble_num: int):
-    assert player.claimed_nobles == noble_num
+    assert len(player.claimed_nobles) == noble_num
 def assert_noble_claimed(player: Actor, noble_id: int):
     assert noble_id in [x.id for x in player.claimed_nobles if not (x is None)]
 
@@ -179,7 +179,7 @@ def run_turns(single_player_turns, game: Game):
         turn_n += 1
         try:
             if not isinstance(turn, Turn) :
-                turn()
+                turn(game)
                 continue
             step_result = step_game(game, turn)
             assert step_result == None, step_result
@@ -189,63 +189,10 @@ def run_turns(single_player_turns, game: Game):
             print("on turn " + str(turn_n))
             raise
 
-def test_game_gather_and_achieve_nobles():
+def test_clone_game_branch_verify():
     game = Game(2, test_config, force_shuffle=False)
     single_player_turns = [
-        Turn(Action_Type.TAKE_TWO, [0, 0, 2, 0, 0]),
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 1, 0, 1, 1]),
-        Turn(Action_Type.BUY_CARD, card_index=3), ## sapphire
-        lambda : assert_banks([0, 0, 0, 0, 1, 0], game.players[0].resource_tokens),
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 0, 1, 1]),
-        Turn(Action_Type.BUY_CARD, card_index=3), ## onyx
-        lambda : assert_banks([0, 0, 0, 0, 0, 0], game.players[0].resource_tokens),
-        Turn(Action_Type.TAKE_TWO, [0, 0, 0, 2, 0]),
-        Turn(Action_Type.BUY_CARD, card_index=4), ## diamond
-        lambda : assert_banks([0, 0, 0, 0, 0, 0], game.players[0].resource_tokens),
         Turn(Action_Type.TAKE_TWO, [0, 2, 0, 0, 0]),
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
-        Turn(Action_Type.BUY_CARD, card_index=2), ## emerald
-        lambda : assert_banks([0, 1, 1, 0, 0, 0], game.players[0].resource_tokens),
-        lambda : assert_banks([0, 1, 1, 1, 1], game.players[0].resource_persistent),
-
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
-        Turn(Action_Type.BUY_CARD, card_index=5 + 3), ## sapphire
-        lambda : assert_banks([1, 1, 0, 0, 0, 0], game.players[0].resource_tokens),
-
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 1, 0]),
-        Turn(Action_Type.BUY_CARD, card_index=5 + 2), ## emerald
-        lambda : assert_banks([0, 0, 0, 1, 0, 0], game.players[0].resource_tokens),
-        
-        ## turn 22
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 0, 1, 1]),
-        Turn(Action_Type.BUY_CARD, card_index=5 + 4), ## diamond
-        lambda : assert_banks([1, 0, 0, 0, 1, 0], game.players[0].resource_tokens),
-
-        ## turn 25
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 0, 1]),
-        Turn(Action_Type.BUY_CARD, card_index=5 + 3), ## onyx
-        lambda : assert_banks([1, 1, 0, 0, 0, 0], game.players[0].resource_tokens),
-
-        lambda : assert_banks([0, 2, 2, 2, 2], game.players[0].resource_persistent),
-        lambda : assert_points(game.players[0], 10),
-
-
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 0, 1]),
-        Turn(Action_Type.BUY_CARD, card_index=10 + 2), ## emerald
-        lambda : assert_banks([0, 0, 0, 0, 1, 0], game.players[0].resource_tokens),
-
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 0, 1, 1]),
-        Turn(Action_Type.BUY_CARD, card_index=10 + 2), ## onyx
-        lambda : assert_banks([0, 0, 0, 1, 0, 0], game.players[0].resource_tokens),
-        
-        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 1, 1, 0]),
-        Turn(Action_Type.BUY_CARD, card_index=10 + 4), ## diamond
-        lambda : assert_banks([0, 0, 1, 0, 0, 0], game.players[0].resource_tokens),
-
-        lambda : assert_banks([0, 3, 2, 3, 3], game.players[0].resource_persistent),
-        lambda : assert_points(game.players[0], 22),
-        lambda : assert_noble_n(game.players[0], 0),
-
         Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
     ]
 
@@ -253,17 +200,123 @@ def test_game_gather_and_achieve_nobles():
 
     branched_verify = [
         [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+            lambda cur_game : assert_banks([2, 4, 2, 0, 0, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1]),
+            lambda cur_game: assert_banks([1, 3, 2, 1, 1, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.BUY_CARD, card_index=2),
+            lambda cur_game: assert_banks([0, 1, 0, 0, 0, 0], cur_game.players[0].resource_tokens),
+        ],
+        [
+            Turn(Action_Type.RESERVE_CARD, card_index=2),
+            lambda cur_game: assert_banks([1, 3, 1, 0, 0, 1], cur_game.players[0].resource_tokens),
+        ],
+    ]
+    for i, verify_list in enumerate(branched_verify):
+        cloned_game = game.clone()
+        try:
+            run_turns(verify_list, cloned_game)
+        except:
+            print("on verify branch " + str(i))
+            raise
+    
+
+
+def test_game_gather_and_achieve_nobles():
+    game = Game(2, test_config, force_shuffle=False)
+    single_player_turns = [
+        Turn(Action_Type.TAKE_TWO, [0, 0, 2, 0, 0]),
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 1, 0, 1, 1]),
+        Turn(Action_Type.BUY_CARD, card_index=3), ## sapphire
+        lambda game: assert_banks([0, 0, 0, 0, 1, 0], game.players[0].resource_tokens),
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 0, 1, 1]),
+        Turn(Action_Type.BUY_CARD, card_index=3), ## onyx
+        lambda game: assert_banks([0, 0, 0, 0, 0, 0], game.players[0].resource_tokens),
+        Turn(Action_Type.TAKE_TWO, [0, 0, 0, 2, 0]),
+        Turn(Action_Type.BUY_CARD, card_index=4), ## diamond
+        lambda game: assert_banks([0, 0, 0, 0, 0, 0], game.players[0].resource_tokens),
+        Turn(Action_Type.TAKE_TWO, [0, 2, 0, 0, 0]),
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+        Turn(Action_Type.BUY_CARD, card_index=2), ## emerald
+        lambda game: assert_banks([0, 1, 1, 0, 0, 0], game.players[0].resource_tokens),
+        lambda game: assert_banks([0, 1, 1, 1, 1], game.players[0].resource_persistent),
+
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+        Turn(Action_Type.BUY_CARD, card_index=5 + 3), ## sapphire
+        lambda game: assert_banks([1, 1, 0, 0, 0, 0], game.players[0].resource_tokens),
+
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 1, 0]),
+        Turn(Action_Type.BUY_CARD, card_index=5 + 2), ## emerald
+        lambda game: assert_banks([0, 0, 0, 1, 0, 0], game.players[0].resource_tokens),
+        
+        ## turn 22
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 0, 1, 1]),
+        Turn(Action_Type.BUY_CARD, card_index=5 + 4), ## diamond
+        lambda game: assert_banks([1, 0, 0, 0, 1, 0], game.players[0].resource_tokens),
+
+        ## turn 25
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 0, 1]),
+        Turn(Action_Type.BUY_CARD, card_index=5 + 3), ## onyx
+        lambda game: assert_banks([1, 1, 0, 0, 0, 0], game.players[0].resource_tokens),
+
+        lambda game: assert_banks([0, 2, 2, 2, 2], game.players[0].resource_persistent),
+        lambda game: assert_points(game.players[0], 10),
+
+        ## turn 30
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 0, 1]),
+        Turn(Action_Type.BUY_CARD, card_index=10 + 2), ## emerald
+        lambda game: assert_banks([0, 0, 0, 0, 1, 0], game.players[0].resource_tokens),
+
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 0, 1, 1]),
+        Turn(Action_Type.BUY_CARD, card_index=10 + 2), ## onyx
+        lambda game: assert_banks([0, 0, 0, 1, 0, 0], game.players[0].resource_tokens),
+        
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 0, 1, 1, 0]),
+        Turn(Action_Type.BUY_CARD, card_index=10 + 4), ## diamond
+        lambda game: assert_banks([0, 0, 1, 0, 0, 0], game.players[0].resource_tokens),
+
+        ## turn 39
+        lambda game: assert_banks([0, 3, 2, 3, 3], game.players[0].resource_persistent),
+        lambda game: assert_points(game.players[0], 22),
+        lambda game: assert_noble_n(game.players[0], 0),
+        ## Turn 42
+        Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+    ]
+
+    run_turns(single_player_turns, game)
+
+    branched_verify = [
+        [
+            lambda game: assert_points(game.players[0], 22),
             Turn(Action_Type.BUY_CARD, card_index=10 + 3), ## sapphire
             
-            lambda : assert_banks([0, 3, 3, 3, 3], game.players[0].resource_persistent),
-            lambda : assert_noble_n(game.players[0], 1),
-            lambda : assert_points(game.players[0], 22 + 4 + 3), ## claimed noble
-            lambda : assert_noble_claimed(game.players[0], 17),
+            lambda game: assert_banks([0, 3, 3, 3, 3], game.players[0].resource_persistent),
+            lambda game: assert_noble_n(game.players[0], 1),
+            lambda game: assert_points(game.players[0], 22 + 4 + 4), ## claimed noble 2
+            lambda game: assert_noble_claimed(game.players[0], 17),
 
             Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
-            lambda : assert_noble_n(game.players[0], 2),
-            lambda : assert_points(game.players[0], 22 + 4 + 3 + 3), ## claimed noble
-            lambda : assert_noble_claimed(game.players[0], 18),
+            lambda game: assert_noble_n(game.players[0], 2),
+            lambda game: assert_points(game.players[0], 22 + 4 + 4 + 5), ## claimed noble 3
+            lambda game: assert_noble_claimed(game.players[0], 18),
+        ],
+        [
+            lambda game: assert_points(game.players[0], 22),
+            Turn(Action_Type.BUY_CARD, card_index=10 + 3, noble_preference=2), ## sapphire
+            
+            lambda game: assert_banks([0, 3, 3, 3, 3], game.players[0].resource_persistent),
+            lambda game: assert_noble_n(game.players[0], 1),
+            lambda game: assert_points(game.players[0], 22 + 4 + 5), ## claimed noble 3
+            lambda game: assert_noble_claimed(game.players[0], 18),
+
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+            lambda game: assert_noble_n(game.players[0], 2),
+            lambda game: assert_points(game.players[0], 22 + 4 + 5 + 4), ## claimed noble 2
+            lambda game: assert_noble_claimed(game.players[0], 17),
         ]
     ]
     for i, verify_list in enumerate(branched_verify):

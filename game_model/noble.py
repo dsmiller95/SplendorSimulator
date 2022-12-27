@@ -8,6 +8,12 @@ class Noble:
         self.costs = resource_cost
         self.points = reward_points
     
+    def satisfied_by(self, resource_bank: list[int]) -> bool:
+        for i, req in enumerate(self.costs):
+            if resource_bank[i] < req:
+                return False
+        return True
+
     def describe_self(self) -> str:
         result = "Points: " + str(self.points).ljust(3)
         result += "Cost: ["
