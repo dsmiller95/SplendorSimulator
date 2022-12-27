@@ -8,7 +8,7 @@ from utilities.print_utils import stringify_resources
 from utilities.subsamples import draw_n
 
 class Game:
-    def __init__(self, player_count: int, game_config: GameConfigData):
+    def __init__(self, player_count: int, game_config: GameConfigData, force_shuffle: bool = True):
 
         if player_count <= 1 or player_count > 4:
             raise "Invalid player number, must have 2, 3, or 4 players"
@@ -32,15 +32,18 @@ class Game:
         self.available_resources : list[int] = [res_base, res_base, res_base, res_base, res_base, 5]
         
         ## Nobles
-        self.active_nobles = sample(game_config.nobles, player_count + 1)
+        nobles = game_config.nobles[0:]
+        if force_shuffle:
+            shuffle(nobles)
+        self.active_nobles = nobles[0:player_count + 1]
 
         ## Cards
         for card in game_config.cards:
             self.remaining_cards_by_level[card.tier].append(card)
         
-        ## TODO: assert proper card size
-        for card_tier in self.remaining_cards_by_level:
-            shuffle(card_tier)
+        if force_shuffle:
+            for card_tier in self.remaining_cards_by_level:
+                shuffle(card_tier)
 
         for idx, cards in enumerate(self.remaining_cards_by_level):
             self.open_cards[idx] = draw_n(cards, game_config.open_cards_per_tier)
