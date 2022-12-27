@@ -1,3 +1,4 @@
+from game_model.game import Game
 from game_model.turn import Turn
 
 class VectorBuilder:
@@ -20,7 +21,7 @@ class VectorBuilder:
 
 
 
-def map_to_AI_input(game_state):
+def map_to_AI_input(game_state: Game):
      
     input_vector = VectorBuilder(236)
     #populate a player vector so we can rotate it
@@ -42,8 +43,8 @@ def map_to_AI_input(game_state):
                 player_vector.put((offset+(j*reserved_card_shape))+5,[0]*5)
                 player_vector.put((offset+(j*reserved_card_shape))+10,0)
             else:
-                player_vector.put((offset+(j*reserved_card_shape))+0,card.cost)
-                player_vector.put((offset+(j*reserved_card_shape))+5,card.reward)
+                player_vector.put((offset+(j*reserved_card_shape))+0,card.costs)
+                player_vector.put((offset+(j*reserved_card_shape))+5,[1 if card.reward.value == i else 0 for i in range(0, 5)])
                 player_vector.put((offset+(j*reserved_card_shape))+10,card.points)
     
     player_num = game_state.get_current_player_index()
@@ -68,10 +69,10 @@ def map_to_AI_input(game_state):
 
     return input_vector.return_vector()
 
-def map_from_AI_output(output_vector):
+def map_from_AI_output(output_vector: list[float]):
 
     action = output_vector[0]
-    tiers = []
+    tiers: list[list[float]] = []
     for tier in range(3):
         tiers.append(output_vector[1+(4*tier):1+(4*tier)+4])
     purchase_reserve = output_vector[13]
