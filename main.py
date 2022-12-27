@@ -12,44 +12,6 @@ random.seed(1337)
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=2, game_config=game_config)
 
-test_actions = [
-    Turn(Action_Type.TAKE_TWO, [2, 0, 0, 0, 0]),
-    Turn(Action_Type.RESERVE_CARD, card_index=1),
-
-    Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 0, 0, 1]),
-    Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 1, 1, 0, 1]),
-
-    Turn(Action_Type.BUY_CARD, card_index=4),
-    Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
-    
-    Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
-    Turn(Action_Type.BUY_CARD, card_index=15 + 0),
-
-    Turn(Action_Type.RESERVE_CARD, card_index=2),
-    Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 1, 1, 0, 1]),
-
-    Turn(Action_Type.BUY_CARD, card_index=3),
-    Turn(Action_Type.BUY_CARD, card_index=1),
-    
-    Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 1, 1, 0, 1]),
-]
-
-turn_num = 0
-for turn in test_actions:
-    print("=================================TURN " + str(turn_num) + "=================================")
-    print(game.describe_common_state())
-    turn_num += 1
-    print("player " + str(game.get_current_player_index() + 1) + "'s turn!")
-    print(turn.describe_state(game, game.get_current_player()))
-    step_result = step_game(game, turn)
-    if not (step_result is None):
-        print("GAME ERR")
-        print(step_result)
-        exit(0)
-exit(0)
-
-
-
 while True:
     print(game.describe_common_state())
     print("player " + str(game.get_current_player_index() + 1) + "'s turn!")
