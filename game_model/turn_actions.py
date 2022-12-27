@@ -8,9 +8,9 @@ def add_reserved_card(player: Actor, game: Game, card: Card) -> bool:
     for idx, x in enumerate(player.reserved_cards):
         if x is None:
             player.reserved_cards[idx] = card
-            if game.available_resources[game.config.wildcard_token_index] > 0:
-                player.resource_tokens[game.config.wildcard_token_index] += 1
-                game.available_resources[game.config.wildcard_token_index] -= 1
+            if game.available_resources[ResourceType.GOLD.value] > 0:
+                player.resource_tokens[ResourceType.GOLD.value] += 1
+                game.available_resources[ResourceType.GOLD.value] -= 1
             return True
     return False
 

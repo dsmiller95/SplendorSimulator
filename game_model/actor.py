@@ -39,7 +39,7 @@ class Actor:
             if remaining <= 0:
                 continue
             wildcard_bank = wildcard_bank - remaining
-            if wildcard_bank <= 0:
+            if wildcard_bank < 0:
                 return False
         return True
 

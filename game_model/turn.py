@@ -4,7 +4,7 @@ from game_model.card import Card
 from game_model.game import Game
 
 from game_model.resource_types import ResourceType
-from game_model.turn_actions import add_reserved_card
+from game_model.turn_actions import add_reserved_card, purchase_card
 
 class Action_Type(IntEnum):
     TAKE_THREE_UNIQUE = 1,
@@ -122,7 +122,7 @@ class Turn:
                 target_card = player.take_reserved_card(reserved_card_index)
             else:
                 target_card = game_state.take_card_by_index(self.card_index)
-            player.purchase_card(target_card)
+            purchase_card(player, game_state, target_card)
         elif self.action_type == Action_Type.RESERVE_CARD:
             target_card = game_state.take_card_by_index(self.card_index)
             add_reserved_card(player, game_state, target_card)
