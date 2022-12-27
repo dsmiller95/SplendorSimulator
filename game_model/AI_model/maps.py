@@ -1,3 +1,5 @@
+from game_model.turn import Turn
+
 class VectorBuilder:
     def __init__(self, vect_len:int):
         self.vector = [None]*vect_len
@@ -60,8 +62,27 @@ def map_to_AI_input(game_state):
             card_size = 5+1+1
             tier_size = 4*card_size
             offset = (player_shape*4)+(noble_shape*5)+(i*tier_size)+(j*card_size)
-            input_vector.put(offset,card.costs)
+            input_vector.put(offset,card.costs) 
             input_vector.put(offset+5,card.reward.value)
             input_vector.put(offset+6,card.points)
 
     return input_vector.return_vector()
+
+def map_from_AI_output(output_vector):
+
+    action = output_vector[0]
+    tiers = []
+    for tier in range(3):
+        tiers.append(output_vector[1+(4*tier):1+(4*tier)+4])
+    purchase_reserve = output_vector[13]
+    triplet = output_vector[14:17]
+    doublet = output_vector[17]
+    draw_noble = output_vector[18]
+    noble_choice = output_vector[19]
+    discard_tokens = output_vector[20]
+    discard_numbers = output_vector[21::]
+
+    #Code that tries to fit the AI output to valid game states goes here
+    #turn_actions = Turn()
+    
+    return None
