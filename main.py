@@ -2,6 +2,7 @@ from game_data.game_config_data import GameConfigData
 from game_model.game_runner import step_game
 from game_model.turn import Turn, Action_Type
 from game_model.game import Game
+from game_model.AI_model.maps import map_to_AI_input
 from input_parser.action_parser import get_action_from_user
 
 print("hello there")
