@@ -3,13 +3,13 @@ For ingestion:
 Players[4]--->Temp Resources[6]
             ->Permanent Resources[5]
             ->Reserved Cards[3]------>Costs[5]
-                                    ->Returns[1]
+                                    ->Returns[5]
                                     ->Points[1]
 
 >Nobles[5]--->Costs[5]
             ->Points[1]
-Tiers[3]---->Cards[4]--->Costs[5]
-                       ->Returns[1]
+Tiers[3]---->Cards[5]--->Costs[5]
+                       ->Returns[5]
                        ->Points[1]
 (Tiers are layed out: Tier1, Tier2, Tier3)
 

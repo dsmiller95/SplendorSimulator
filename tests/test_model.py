@@ -11,6 +11,6 @@ def test_model_setup():
     in2_tensor = torch.Tensor([0.0,1.0,0.0])
     in3_tensor = torch.Tensor([0.0,1.0,2.0,3.0,4.0,5.0,6.0])
     input_tensor_dict = {'in1':in1_tensor,'in2':in2_tensor,'in3':in3_tensor}
-
-    print(model)
-    print(model.forward(input_tensor_dict))
+    
+    
+    model.forward(input_tensor_dict))

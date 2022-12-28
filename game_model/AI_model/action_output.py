@@ -1,4 +1,3 @@
-
 class ActionOutput:
     def __init__(self):
         self.action_choice = [None] * 4
