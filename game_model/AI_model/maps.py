@@ -5,6 +5,8 @@ from game_model.turn import Turn,Action_Type
 from utilities.subsamples import pad_list
 from itertools import chain
 
+from utilities.utils import Lazy
+
 class VectorBuilder:
     def __init__(self, vect_len:int):
         self.vector = [None]*vect_len
@@ -108,7 +110,9 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     #behavior: first it will try to validate the most preferred action, then the second most, etc.
     action_attempts = 0
 
-    prioritized_resource_preferences = [ResourceType(x[0]) for x in sorted(enumerate(resource_draw), key = lambda x: x[1], reverse=True)]
+    prioritized_resource_preferences : Lazy[list[ResourceType]] = Lazy(
+        lambda: [ResourceType(x[0]) for x in sorted(enumerate(resource_draw), key = lambda x: x[1], reverse=True)]
+    )
 
     while fit_check == False and action_attempts < 4:
         best_action_index = action.index(max(action))
@@ -118,13 +122,13 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
         turn = Turn(action_type)
 
         if action_type==Action_Type.TAKE_THREE_UNIQUE:
-            best_pick = _find_best_pick_three(prioritized_resource_preferences, game.available_resources)
+            best_pick = _find_best_pick_three(prioritized_resource_preferences.val(), game.available_resources)
             if not best_pick is None:
                 turn.resources_desired = best_pick
                 fit_check = True
 
         elif action_type==Action_Type.TAKE_TWO:
-            best_pick = _find_best_pick_two(prioritized_resource_preferences, game.available_resources)
+            best_pick = _find_best_pick_two(prioritized_resource_preferences.val(), game.available_resources)
             if not best_pick is None:
                 turn.resources_desired = best_pick
                 fit_check = True
