@@ -1,4 +1,6 @@
+from game_model.game import Game
 from game_model.turn import Turn
+from utilities.subsamples import pad_list
 
 class VectorBuilder:
     def __init__(self, vect_len:int):
@@ -20,7 +22,7 @@ class VectorBuilder:
 
 
 
-def map_to_AI_input(game_state):
+def map_to_AI_input(game_state: Game):
      
     input_vector = VectorBuilder(236)
     #populate a player vector so we can rotate it
@@ -31,7 +33,11 @@ def map_to_AI_input(game_state):
     reserved_card_shape = (5+5+1)
     player_shape = 6+5+(3*reserved_card_shape)
     player_vector = VectorBuilder(4*player_shape)
-    for i,player in enumerate(game_state.players):
+    for i,player in enumerate(game_state.players + [None] * (4 - len(game_state.players)) ):
+        if player is None:
+            player_vector.put((i*player_shape)+0, [0] * player_shape)
+            continue
+
         player_vector.put((i*player_shape)+0,player.resource_tokens)
         player_vector.put((i*player_shape)+6,player.resource_persistent)
 
@@ -42,8 +48,8 @@ def map_to_AI_input(game_state):
                 player_vector.put((offset+(j*reserved_card_shape))+5,[0]*5)
                 player_vector.put((offset+(j*reserved_card_shape))+10,0)
             else:
-                player_vector.put((offset+(j*reserved_card_shape))+0,card.cost)
-                player_vector.put((offset+(j*reserved_card_shape))+5,card.reward)
+                player_vector.put((offset+(j*reserved_card_shape))+0,card.costs)
+                player_vector.put((offset+(j*reserved_card_shape))+5,[1 if card.reward.value == i else 0 for i in range(0, 5)])
                 player_vector.put((offset+(j*reserved_card_shape))+10,card.points)
     
     player_num = game_state.get_current_player_index()
@@ -52,8 +58,10 @@ def map_to_AI_input(game_state):
     input_vector.put(0,player_vector_rotated)
 
     noble_shape = 5+1
-    for i,noble in enumerate(game_state.active_nobles):
-    
+    for i,noble in enumerate(pad_list(game_state.active_nobles, 5)):
+        if noble is None:
+            input_vector.put((player_shape*4)+(i*noble_shape),[0] * noble_shape)
+            continue
         input_vector.put((player_shape*4)+(i*noble_shape),noble.costs)
         input_vector.put((player_shape*4)+(i*noble_shape+5),noble.points)
     
@@ -68,10 +76,10 @@ def map_to_AI_input(game_state):
 
     return input_vector.return_vector()
 
-def map_from_AI_output(output_vector):
+def map_from_AI_output(output_vector: list[float]):
 
     action = output_vector.pop(0)
-    tiers = [[None]*4]*3
+    tiers: list[list[float]] = [[None]*4]*3
     for tier in range(3):
         cards = []
         for card in range(4):

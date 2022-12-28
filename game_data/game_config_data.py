@@ -59,5 +59,6 @@ class GameConfigData:
             if row[1] == "Noble":
                 result.append(Noble(
                     resource_cost=parse_all_int(row[3:8], 0),
-                    reward_points=parse_int(row[13], 0)))
+                    reward_points=parse_int(row[13], 0),
+                    card_id=int(row[0])))
         return result

@@ -14,5 +14,5 @@ def train():
     print(game.describe_common_state())
     first_action = Turn(
         action_type=Action_Type.TAKE_TWO,
-        resources=[ResourceType.DIAMOND, ResourceType.ONYX, ResourceType.EMERALD]
+        resources=[0, 0, 2, 0, 0]
         )

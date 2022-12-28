@@ -5,7 +5,7 @@ from random import sample, shuffle
 from game_model.card import Card
 from game_model.noble import Noble
 from utilities.print_utils import stringify_resources
-from utilities.subsamples import draw_n
+from utilities.subsamples import clone_shallow, clone_two_deep, draw_n
 
 class Game:
     def __init__(self, player_count: int, game_config: GameConfigData, force_shuffle: bool = True):
@@ -48,6 +48,18 @@ class Game:
         for idx, cards in enumerate(self.remaining_cards_by_level):
             self.open_cards[idx] = draw_n(cards, game_config.open_cards_per_tier)
     
+    def clone(self) -> Game:
+        new = Game(len(self.players), self.config, force_shuffle=False)
+        new.players = [x.clone() for x in self.players]
+        new.active_index = self.active_index
+        new.config = self.config
+        new.active_nobles = clone_shallow(self.active_nobles)
+        new.remaining_cards_by_level = clone_two_deep(self.remaining_cards_by_level)
+        new.open_cards = clone_two_deep(self.open_cards)
+        new.available_resources = clone_shallow(self.available_resources)
+        new.active_nobles = clone_shallow(self.active_nobles)
+        return new
+
     def get_tier_and_selected(self, card_index: int) -> tuple[int, int]:
         tier_width = self.config.open_cards_per_tier + 1
         tier = card_index // tier_width
@@ -67,7 +79,7 @@ class Game:
         if selected_card == 0:
             if len(self.remaining_cards_by_level[tier]) <= 0:
                 return None
-            return self.remaining_cards_by_level[tier][-1]
+            return self.remaining_cards_by_level[tier][0]
         return self.open_cards[tier][selected_card - 1]
     
     def take_card_by_index(self, card_index: int) -> Card:
@@ -76,15 +88,18 @@ class Game:
         if selected_card == 0:
             if len(self.remaining_cards_by_level[tier]) <= 0:
                 return None
-            return self.remaining_cards_by_level[tier].pop()
+            return self.remaining_cards_by_level[tier].pop(0)
 
         taken_card = self.open_cards[tier][selected_card - 1]
         if len(self.remaining_cards_by_level[tier]) <= 0:
             self.open_cards[tier][selected_card - 1] = None
             return taken_card
-        self.open_cards[tier][selected_card - 1] = self.remaining_cards_by_level[tier].pop()
+        self.open_cards[tier][selected_card - 1] = self.remaining_cards_by_level[tier].pop(0)
         return taken_card
 
+    def give_tokens_to_player(self, player: Actor, token_index: int, token_num: int = 1):
+            player.resource_tokens[token_index] += token_num
+            self.available_resources[token_index] -= token_num
 
     def get_player(self, player_index: int) -> Actor:
         return self.players[player_index]
@@ -111,6 +126,4 @@ class Game:
             result_str += "\n-----Player " + str(idx + 1) + "-----\n" + player.describe_state()
         return result_str
 
-    def clone(self) -> Game:
-        raise "not implemented"
     
