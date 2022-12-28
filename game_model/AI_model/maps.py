@@ -145,11 +145,8 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
                                 key = lambda sub: visible_cards[sub])
             indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
             for possible_buy in indices_by_desire:
-
-                tiers_temp = list[list[float]] = [[0]*5]*3
-                #assign a 1 to the AI's desired card location
-                tiers_temp[(int(possible_buy/4)+1)*possible_buy] = 1
-                turn.card_index(tiers_temp) #this is wrong, it's expecting a scalar
+                buy_index = (1*(possible_buy//4)+possible_buy)
+                turn.card_index(buy_index)
                 if turn.validate(game,player) == None:  
                     fit_check = True
 
@@ -160,10 +157,8 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
                                 key = lambda sub: reserved_cards[sub])
             indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
             for possible_buy in indices_by_desire:
-                tiers_temp = list[list[float]] = [[0]*5]*3
-                #assign a 1 to the AI's desired card location
-                tiers_temp[possible_buy] = 1
-                turn.card_index(tiers_temp) #this is wrong, it's expecting a scalar
+                buy_index = (4*5)+possible_buy
+                turn.card_index(buy_index)
                 if turn.validate(game,player) == None:  
                     fit_check = True
 
