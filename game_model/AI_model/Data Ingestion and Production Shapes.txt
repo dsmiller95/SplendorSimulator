@@ -21,9 +21,9 @@ For production:
 
 Action_to_take[4]
 Tiers[3]--->Cards[5]
-Reserve buy[1]
+Reserve buy[3]
 Coin draw[5]
-Noble choice[1]
+Noble choice[5]
 Discard tokens?[1]--->How many[6]
 
-Total: 33 values
+Total: 39 values
