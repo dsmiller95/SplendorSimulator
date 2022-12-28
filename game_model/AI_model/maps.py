@@ -1,3 +1,4 @@
+from game_model.card import Card
 from game_model.game import Game
 from game_model.actor import Actor
 from game_model.resource_types import ResourceType
@@ -91,7 +92,10 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
     action_attempts = 0
 
     prioritized_resource_preferences : Lazy[list[ResourceType]] = Lazy(
-        lambda: [ResourceType(x[0]) for x in sorted(enumerate(action_output.resource_token_draw), key = lambda x: x[1], reverse=True)]
+        lambda: [ResourceType(i) for i, x in sorted(enumerate(action_output.resource_token_draw), key = lambda tup: tup[1], reverse=True)]
+    )
+    prioritized_card_indexes : Lazy[list[ResourceType]] = Lazy(
+        lambda: [i for i, x in sorted(enumerate(action_output.card_buy + action_output.reserve_buy), key = lambda tup: tup[1], reverse=True)]
     )
 
     action = clone_shallow(action_output.action_choice)
@@ -104,27 +108,21 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
 
         if action_type==Action_Type.TAKE_THREE_UNIQUE:
             best_pick = _find_best_pick_three(prioritized_resource_preferences.val(), game.available_resources)
-            if not best_pick is None:
+            if not (best_pick is None):
                 turn.resources_desired = best_pick
                 fit_check = True
 
         elif action_type==Action_Type.TAKE_TWO:
             best_pick = _find_best_pick_two(prioritized_resource_preferences.val(), game.available_resources)
-            if not best_pick is None:
+            if not (best_pick is None):
                 turn.resources_desired = best_pick
                 fit_check = True
 
         elif action_type==Action_Type.BUY_CARD:
-            visible_cards = [card for i, card in enumerate(action_output.card_buy) if i % 5 != 0]
-            visible_cards = list(chain(*visible_cards)) #flatten to 1d list
-            indices_by_dislike = sorted(range(len(visible_cards)),
-                                key = lambda sub: visible_cards[sub])
-            indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
-            for possible_buy in indices_by_desire:
-                buy_index = (1*(possible_buy//4)+possible_buy)
-                turn.card_index(buy_index)
-                if turn.validate(game,player) == None:  
-                    fit_check = True
+            best_pick = _find_best_card_buy(prioritized_card_indexes.val(), player, game)
+            if not (best_pick is None):
+                turn.card_index = best_pick
+                fit_check = True
 
         elif action_type==Action_Type.RESERVE_CARD:
             reserved_cards = [card for i, card in enumerate(action_output.card_buy) if i % 5 == 0]
@@ -166,4 +164,23 @@ def _find_best_pick_two(sorted_resource_prefs: list[ResourceType], available_res
         if available_resources[next_pref.value] >= 4:
             output_selections[next_pref.value] = 2
             return output_selections
+    return None
+
+def _find_best_card_buy(
+    prioritized_card_indexes: list[int], 
+    player: Actor,
+    game: Game) -> int:
+    total_cards = game.config.total_available_card_indexes()
+    for next_index in prioritized_card_indexes:
+        card_target : Card = None
+        if next_index >= total_cards: ## is reserved card index
+            card_target = player.get_reserved_card(next_index - total_cards)
+            if card_target is None:
+                continue
+        else:
+            if game.is_top_deck_index(next_index):
+                continue
+            card_target = game.get_card_by_index(next_index)
+        if player.can_purchase(card_target):
+            return next_index
     return None
