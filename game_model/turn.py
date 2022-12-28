@@ -8,11 +8,11 @@ from game_model.turn_actions import add_reserved_card, purchase_card
 from utilities.print_utils import stringify_resources
 
 class Action_Type(IntEnum):
-    TAKE_THREE_UNIQUE = 1,
-    TAKE_TWO = 2,
-    BUY_CARD = 3,
-    RESERVE_CARD = 4,
-    NOOP = 5 ## reserved for testing, player passes their turn
+    TAKE_THREE_UNIQUE = 0,
+    TAKE_TWO = 1,
+    BUY_CARD = 2,
+    RESERVE_CARD = 3,
+    NOOP = 4 ## reserved for testing, player passes their turn
 
 """                                  vectorize-------------------------> Ihidden | I   I   I   I ---,
 Card indexes:                                                      ,----------------<---------------'
@@ -88,7 +88,7 @@ class Turn:
                     total_buy += resource
                     if resource > 1:
                         return "cannot pick more than one from each resource on a unique take"
-                    if game_state.available_resources_desired[idx] < self.resources_desired[idx]:
+                    if game_state.available_resources[idx] < self.resources_desired[idx]:
                         return "cannot take more resources than available in bank"
                     
                 if total_buy > 3:
@@ -138,7 +138,7 @@ class Turn:
                 
             
             return None
-    
+            
 
     """
     execute this action, modifying the game and player state

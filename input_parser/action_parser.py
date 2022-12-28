@@ -33,7 +33,7 @@ Enter the type of action you would like to take, or "exit":
         input_val = input()
         if input_val == "exit":
             return False
-        action_type = Action_Type(int(input_val))
+        action_type = Action_Type(int(input_val) - 1)
     except:
         print("Enter a number in the range [1, 4]")
         return None
@@ -55,6 +55,7 @@ Enter the type of action you would like to take, or "exit":
                 claimed = ResourceType(int(input()))
             except:
                 print("enter a valid resource type, one of the 5 listed")
+                return None
             if(claimed == ResourceType.GOLD):
                 print("enter a valid resource type, one of the 5 listed")
                 return None
