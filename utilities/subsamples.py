@@ -8,7 +8,6 @@ def draw_n(deck: list[T], draw_num: int) -> list[T]:
     del deck[:draw_num]
     return drawn
 
-
 def draw_one(deck: list[T]) -> T:
     return deck.pop(0)
 

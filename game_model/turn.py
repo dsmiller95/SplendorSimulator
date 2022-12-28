@@ -30,9 +30,14 @@ class Turn:
     def __init__(
         self,
         action_type: Action_Type,
+        ## indicates which resources to buy, if buying. always length 5
+        ## for example, [1, 1, 1, 0, 0] if buying three unique resources
         resources: list[int] = None,
         card_index: int = None,
         noble_preference: float = 0, ## which noble to pick. if more than one noble available, will pick the one closest to this index
+        ## which tokens to discard. if necessary, will be used to determine which tokens to discard first when we over-inventory
+        ## TODO: implement this
+        discard_meta: list[float] = [0, 0, 0, 0, 0],
         discard_preference: list[ResourceType] = default_discard_pref ## ordered list of which resource to discard if maximum is reached
         ):
         self.action_type = action_type
