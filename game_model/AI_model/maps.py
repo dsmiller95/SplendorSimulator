@@ -98,50 +98,59 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
         discard_numbers.append(output_vector.pop(0))
 
     #Fit the AI output to valid game states
-
+    fit_check = False
     turn = Turn()
-
+    
     action_type = Action_Type[round(action)]
     
-    if action_type==Action_Type.TAKE_THREE_UNIQUE:
-        if sum(round(resource_draw)) == 3 and 2 not in round(resource_draw): #the only valid outcome
-            turn.resources_desired = round(resource_draw)
-        else:
-            #Normalize the array to 0-1, assign 1's to the three highest values, 0 to the others
-            resource_draw_normalized = [elem/max(resource_draw) for elem in resource_draw]
-            three_highest_indices = sorted(range(len(resource_draw_normalized)),
-                                    key = lambda sub: resource_draw_normalized[sub])[-3:]
-            resource_draw = [1 if i in three_high_indices else 0 for i,elem in enumerate(test_list_normalized)]
-            turn.resources_desired = round(resource_draw)
+    while fit_check == False:
+        if action_type==Action_Type.TAKE_THREE_UNIQUE:
+            if sum(round(resource_draw)) == 3 and 2 not in round(resource_draw): #the only valid outcome
+                turn.resources_desired = round(resource_draw)
+            else:
+                #Normalize the array to 0-1, assign 1's to the three highest values, 0 to the others
+                resource_draw_normalized = [elem/max(resource_draw) for elem in resource_draw]
+                three_highest_indices = sorted(range(len(resource_draw_normalized)),
+                                        key = lambda sub: resource_draw_normalized[sub])[-3:]
+                resource_draw = [1 if i in three_high_indices else 0 for i,elem in enumerate(test_list_normalized)]
+                turn.resources_desired = round(resource_draw)
+            if turn.validate(game,player) == None:  
+                fit_check = True
 
-    elif action_type==Action_Type.TAKE_TWO:
-        if sum(round(resource_draw)) == 2 and 1 not in round(resource_draw):
-            turn.resources_desired = round(resource_draw)
-        else:
-            #Normalize the array to 0-1, assign 1's to the two highest values, 0 to the others
-            resource_draw_normalized = [elem/max(resource_draw) for elem in resource_draw]
-            three_highest_indices = sorted(range(len(resource_draw_normalized)),
-                                    key = lambda sub: resource_draw_normalized[sub])[-2:]
-            resource_draw = [1 if i in three_high_indices else 0 for i,elem in enumerate(test_list_normalized)]
-            turn.resources_desired = round(resource_draw)
+        elif action_type==Action_Type.TAKE_TWO:
+            if sum(round(resource_draw)) == 2 and 1 not in round(resource_draw):
+                turn.resources_desired = round(resource_draw)
+            else:
+                #Normalize the array to 0-1, assign 1's to the two highest values, 0 to the others
+                resource_draw_normalized = [elem/max(resource_draw) for elem in resource_draw]
+                three_highest_indices = sorted(range(len(resource_draw_normalized)),
+                                        key = lambda sub: resource_draw_normalized[sub])[-2:]
+                resource_draw = [1 if i in three_high_indices else 0 for i,elem in enumerate(test_list_normalized)]
+                turn.resources_desired = round(resource_draw)
+            if turn.validate(game,player) == None:  
+                fit_check = True
 
-    elif action_type==Action_Type.BUY_CARD:
-        visible_cards = [cards[1:] for cards in tiers]
-        visible_cards = list(chain(*visible_cards)) #flatten to 1d list
-        indices_by_dislike = sorted(range(len(resource_draw_normalized)),
-                             key = lambda sub: resource_draw_normalized[sub])
-        indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
-        for possible_buy in indices_by_desire:
+        elif action_type==Action_Type.BUY_CARD:
+            visible_cards = [cards[1:] for cards in tiers]
+            visible_cards = list(chain(*visible_cards)) #flatten to 1d list
+            indices_by_dislike = sorted(range(len(resource_draw_normalized)),
+                                key = lambda sub: resource_draw_normalized[sub])
+            indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
+            for possible_buy in indices_by_desire:
 
-            tiers_temp = list[list[float]] = [[0]*5]*3
-            #assign a 1 to the location where the card the AI wants to buy is
-            tiers_temp[(int(possible_buy/4)*1)+possible_buy] = 1
-            turn.card_index(tiers_temp)
-            if turn.validate(game,player) == None:
-                break
-        #if it failed to buy any cards, go back to the beginning and choose the next most desired action
-    elif action_type==Action_Type.RESERVE_CARD:
-        pass
+                tiers_temp = list[list[float]] = [[0]*5]*3
+                #assign a 1 to the location where the card the AI wants to buy is
+                tiers_temp[(int(possible_buy/4)*1)+possible_buy] = 1
+                turn.card_index(tiers_temp)
+                if turn.validate(game,player) == None:
+                    break
+            if turn.validate(game,player) == None:  
+                fit_check = True
+            #if it failed to buy any cards, go back to the beginning and choose the next most desired action
+        elif action_type==Action_Type.RESERVE_CARD:
+            if turn.validate(game,player) == None:  
+                fit_check = True
+            pass
 
     #for all four actions we'll need something that must either map to a valid state,
     #or decide to skip and go to the next action
