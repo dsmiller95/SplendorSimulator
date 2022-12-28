@@ -86,7 +86,7 @@ def map_from_AI_output(output_vector: list[float]):
             cards.append(output_vector.pop(0))
             tiers[tier] = cards
     purchase_reserve = output_vector.pop(0)
-    triplet = []
+    triplet: list[float] = []
     for i in range(3):
         triplet.append(output_vector.pop(0))
     doublet = output_vector.pop(0)
