@@ -45,10 +45,13 @@ class Turn:
         self.card_index = card_index
         self.noble_preference = noble_preference
 
-        if len(discard_preference_levels) < 6:
+        self.set_discard_preferences(discard_preference_levels)
+
+    def set_discard_preferences(self, new_preferences: list[int]):
+        if len(new_preferences) < 6:
             raise RuntimeError("discard preferences must be length 6, matching number of resource types")
-        self.discard_commands = [(ResourceType(i), x) for i, x in enumerate(discard_preference_levels)]
-        self.discard_commands.sort(key= lambda x: x[1], reverse=True)
+        self._discard_commands = [(ResourceType(i), x) for i, x in enumerate(new_preferences)]
+        self._discard_commands.sort(key= lambda x: x[1], reverse=True)
     
     def describe_state(self, game_state: Game, player: Actor) -> str:
         result = ""
@@ -97,7 +100,7 @@ class Turn:
                 for idx, resource in enumerate(self.resources_desired):
                     if resource <= 0:
                         continue
-                    if(total_buy > 0):
+                    if total_buy > 0:
                         return "cannot pick more than one resource type on a Take Two"
                     total_buy += resource
                     if resource > 2:
@@ -191,7 +194,7 @@ class Turn:
 
     def _discard_down(self, game_state: Game, player: Actor):
         ## first discard outright if values round to >1
-        for discard_command in self.discard_commands:
+        for discard_command in self._discard_commands:
             true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
             if true_amount <= 0:
                 continue
@@ -202,7 +205,7 @@ class Turn:
             return
 
         for try_num in range(0, 4):
-            for next_discard in self.discard_commands:
+            for next_discard in self._discard_commands:
                 if player.resource_tokens[next_discard[0].value] > 0:
                     total_tokens -= 1
                     game_state.give_tokens_to_player(player, next_discard[0].value, -1)
