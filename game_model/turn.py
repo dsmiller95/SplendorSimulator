@@ -14,13 +14,13 @@ class Action_Type(IntEnum):
     RESERVE_CARD = 4,
     NOOP = 5 ## reserved for testing, player passes their turn
 
-"""
-Card indexes:
-0: tier 1 top of deck
-2: tier 1 2nd revealed card
-5: tier 2 top of deck
-9: tier 2 4th revealed card
-[0... tiers * (open_cards_per_tier + 1)) : board reserve
+"""                                  vectorize-------------------------> Ihidden | I   I   I   I ---,
+Card indexes:                                                      ,----------------<---------------'
+0: tier 1 top of deck                                              '--> IIhidden | II  II  II  II --,
+2: tier 1 2nd revealed card                                        ,----------------<---------------'
+5: tier 2 top of deck                                              '-> IIIhidden | III III III III -,
+9: tier 2 4th revealed card                                        ,----------------<---------------'
+[0... tiers * (open_cards_per_tier + 1)) : board reserve           '-----> rsrvd1 rsrvd2 rsrvd3
 [(tiers * (open_cards_per_tier + 1)...+max_reserved_cards) : card reserve
 """
 
@@ -30,20 +30,15 @@ class Turn:
     def __init__(
         self,
         action_type: Action_Type,
-        ## indicates which resources to buy, if buying. always length 5
-        ## for example, [1, 1, 1, 0, 0] if buying three unique resources
-        resources: list[int] = None,
-        card_index: int = None,
+        resources_desired: list[int] = None,
+        card_index: int = None, #which card to pick
         noble_preference: float = 0, ## which noble to pick. if more than one noble available, will pick the one closest to this index
-        ## which tokens to discard. if necessary, will be used to determine which tokens to discard first when we over-inventory
-        ## TODO: implement this
-        discard_meta: list[float] = [0, 0, 0, 0, 0],
         discard_preference: list[ResourceType] = default_discard_pref ## ordered list of which resource to discard if maximum is reached
         ):
         self.action_type = action_type
-        if not(resources is None) and len(resources) < 5:
+        if not(resources_desired is None) and len(resources_desired) < 5:
             raise "only 5 valid resources to grab, 6 provided"
-        self.resources = resources
+        self.resources_desired = resources_desired
         self.card_index = card_index
         self.noble_preference = noble_preference
         self.discard_preference = discard_preference
@@ -52,7 +47,7 @@ class Turn:
         result = ""
         result += self.action_type.name + ": "
         if self.action_type == Action_Type.TAKE_THREE_UNIQUE or self.action_type == Action_Type.TAKE_TWO:
-            result += stringify_resources(self.resources, ignore_empty=True)
+            result += stringify_resources(self.resources_desired, ignore_empty=True)
         elif self.action_type == Action_Type.BUY_CARD or self.action_type == Action_Type.RESERVE_CARD:
             is_reserved_card = self.card_index >= game_state.config.total_available_card_indexes()
             reserved_card_index = self.card_index - game_state.config.total_available_card_indexes()
@@ -80,19 +75,19 @@ class Turn:
             self.action_type == Action_Type.TAKE_TWO):
             total_buy = 0
             if self.action_type == Action_Type.TAKE_THREE_UNIQUE:
-                for idx, resource in enumerate(self.resources):
+                for idx, resource in enumerate(self.resources_desired):
                     if resource <= 0:
                         continue
                     total_buy += resource
                     if resource > 1:
                         return "cannot pick more than one from each resource on a unique take"
-                    if game_state.available_resources[idx] < self.resources[idx]:
+                    if game_state.available_resources_desired[idx] < self.resources_desired[idx]:
                         return "cannot take more resources than available in bank"
                     
                 if total_buy > 3:
                     return "cannot take more than 3 total on unique take"
             if self.action_type == Action_Type.TAKE_TWO:
-                for idx, resource in enumerate(self.resources):
+                for idx, resource in enumerate(self.resources_desired):
                     if resource <= 0:
                         continue
                     if(total_buy > 0):
@@ -153,7 +148,7 @@ class Turn:
         
         if (self.action_type == Action_Type.TAKE_THREE_UNIQUE or
             self.action_type == Action_Type.TAKE_TWO):
-            for idx, amount in enumerate(self.resources):
+            for idx, amount in enumerate(self.resources_desired):
                 game_state.give_tokens_to_player(player, idx, amount)
             return
         
