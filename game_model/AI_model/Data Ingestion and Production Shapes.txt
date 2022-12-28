@@ -25,4 +25,4 @@ Action?[1]--->Tiers[3]--->Cards[4]
 Noble choice[1]
 Discard tokens?[1]--->How many[6]
 
-Total: 27 values
+Total: 25 values
