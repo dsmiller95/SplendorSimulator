@@ -78,14 +78,14 @@ def map_to_AI_input(game_state: Game):
 
     return input_vector.return_vector()
 
-def map_from_AI_output(output_vector: list[float],game:Game,actor:Actor):
+def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
 
     #Deconstruct AI output into components
     action = output_vector.pop(0)[0]
     tiers: list[list[float]] = [[None]*5]*3
     for tier in range(3):
         cards = []
-        for card in range(4):
+        for card in range(5):
             cards.append(output_vector.pop(0))
         tiers[tier] = cards
     purchase_reserve = output_vector.pop(0)
@@ -128,7 +128,18 @@ def map_from_AI_output(output_vector: list[float],game:Game,actor:Actor):
     elif action_type==Action_Type.BUY_CARD:
         visible_cards = [cards[1:] for cards in tiers]
         visible_cards = list(chain(*visible_cards)) #flatten to 1d list
-        
+        indices_by_dislike = sorted(range(len(resource_draw_normalized)),
+                             key = lambda sub: resource_draw_normalized[sub])
+        indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
+        for possible_buy in indices_by_desire:
+
+            tiers_temp = list[list[float]] = [[0]*5]*3
+            #assign a 1 to the location where the card the AI wants to buy is
+            tiers_temp[(int(possible_buy/4)*1)+possible_buy] = 1
+            turn.card_index(tiers_temp)
+            if turn.validate(game,player) == None:
+                break
+        #if it failed to buy any cards, go back to the beginning and choose the next most desired action
     elif action_type==Action_Type.RESERVE_CARD:
         pass
 
