@@ -76,21 +76,20 @@ def map_to_AI_input(game_state: Game):
 
     return input_vector.return_vector()
 
-def map_from_AI_output(output_vector: list[float]):
+def map_from_AI_output(output_vector: list[float],game,actor):
 
     action = output_vector.pop(0)
-    tiers: list[list[float]] = [[None]*4]*3
+    tiers: list[list[float]] = [[None]*5]*3
     for tier in range(3):
         cards = []
         for card in range(4):
             cards.append(output_vector.pop(0))
-            tiers[tier] = cards
+        tiers[tier] = cards
     purchase_reserve = output_vector.pop(0)
     triplet: list[float] = []
     for i in range(3):
         triplet.append(output_vector.pop(0))
     doublet = output_vector.pop(0)
-    draw_noble = output_vector.pop(0)
     noble_choice = output_vector.pop(0)
     discard_tokens = output_vector.pop(0)
     print(action,tiers,purchase_reserve,triplet,doublet,draw_noble,noble_choice,discard_tokens)

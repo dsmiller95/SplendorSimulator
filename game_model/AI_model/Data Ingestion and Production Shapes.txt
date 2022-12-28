@@ -21,9 +21,8 @@ For production:
 
 Action?[1]--->Tiers[3]--->Cards[4]
             ->Reserve buy[1]
-            ->Coin triplet draw[3]
-            ->Coin doublet draw[1]
-Noble draw?[1]--->Noble choice[1]
+            ->Coin draw[5]
+Noble choice[1]
 Discard tokens?[1]--->How many[6]
 
-Total: 27 values
+Total: 25 values
