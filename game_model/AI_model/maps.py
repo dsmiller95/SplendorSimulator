@@ -70,19 +70,30 @@ def map_to_AI_input(game_state):
 
 def map_from_AI_output(output_vector):
 
-    action = output_vector[0]
-    tiers = []
+    action = output_vector.pop(0)
+    tiers = [[None]*4]*3
     for tier in range(3):
-        tiers.append(output_vector[1+(4*tier):1+(4*tier)+4])
-    purchase_reserve = output_vector[13]
-    triplet = output_vector[14:17]
-    doublet = output_vector[17]
-    draw_noble = output_vector[18]
-    noble_choice = output_vector[19]
-    discard_tokens = output_vector[20]
-    discard_numbers = output_vector[21::]
+        cards = []
+        for card in range(4):
+            cards.append(output_vector.pop(0))
+            tiers[tier] = cards
+    purchase_reserve = output_vector.pop(0)
+    triplet = []
+    for i in range(3):
+        triplet.append(output_vector.pop(0))
+    doublet = output_vector.pop(0)
+    draw_noble = output_vector.pop(0)
+    noble_choice = output_vector.pop(0)
+    discard_tokens = output_vector.pop(0)
+    print(action,tiers,purchase_reserve,triplet,doublet,draw_noble,noble_choice,discard_tokens)
+    
+    for i in range(6):
+        discard_numbers.append(output_vector.pop(0))
 
-    #Code that tries to fit the AI output to valid game states goes here
+    #Tries to fit the AI output to valid game states
+    passed_fit_check = False
+    #while not passed_fit_check():
+        
     #turn_actions = Turn()
     
     return None
