@@ -88,7 +88,7 @@ class Turn:
                     total_buy += resource
                     if resource > 1:
                         return "cannot pick more than one from each resource on a unique take"
-                    if game_state.available_resources_desired[idx] < self.resources_desired[idx]:
+                    if game_state.available_resources[idx] < self.resources_desired[idx]:
                         return "cannot take more resources than available in bank"
                     
                 if total_buy > 3:
