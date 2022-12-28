@@ -2,8 +2,9 @@ from game_model.game import Game
 from game_model.actor import Actor
 from game_model.resource_types import ResourceType
 from game_model.turn import Turn,Action_Type
-from utilities.subsamples import pad_list
+from utilities.subsamples import clone_shallow, pad_list
 from itertools import chain
+from game_model.AI_model.action_output import ActionOutput
 
 from utilities.utils import Lazy
 
@@ -81,28 +82,7 @@ def map_to_AI_input(game_state: Game):
 
     return input_vector.return_vector()
 
-def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
-
-    #Deconstruct AI output into components
-    action: list[float] = []
-    for i in range(4):
-        action.append(output_vector.pop(0))
-    tiers: list[list[float]] = [[None]*5]*3
-    for tier in range(3):
-        cards = []
-        for card in range(5):
-            cards.append(output_vector.pop(0))
-        tiers[tier] = cards
-    purchase_reserve = output_vector.pop(0)
-    resource_draw: list[float] = []*5
-    for i in range(5):
-        resource_draw.append(output_vector.pop(0))
-    noble_choice = output_vector.pop(0)
-    discard_resources = output_vector.pop(0)
-    discard_numbers : list[float] = []
-    for i in range(6): #Todo: clamp between 0 and 7 (max number of possible tokens)
-        discard_numbers.append(output_vector.pop(0)) 
-
+def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
     #Fit the AI output to valid game states
     fit_check = False
     turn: Turn = None
@@ -111,9 +91,10 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     action_attempts = 0
 
     prioritized_resource_preferences : Lazy[list[ResourceType]] = Lazy(
-        lambda: [ResourceType(x[0]) for x in sorted(enumerate(resource_draw), key = lambda x: x[1], reverse=True)]
+        lambda: [ResourceType(x[0]) for x in sorted(enumerate(action_output.resource_token_draw), key = lambda x: x[1], reverse=True)]
     )
 
+    action = clone_shallow(action_output.action_choice)
     while fit_check == False and action_attempts < 4:
         best_action_index = action.index(max(action))
         action_num = best_action_index #find most preferred action
@@ -134,7 +115,7 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
                 fit_check = True
 
         elif action_type==Action_Type.BUY_CARD:
-            visible_cards = [cards[1:] for cards in tiers]
+            visible_cards = [card for i, card in enumerate(action_output.card_buy) if i % 5 != 0]
             visible_cards = list(chain(*visible_cards)) #flatten to 1d list
             indices_by_dislike = sorted(range(len(visible_cards)),
                                 key = lambda sub: visible_cards[sub])
@@ -146,7 +127,7 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
                     fit_check = True
 
         elif action_type==Action_Type.RESERVE_CARD:
-            reserved_cards = [cards[0] for cards in tiers]
+            reserved_cards = [card for i, card in enumerate(action_output.card_buy) if i % 5 == 0]
             reserved_cards = list(chain(*reserved_cards)) #flatten to 1d list
             indices_by_dislike = sorted(range(len(reserved_cards)),
                                 key = lambda sub: reserved_cards[sub])

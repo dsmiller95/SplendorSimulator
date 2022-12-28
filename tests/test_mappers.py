@@ -1,4 +1,5 @@
 
+from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.maps import map_from_AI_output
 from game_model.game import Game
 from game_model.game_runner import step_game
@@ -8,15 +9,12 @@ from game_model.turn import Turn,Action_Type
 
 def test_fit_best_pick_three():
     game = Game(2, test_config, force_shuffle=False)
-    output_vector = \
-        [1, 0, 0, 0] + \
-        ([0]*5*3) + \
-        [0] + \
-        [.1, .2, .3, .4, .5] + \
-        [0] + [0] + \
-        [0] * 6
+    action_out = ActionOutput()
+    action_out.action_choice = [1, 0, 0, 0]
+    action_out.resource_token_draw = [.1, .2, .3, .4, .5]
+
     game.available_resources = [1, 1, 0, 1, 1, 4]
-    mapped_action = map_from_AI_output(output_vector, game, game.players[0])
+    mapped_action = map_from_AI_output(action_out, game, game.players[0])
     assert not (mapped_action is None)
 
     assert_banks([0, 0, 0, 0, 0], game.players[0].resource_tokens)
@@ -30,15 +28,12 @@ def test_fit_best_pick_three():
 
 def test_fit_best_pick_three_invalid_then_pick_two():
     game = Game(2, test_config, force_shuffle=False)
-    output_vector = \
-        [1, .1, 0, 0] + \
-        ([0]*5*3) + \
-        [0] + \
-        [.1, .2, .3, .4, .5] + \
-        [0] + [0] + \
-        [0] * 6
+    action_out = ActionOutput()
+    action_out.action_choice = [1, .1, 0, 0]
+    action_out.resource_token_draw = [.1, .2, .3, .4, .5]
+
     game.available_resources = [0, 4, 0, 0, 1, 4]
-    mapped_action = map_from_AI_output(output_vector, game, game.players[0])
+    mapped_action = map_from_AI_output(action_out, game, game.players[0])
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_TWO
 
@@ -52,15 +47,13 @@ def test_fit_best_pick_three_invalid_then_pick_two():
 
 def test_fit_pick_two():
     game = Game(2, test_config, force_shuffle=False)
-    output_vector = \
-        [0, 1, 0, 0] + \
-        ([0]*5*3) + \
-        [0] + \
-        [.1, .2, .3, .4, .5] + \
-        [0] + [0] + \
-        [0] * 6
+
+    action_out = ActionOutput()
+    action_out.action_choice = [0, 1, 0, 0]
+    action_out.resource_token_draw = [.1, .2, .3, .4, .5]
+
     game.available_resources = [0, 4, 0, 0, 1, 4]
-    mapped_action = map_from_AI_output(output_vector, game, game.players[0])
+    mapped_action = map_from_AI_output(action_out, game, game.players[0])
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_TWO
 
@@ -74,15 +67,13 @@ def test_fit_pick_two():
 
 def test_fit_pick_two_invalid_then_pick_three():
     game = Game(2, test_config, force_shuffle=False)
-    output_vector = \
-        [.1, 1, 0, 0] + \
-        ([0]*5*3) + \
-        [0] + \
-        [.1, .2, .3, .4, .5] + \
-        [0] + [0] + \
-        [0] * 6
+
+    action_out = ActionOutput()
+    action_out.action_choice = [.1, 1, 0, 0]
+    action_out.resource_token_draw = [.1, .2, .3, .4, .5]
+    
     game.available_resources = [0, 3, 1, 0, 1, 4]
-    mapped_action = map_from_AI_output(output_vector, game, game.players[0])
+    mapped_action = map_from_AI_output(action_out, game, game.players[0])
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_THREE_UNIQUE
 
