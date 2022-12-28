@@ -26,3 +26,6 @@ def clone_shallow(target: list[T]) -> list[T]:
 
 def clone_two_deep(target: list[list[T]]) -> list[list[T]]:
     return [clone_shallow(x) for x in target]
+
+def pad_list(target: list[T], target_len: int, pad: T = None) -> list[T]:
+    return target + [None] * (target_len - len(target))

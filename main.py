@@ -14,6 +14,7 @@ game = Game(player_count=2, game_config=game_config)
 
 while True:
     print(game.describe_common_state())
+    print(map_to_AI_input(game))
     print("player " + str(game.get_current_player_index() + 1) + "'s turn!")
     next_action: Turn = None
     while next_action is None:

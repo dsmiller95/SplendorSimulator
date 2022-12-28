@@ -1,5 +1,6 @@
 from game_model.game import Game
 from game_model.turn import Turn
+from utilities.subsamples import pad_list
 
 class VectorBuilder:
     def __init__(self, vect_len:int):
@@ -32,7 +33,11 @@ def map_to_AI_input(game_state: Game):
     reserved_card_shape = (5+5+1)
     player_shape = 6+5+(3*reserved_card_shape)
     player_vector = VectorBuilder(4*player_shape)
-    for i,player in enumerate(game_state.players):
+    for i,player in enumerate(game_state.players + [None] * (4 - len(game_state.players)) ):
+        if player is None:
+            player_vector.put((i*player_shape)+0, [0] * player_shape)
+            continue
+
         player_vector.put((i*player_shape)+0,player.resource_tokens)
         player_vector.put((i*player_shape)+6,player.resource_persistent)
 
@@ -53,8 +58,10 @@ def map_to_AI_input(game_state: Game):
     input_vector.put(0,player_vector_rotated)
 
     noble_shape = 5+1
-    for i,noble in enumerate(game_state.active_nobles):
-    
+    for i,noble in enumerate(pad_list(game_state.active_nobles, 5)):
+        if noble is None:
+            input_vector.put((player_shape*4)+(i*noble_shape),[0] * noble_shape)
+            continue
         input_vector.put((player_shape*4)+(i*noble_shape),noble.costs)
         input_vector.put((player_shape*4)+(i*noble_shape+5),noble.points)
     
