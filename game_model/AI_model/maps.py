@@ -134,7 +134,8 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
     
     #taking noble goes here
     
-    #discarding tokens goes here
+    # discarding tokens goes here
+    turn.set_discard_preferences(action_output.discard_amounts)
 
     if turn.validate(game,player) != None:
         return "Something went wrong and the AI->game mapper couldn't coerce a valid state"
