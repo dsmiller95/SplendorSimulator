@@ -1,4 +1,4 @@
-class GamestateInput_vector:
+class GamestateInputVector:
     def __init__(self):
         self.player1 = Player_vector
         self.player2 = Player_vector
@@ -10,25 +10,25 @@ class GamestateInput_vector:
         self.tier2 = Row_vector
         self.tier3 = Row_vector
 
-class Card_vector:
+class CardVector:
     def __init__(self):
         self.costs = [None]*5
         self.returns = [None]*5
         self.points = [None]
 
-class Noble_vector:
+class NobleVector:
     def __init__(self):
         self.costs = [None]*5
         self.points = [None]
 
-class Nobles_row_vector:
+class NoblesRowVector:
     def __init__(self):
         self.noble1 = Noble_vector
         self.noble2 = Noble_vector
         self.noble3 = Noble_vector
         self.noble4 = Noble_vector
         self.noble5 = Noble_vector
-class Row_vector:
+class RowVector:
     def __init__(self):
         self.hidden_card = Card
         self.card1 = Card
@@ -36,13 +36,13 @@ class Row_vector:
         self.card3 = Card
         self.card4 = Card
 
-class Reserved_Cards_vector:
+class ReservedCardsVector:
     def __init__(self):
         self.Card1 = Card
         self.Card2 = Card
         self.Card3 = Card
 
-class Player_vector:
+class PlayerVector:
     def __init__(self):
         self.temp_resources = [None]*6
         self.perm_resources = [None]*6
