@@ -19,10 +19,10 @@ Total: 332 values
 
 For production:
 
-Action?[1]--->Tiers[3]--->Cards[4]
+Action?[1]--->Tiers[3]--->Cards[5]
             ->Reserve buy[1]
             ->Coin draw[5]
 Noble choice[1]
 Discard tokens?[1]--->How many[6]
 
-Total: 25 values
+Total: 30 values

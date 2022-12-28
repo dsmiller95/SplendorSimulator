@@ -9,7 +9,7 @@ class SplendidSplendorModel(nn.Module):
         self.hidden_width = hidden_layers_width
 
         self.in_width = (4*(6+5+(3*(5+1+1))))+(4*(5+1))+(3*(4*(5+1+1))) #236
-        self.out_width = (1+(3*4)+1+3+1+1+6) #25
+        self.out_width = (1+(3*5)+1+5+1+1+6) #30
 
         self.in_layer = nn.Linear(in_features = self.in_width, out_features = self.hidden_width)
         self.in_activation = nn.ReLU()
@@ -17,7 +17,7 @@ class SplendidSplendorModel(nn.Module):
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())
         self.hidden_layers = nn.ModuleList([hidden_layer for i in range(self.hidden_num)])
         self.out_layer = nn.Linear(in_features = self.hidden_width, out_features = self.out_width)
-        self.out_activation = nn.ReLU()
+        #Todo: create named parallel output linear layers so we can more cleanly handle the outputs
 
     def init_weights(self):
         #initialize with random noise
@@ -29,5 +29,4 @@ class SplendidSplendorModel(nn.Module):
         output = self.in_activation(self.in_layer(input))
         for layer in enumerate(self.hidden_layers):
             output = layer(output)
-        output = self.out_activation(self.out_layer(output))
         return output
