@@ -125,16 +125,10 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
                 fit_check = True
 
         elif action_type==Action_Type.RESERVE_CARD:
-            reserved_cards = [card for i, card in enumerate(action_output.card_buy) if i % 5 == 0]
-            reserved_cards = list(chain(*reserved_cards)) #flatten to 1d list
-            indices_by_dislike = sorted(range(len(reserved_cards)),
-                                key = lambda sub: reserved_cards[sub])
-            indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
-            for possible_buy in indices_by_desire:
-                buy_index = (4*5)+possible_buy
-                turn.card_index(buy_index)
-                if turn.validate(game,player) == None:  
-                    fit_check = True
+            best_pick = _find_best_card_to_reserve(prioritized_card_indexes.val(), player, game)
+            if not (best_pick is None):
+                turn.card_index = best_pick
+                fit_check = True
 
         action_attempts+=1
     
@@ -175,12 +169,31 @@ def _find_best_card_buy(
         card_target : Card = None
         if next_index >= total_cards: ## is reserved card index
             card_target = player.get_reserved_card(next_index - total_cards)
-            if card_target is None:
-                continue
         else:
             if game.is_top_deck_index(next_index):
                 continue
             card_target = game.get_card_by_index(next_index)
+        if card_target is None:
+            continue
         if player.can_purchase(card_target):
             return next_index
+    return None
+
+def _find_best_card_to_reserve(
+    prioritized_card_indexes: list[int], 
+    player: Actor,
+    game: Game
+    ) -> int:
+    if not player.can_reserve_another():
+        return None
+    total_cards = game.config.total_available_card_indexes()
+    for next_index in prioritized_card_indexes:
+        card_target : Card = None
+        if next_index >= total_cards: ## is reserved card index
+            continue
+        
+        card_target = game.get_card_by_index(next_index)
+        if card_target is None:
+            continue
+        return next_index
     return None
