@@ -24,7 +24,7 @@ Card indexes:
 [(tiers * (open_cards_per_tier + 1)...+max_reserved_cards) : card reserve
 """
 
-default_discard_pref = [ResourceType.RUBY, ResourceType.EMERALD, ResourceType.SAPPHIRE, ResourceType.DIAMOND, ResourceType.ONYX, ResourceType.GOLD]
+default_discard_pref = [.06, .05, .04, .03, .02, .01]
 
 class Turn:
     def __init__(
@@ -36,17 +36,21 @@ class Turn:
         card_index: int = None,
         noble_preference: float = 0, ## which noble to pick. if more than one noble available, will pick the one closest to this index
         ## which tokens to discard. if necessary, will be used to determine which tokens to discard first when we over-inventory
-        ## TODO: implement this
-        discard_meta: list[float] = [0, 0, 0, 0, 0],
-        discard_preference: list[ResourceType] = default_discard_pref ## ordered list of which resource to discard if maximum is reached
+        ## values in [0, 0.5) will not automatically discard. the highest value 
+        discard_preference_levels: list[float] = default_discard_pref,
         ):
+        
         self.action_type = action_type
         if not(resources is None) and len(resources) < 5:
             raise "only 5 valid resources to grab, 6 provided"
         self.resources = resources
         self.card_index = card_index
         self.noble_preference = noble_preference
-        self.discard_preference = discard_preference
+
+        if len(discard_preference_levels) < 6:
+            raise RuntimeError("discard preferences must be length 6, matching number of resource types")
+        self.discard_commands = [(ResourceType(i), x) for i, x in enumerate(discard_preference_levels)]
+        self.discard_commands.sort(key= lambda x: x[1], reverse=True)
     
     def describe_state(self, game_state: Game, player: Actor) -> str:
         result = ""
@@ -187,32 +191,24 @@ class Turn:
         player.claimed_nobles.append(chosen_noble)
         player.sum_points += chosen_noble.points
 
-    """
-    discard resources in order of the discard preferences in the turn object
-    a single token of the first preference will be discarded, then a single token of the next preference, so on until total tokens are below 10
-    we will loop through the preferences as many times as is needed to get below 10
-    if any loop through the preferences does not result in a discarded token, then the preferences will be replaced with numeric-order: ruby up to gold. this is the default.
-    """
     def _discard_down(self, game_state: Game, player: Actor):
+        ## first discard outright if values round to >1
+        for discard_command in self.discard_commands:
+            true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
+            if true_amount <= 0:
+                continue
+            game_state.give_tokens_to_player(player, discard_command[0].value, -true_amount)
+
         total_tokens = sum(player.resource_tokens)
         if total_tokens <= 10:
             return
 
-        total_tokens_discarded_in_round = 0
-        
-        current_preference = self.discard_preference
-
-        for try_num in range(0, 6):
-            for next_discard in current_preference:
-                if player.resource_tokens[next_discard.value] > 0:
-                    total_tokens_discarded_in_round += 1
+        for try_num in range(0, 4):
+            for next_discard in self.discard_commands:
+                if player.resource_tokens[next_discard[0].value] > 0:
                     total_tokens -= 1
-                    game_state.give_tokens_to_player(player, next_discard.value, -1)
+                    game_state.give_tokens_to_player(player, next_discard[0].value, -1)
                     if total_tokens <= 10:
                         return
-
-            if total_tokens_discarded_in_round <= 0:
-                current_preference = default_discard_pref
-            total_tokens_discarded_in_round = 0
 
         raise RuntimeError("could not discard down enough. error in discard down algorithm")

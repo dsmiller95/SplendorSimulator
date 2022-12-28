@@ -335,29 +335,30 @@ def test_discard_tokens_when_max_reached():
         Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1]),
         Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
         Turn(Action_Type.TAKE_THREE_UNIQUE, [1, 1, 1, 0, 0]),
+        lambda cur_game : assert_banks([2, 2, 3, 1, 1, 0], cur_game.players[0].resource_tokens),
     ]
 
     run_turns(single_player_turns, game)
 
     branched_verify = [
         [
-            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.RUBY, ResourceType.SAPPHIRE]),
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference_levels=[0.4, 0.09, 0.3, 0.07, 0.06, 0.05]),
             lambda cur_game : assert_banks([1, 2, 3, 2, 2, 0], cur_game.players[0].resource_tokens),
         ],
         [
-            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.RUBY, ResourceType.RUBY]),
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference_levels=[1.4, 0.09, 0.08, 0.07, 0.06, 0.05]),
             lambda cur_game : assert_banks([0, 2, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
         ],
         [
-            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.GOLD, ResourceType.ONYX, ResourceType.DIAMOND]),
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference_levels=[0.02, 0.09, 0.08, 0.2, 0.3, 0.4]),
             lambda cur_game : assert_banks([2, 2, 4, 1, 1, 0], cur_game.players[0].resource_tokens),
         ],
         [
-            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.GOLD, ResourceType.EMERALD]),
-            lambda cur_game : assert_banks([2, 0, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference_levels=[.06, .3, .04, .03, .02, .4]),
+            lambda cur_game : assert_banks([1, 1, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
         ],
         [
-            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference=[ResourceType.GOLD, ResourceType.GOLD]),
+            Turn(Action_Type.TAKE_THREE_UNIQUE, [0, 0, 1, 1, 1], discard_preference_levels=[.06, .05, .04, .03, .02, 1.4]),
             lambda cur_game : assert_banks([1, 1, 4, 2, 2, 0], cur_game.players[0].resource_tokens),
         ],
     ]
