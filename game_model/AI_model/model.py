@@ -5,26 +5,28 @@ import torch.nn.functional as F
 class SplendidSplendorModel(nn.Module):
     def __init__(self, input_shape_dict, output_shape_dict, hidden_layers_width, hidden_layers_num):
         '''Takes input and output objects in a dict form, with the keys being the input/output
-        names and the values being 1: length of vectors needed and 2: clamp bounds if needed.
+        names and the values being 1: length of vectors needed and 2: clamp bounds (output dict only).
         Takes hidden layer parameters to construct an arbitrary multi-layer perceptron'''
         super().__init__()
+        self.input_shape_dict = input_shape_dict
+        self.output_shape_dict = output_shape_dict
         self.hidden_num = hidden_layers_num
         self.hidden_width = hidden_layers_width
-        self.in_width = sum([value[0] for value in input_shape_dict.values()])
-        self.out_width = sum([value for value in output_shape_dict.values()])
-        self.clamp_vals = [value[1:] for value in input_shape_dict.values()]
+        self.in_width = sum([value for value in self.input_shape_dict.values()])
+        self.out_width = sum([value[0] for value in self.output_shape_dict.values()])
+        self.clamp_vals = [value[1:] for value in self.output_shape_dict.values()]
         self.input_lanes = nn.ModuleDict()
-        for input_key in input_shape_dict:
-            self.input_lanes[input_key] = nn.Linear(in_features = input_shape_dict[input_key][0], out_features = self.hidden_width)
+        for input_key in self.input_shape_dict:
+            self.input_lanes[input_key] = nn.Linear(in_features = self.input_shape_dict[input_key], out_features = self.hidden_width)
         self.in_activation = nn.ReLU()
         
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())
         self.hidden_layers = nn.ModuleList([hidden_layer for i in range(self.hidden_num)])
 
         self.output_lanes = nn.ModuleDict()
-        for output_key in output_shape_dict:
-            self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = output_shape_dict[output_key])
-
+        for output_key in self.output_shape_dict:
+            self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = output_shape_dict[output_key][0])
+            self.output_lanes[output_key] = torch.clamp(self.output_lanes[output_key],lower_clamp_bound,upper_clamp_bound)
 
     def init_weights(self):
         #initialize with random noise
@@ -44,7 +46,10 @@ class SplendidSplendorModel(nn.Module):
         output = self.in_activation(output)
         for layer in self.hidden_layers:
             output = layer(output)
-        output = [self.output_lanes[key](output) for key in self.output_lanes]
+        lower_clamp_bound = output_shape_dict[output_key][1]
+        upper_clamp_bound = output_shape_dict[output_key][2]
+        output = [self.output_lanes[key](output).clamp() for key in self.output_lanes]
+
         return output
 
 
