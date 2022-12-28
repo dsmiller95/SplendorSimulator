@@ -95,26 +95,25 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     for i in range(5):
         resource_draw.append(output_vector.pop(0))
     noble_choice = output_vector.pop(0)
-    discard_resources = output_vector.pop(0) #Todo: clamp between 0 and 7 (max number of possible tokens)
-    for i in range(6):
-        discard_numbers.append(output_vector.pop(0))
+    discard_resources = output_vector.pop(0) 
+    for i in range(6): #Todo: clamp between 0 and 7 (max number of possible tokens)
+        discard_numbers.append(output_vector.pop(0)) 
 
     #Fit the AI output to valid game states
     fit_check = False
     turn = Turn()
     
-    #behavior: first it will try the closest action to the float output in the 0-4 space
-    #next it will try the second closes, then third, then 4th
-    tries = 0
+    #behavior: first it will try to validate the most preferred action, then the second most, etc.
+    action_attempts = 0
 
-    while fit_check == False and tries <4:
+    while fit_check == False and action_attempts < 4:
 
-        action_num = action.index(max(action))
+        action_num = action.index(max(action)) #find most preferred action
         action_num[action.index(max(action))] = 0 #means it won't select this action again
         action_type = Action_Type[action_num]
 
         if action_type==Action_Type.TAKE_THREE_UNIQUE:
-            if sum(round(resource_draw)) == 3 and 2 not in round(resource_draw): #the only valid outcome
+            if sum(round(resource_draw)) == 3 and 2 not in round(resource_draw):
                 turn.resources_desired = round(resource_draw)
             else:
                 #Normalize the array to 0-1, assign 1's to the three highest values, 0 to the others
@@ -142,26 +141,38 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
         elif action_type==Action_Type.BUY_CARD:
             visible_cards = [cards[1:] for cards in tiers]
             visible_cards = list(chain(*visible_cards)) #flatten to 1d list
-            indices_by_dislike = sorted(range(len(resource_draw_normalized)),
-                                key = lambda sub: resource_draw_normalized[sub])
+            indices_by_dislike = sorted(range(len(visible_cards)),
+                                key = lambda sub: visible_cards[sub])
             indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
             for possible_buy in indices_by_desire:
 
                 tiers_temp = list[list[float]] = [[0]*5]*3
-                #assign a 1 to the location where the card the AI wants to buy is
-                tiers_temp[(int(possible_buy/4)*1)+possible_buy] = 1
-                turn.card_index(tiers_temp)
-                if turn.validate(game,player) == None:
-                    break
-            if turn.validate(game,player) == None:  
-                fit_check = True
-        elif action_type==Action_Type.RESERVE_CARD:
-            if turn.validate(game,player) == None:  
-                fit_check = True
-            pass
+                #assign a 1 to the AI's desired card location
+                tiers_temp[(int(possible_buy/4)+1)*possible_buy] = 1
+                turn.card_index(tiers_temp) #this is wrong, it's expecting a scalar
+                if turn.validate(game,player) == None:  
+                    fit_check = True
 
-        tries+=1
-        
+        elif action_type==Action_Type.RESERVE_CARD:
+            reserved_cards = [cards[0] for cards in tiers]
+            reserved_cards = list(chain(*reserved_cards)) #flatten to 1d list
+            indices_by_dislike = sorted(range(len(reserved_cards)),
+                                key = lambda sub: reserved_cards[sub])
+            indices_by_desire = indices_by_dislike.reverse() #is this worth an extra variable for clarity?
+            for possible_buy in indices_by_desire:
+                tiers_temp = list[list[float]] = [[0]*5]*3
+                #assign a 1 to the AI's desired card location
+                tiers_temp[possible_buy] = 1
+                turn.card_index(tiers_temp) #this is wrong, it's expecting a scalar
+                if turn.validate(game,player) == None:  
+                    fit_check = True
+
+        action_attempts+=1
+    
+    #taking noble goes here
+    
+    #discarding tokens goes here
+
     if turn.validate(game,player) != None:
         return "Something went wrong and the AI->game mapper couldn't coerce a valid state"
     
