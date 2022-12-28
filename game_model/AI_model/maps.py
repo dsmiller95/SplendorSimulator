@@ -5,6 +5,8 @@ from game_model.turn import Turn,Action_Type
 from utilities.subsamples import pad_list
 from itertools import chain
 
+from utilities.utils import Lazy
+
 class VectorBuilder:
     def __init__(self, vect_len:int):
         self.vector = [None]*vect_len
@@ -96,7 +98,7 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     for i in range(5):
         resource_draw.append(output_vector.pop(0))
     noble_choice = output_vector.pop(0)
-    discard_resources = output_vector.pop(0) 
+    discard_resources = output_vector.pop(0)
     discard_numbers : list[float] = []
     for i in range(6): #Todo: clamp between 0 and 7 (max number of possible tokens)
         discard_numbers.append(output_vector.pop(0)) 
@@ -108,6 +110,10 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     #behavior: first it will try to validate the most preferred action, then the second most, etc.
     action_attempts = 0
 
+    prioritized_resource_preferences : Lazy[list[ResourceType]] = Lazy(
+        lambda: [ResourceType(x[0]) for x in sorted(enumerate(resource_draw), key = lambda x: x[1], reverse=True)]
+    )
+
     while fit_check == False and action_attempts < 4:
         best_action_index = action.index(max(action))
         action_num = best_action_index #find most preferred action
@@ -116,23 +122,15 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
         turn = Turn(action_type)
 
         if action_type==Action_Type.TAKE_THREE_UNIQUE:
-            prioritized_resource_preferences = [ResourceType(x[0]) for x in sorted(enumerate(resource_draw), key = lambda x: x[1], reverse=True)]
-            best_pick = _find_best_pick_three(prioritized_resource_preferences, game.available_resources)
+            best_pick = _find_best_pick_three(prioritized_resource_preferences.val(), game.available_resources)
             if not best_pick is None:
                 turn.resources_desired = best_pick
                 fit_check = True
 
         elif action_type==Action_Type.TAKE_TWO:
-            if sum(round(resource_draw)) == 2 and 1 not in round(resource_draw):
-                turn.resources_desired = round(resource_draw)
-            else:
-                #Normalize the array to 0-1, assign 1's to the two highest values, 0 to the others
-                resource_draw_normalized = [elem/max(resource_draw) for elem in resource_draw]
-                three_highest_indices = sorted(range(len(resource_draw_normalized)),
-                                        key = lambda sub: resource_draw_normalized[sub])[-2:]
-                resource_draw = [1 if i in three_high_indices else 0 for i,elem in enumerate(test_list_normalized)]
-                turn.resources_desired = round(resource_draw)
-            if turn.validate(game,player) == None:  
+            best_pick = _find_best_pick_two(prioritized_resource_preferences.val(), game.available_resources)
+            if not best_pick is None:
+                turn.resources_desired = best_pick
                 fit_check = True
 
         elif action_type==Action_Type.BUY_CARD:
@@ -179,4 +177,12 @@ def _find_best_pick_three(sorted_resource_prefs: list[ResourceType], available_r
             output_selections[next_pref.value] = 1
             if selected_num >= 3:
                 return output_selections
+    return None
+
+def _find_best_pick_two(sorted_resource_prefs: list[ResourceType], available_resources: list[int]) -> list[float]:
+    output_selections = [0] * 5
+    for next_pref in sorted_resource_prefs:
+        if available_resources[next_pref.value] >= 4:
+            output_selections[next_pref.value] = 2
+            return output_selections
     return None
