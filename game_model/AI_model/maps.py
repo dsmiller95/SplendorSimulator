@@ -81,7 +81,9 @@ def map_to_AI_input(game_state: Game):
 def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
 
     #Deconstruct AI output into components
-    action = output_vector.pop(0)[0]
+    action = list[float] = [None]*4
+    for i in range(4):
+        action.append(output_vector.pop(0))
     tiers: list[list[float]] = [[None]*5]*3
     for tier in range(3):
         cards = []
@@ -93,7 +95,7 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     for i in range(5):
         resource_draw.append(output_vector.pop(0))
     noble_choice = output_vector.pop(0)
-    discard_resources = output_vector.pop(0) #clamp between 0 and 7 (max number of possible tokens)
+    discard_resources = output_vector.pop(0) #Todo: clamp between 0 and 7 (max number of possible tokens)
     for i in range(6):
         discard_numbers.append(output_vector.pop(0))
 
@@ -101,9 +103,16 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
     fit_check = False
     turn = Turn()
     
-    action_type = Action_Type[round(action)]
-    
-    while fit_check == False:
+    #behavior: first it will try the closest action to the float output in the 0-4 space
+    #next it will try the second closes, then third, then 4th
+    tries = 0
+
+    while fit_check == False and tries <4:
+
+        action_num = action.index(max(action))
+        action_num[action.index(max(action))] = 0 #means it won't select this action again
+        action_type = Action_Type[action_num]
+
         if action_type==Action_Type.TAKE_THREE_UNIQUE:
             if sum(round(resource_draw)) == 3 and 2 not in round(resource_draw): #the only valid outcome
                 turn.resources_desired = round(resource_draw)
@@ -146,15 +155,14 @@ def map_from_AI_output(output_vector: list[float],game:Game,player:Actor):
                     break
             if turn.validate(game,player) == None:  
                 fit_check = True
-            #if it failed to buy any cards, go back to the beginning and choose the next most desired action
         elif action_type==Action_Type.RESERVE_CARD:
             if turn.validate(game,player) == None:  
                 fit_check = True
             pass
 
-    #for all four actions we'll need something that must either map to a valid state,
-    #or decide to skip and go to the next action
-
+        tries+=1
+        
+    if turn.validate(game,player) != None:
+        return "Something went wrong and the AI->game mapper couldn't coerce a valid state"
     
-    
-    return None
+    return turn
