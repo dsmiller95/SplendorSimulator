@@ -1,14 +1,9 @@
 class GamestateInputVector:
     def __init__(self):
-        self.player1 = PlayerVector()
-        self.player2 = PlayerVector()
-        self.player3 = PlayerVector()
-        self.player4 = PlayerVector()
-        self.nobles = NoblesRowVector()
+        self.players = [PlayerVector() for x in range(0, 4)]
+        self.nobles = [NobleVector() for x in range(5)]
         self.resources = [None]*6
-        self.tier1 = RowVector()
-        self.tier2 = RowVector()
-        self.tier3 = RowVector()
+        self.tiers = [RowVector() for x in range(3)]
 
 class CardVector:
     def __init__(self):
@@ -31,20 +26,11 @@ class NoblesRowVector:
 class RowVector:
     def __init__(self):
         self.hidden_card = CardVector()
-        self.card1 = CardVector()
-        self.card2 = CardVector()
-        self.card3 = CardVector()
-        self.card4 = CardVector()
-
-class ReservedCardsVector:
-    def __init__(self):
-        self.Card1 = CardVector()
-        self.Card2 = CardVector()
-        self.Card3 = CardVector()
+        self.open_cards = [CardVector() for x in range(4)]
 
 class PlayerVector:
     def __init__(self):
         self.temp_resources = [None]*6
         self.perm_resources = [None]*6
         self.points = [None]
-        self.reserved_cards = ReservedCardsVector()
+        self.reserved_cards = [CardVector() for x in range(3)]

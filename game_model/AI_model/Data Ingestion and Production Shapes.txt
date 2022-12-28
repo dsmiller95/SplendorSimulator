@@ -2,18 +2,18 @@ For ingestion:
 
 Players[4]--->Temp Resources[6]
             ->Permanent Resources[5]
+            ->Points[1]
             ->Reserved Cards[3]------>Costs[5]
                                     ->Returns[5]
                                     ->Points[1]
 
->Nobles[5]--->Costs[5]
-            ->Points[1]
+Nobles[5]--->Costs[5]
+           ->Points[1]
+Resources[6]
 Tiers[3]---->Cards[5]--->Costs[5]
                        ->Returns[5]
                        ->Points[1]
 (Tiers are layed out: Tier1, Tier2, Tier3)
-
-Total: 332 values
 
 
 
@@ -25,5 +25,3 @@ Reserve buy[3]
 Coin draw[5]
 Noble choice[5]
 Discard tokens?[1]--->How many[6]
-
-Total: 39 values

@@ -107,6 +107,11 @@ class Game:
     def get_current_player_index(self) -> int:
         return self.active_index
     
+    def get_players_in_immediate_turn_priority(self) -> list[Actor]:
+        result = clone_shallow(self.players)
+        result = result[self.active_index:] + result[:self.active_index]
+        return result
+    
     def get_current_player(self) -> Actor:
         return self.players[self.active_index]
     
