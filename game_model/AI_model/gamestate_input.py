@@ -1,14 +1,14 @@
 class GamestateInputVector:
     def __init__(self):
-        self.player1 = Player_vector
-        self.player2 = Player_vector
-        self.player3 = Player_vector
-        self.player4 = Player_vector
-        self.nobles = Nobles_row_vector
+        self.player1 = PlayerVector()
+        self.player2 = PlayerVector()
+        self.player3 = PlayerVector()
+        self.player4 = PlayerVector()
+        self.nobles = NoblesRowVector()
         self.resources = [None]*6
-        self.tier1 = Row_vector
-        self.tier2 = Row_vector
-        self.tier3 = Row_vector
+        self.tier1 = RowVector()
+        self.tier2 = RowVector()
+        self.tier3 = RowVector()
 
 class CardVector:
     def __init__(self):
@@ -23,28 +23,28 @@ class NobleVector:
 
 class NoblesRowVector:
     def __init__(self):
-        self.noble1 = Noble_vector
-        self.noble2 = Noble_vector
-        self.noble3 = Noble_vector
-        self.noble4 = Noble_vector
-        self.noble5 = Noble_vector
+        self.noble1 = NobleVector()
+        self.noble2 = NobleVector()
+        self.noble3 = NobleVector()
+        self.noble4 = NobleVector()
+        self.noble5 = NobleVector()
 class RowVector:
     def __init__(self):
-        self.hidden_card = Card
-        self.card1 = Card
-        self.card2 = Card
-        self.card3 = Card
-        self.card4 = Card
+        self.hidden_card = CardVector()
+        self.card1 = CardVector()
+        self.card2 = CardVector()
+        self.card3 = CardVector()
+        self.card4 = CardVector()
 
 class ReservedCardsVector:
     def __init__(self):
-        self.Card1 = Card
-        self.Card2 = Card
-        self.Card3 = Card
+        self.Card1 = CardVector()
+        self.Card2 = CardVector()
+        self.Card3 = CardVector()
 
 class PlayerVector:
     def __init__(self):
         self.temp_resources = [None]*6
         self.perm_resources = [None]*6
         self.points = [None]
-        self.reserved_cards = Reserved_Cards
+        self.reserved_cards = ReservedCardsVector()
