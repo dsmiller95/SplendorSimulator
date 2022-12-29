@@ -12,7 +12,7 @@ from utilities.utils import Lazy
 
 def map_to_AI_input(game_state: Game) -> GamestateInputVector:
     input_vect_model = GamestateInputVector()
-    input_vect_flattened = dict{}
+    input_vect_flattened : dict = {}
     
     for i,player in enumerate(game_state.get_players_in_immediate_turn_priority()):
         if player is None:
