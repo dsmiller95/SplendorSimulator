@@ -18,6 +18,6 @@ def train():
     n_hidden_layers = 5
     hidden_layer_width = 100
     input_shape_dict = AI_input
-    output_shape_dict = {'out1':[1,0,1],'out2':[5,0,1]}
+    output_shape_dict = ActionOutput.in_dict_form()
     model = SplendidSplendorModel(input_shape_dict,output_shape_dict,hidden_layer_width,n_hidden_layers)
     print(model)
