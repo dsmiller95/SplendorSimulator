@@ -8,6 +8,19 @@ from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.maps import map_from_AI_output
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+
+train_settings_dict: dict[str,float] = {'n_games':10, # Number of games played
+                                        'discount':0.99, # Discount factor
+                                        'batch_size':1, # Number of transitions sampled from the replay buffer
+                                        'epsilon_start':0.9, # Starting value of epsilon
+                                        'epsilon_end':0.05, # Final value of epsilon
+                                        'epsilon_decay':1000, # Rate of exponential decay of epsilon, higher means a slower decay
+                                        'tau':0.005, # Update rate of the target network
+                                        'learning_rate':1e-4} # Learning rate
 
 def train():
     game_config = GameConfigData.read_file("./game_data/cards.csv")
