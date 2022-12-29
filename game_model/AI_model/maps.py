@@ -12,7 +12,9 @@ import torch
 from utilities.utils import Lazy
 
 def to_hot_from_scalar(scalar: int, length: int) -> list[int]:
-    return [1 if scalar == i else 0 for i in range(length)]
+    new_list = [0] * length
+    new_list[scalar] = 1
+    return new_list
 
 def map_all_to_valid_tensors(dict: dict[str, list[float]]) -> dict[str, torch.Tensor]:
     return {
