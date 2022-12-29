@@ -48,3 +48,11 @@ def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game:
         next_action.map_dict_into_self(forward)
         return map_from_AI_output(next_action, game, game.get_current_player())
 
+def train():
+    pass
+
+def reward():
+    pass
+
+def play_single_game():
+    pass
