@@ -44,7 +44,7 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
                 continue
             player_vect.reserved_cards[j].costs = card.costs
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_costs'] = player_vect.reserved_cards[j].costs
-            player_vect.reserved_cards[j].returns = [1 if card.returns.value == i else 0 for i in range(0, 5)]
+            player_vect.reserved_cards[j].returns = to_hot_from_scalar(card.returns.value, 5)
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_returns'] = player_vect.reserved_cards[j].returns
             player_vect.reserved_cards[j].points = card.points
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = player_vect.reserved_cards[j].points
@@ -70,13 +70,13 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
         tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.returns.value, 5)
         tier_vect.hidden_card.points = hidden_card.points
         input_vect_flattened['tier_'+str(i)+'_hidden_card_costs'] = tier_vect.hidden_card.costs
-        input_vect_flattened['tier_'+str(i)+'_hidden_card_returns'] = [1 if tier_vect.hidden_card.returns.value == i else 0 for i in range(0, 5)]
+        input_vect_flattened['tier_'+str(i)+'_hidden_card_returns'] = tier_vect.hidden_card.returns
         input_vect_flattened['tier_'+str(i)+'_hidden_card_points'] = [tier_vect.hidden_card.points]
         for j,card in enumerate(tier):
             card_vect = tier_vect.open_cards[j]
             card_vect.costs = card.costs
             input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'costs'] = card_vect.costs
-            card_vect.returns = [1 if card.returns.value == i else 0 for i in range(0, 5)]
+            card_vect.returns = to_hot_from_scalar(card.returns.value, 5)
             input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'_returns'] = card_vect.returns
             card_vect.points = [card.points]
             input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'points'] = card_vect.points
