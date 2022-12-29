@@ -67,9 +67,8 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
         tier_vect = input_vect_model.tiers[i]
         hidden_card = game_state.get_card_by_index(i * 5)
         tier_vect.hidden_card.costs = hidden_card.costs
-        tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.reward.value, 5)
+        tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.returns.value, 5)
         tier_vect.hidden_card.points = hidden_card.points
-        tier_vect.hidden_card = game_state.get_card_by_index(i * 5)
         input_vect_flattened['tier_'+str(i)+'_hidden_card_costs'] = tier_vect.hidden_card.costs
         input_vect_flattened['tier_'+str(i)+'_hidden_card_returns'] = [1 if tier_vect.hidden_card.returns.value == i else 0 for i in range(0, 5)]
         input_vect_flattened['tier_'+str(i)+'_hidden_card_points'] = [tier_vect.hidden_card.points]
