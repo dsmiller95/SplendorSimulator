@@ -10,7 +10,7 @@ from tests.test_helpers import assert_banks, assert_noble_claimed, assert_noble_
 
 import time
 
-def test_game_gather_and_achieve_nobles():
+def test_all_action_performance_by_segment():
 
     turn_objs = [ActionOutput() for x in range(4)]
 
