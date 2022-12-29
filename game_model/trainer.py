@@ -9,7 +9,7 @@ from game_model.AI_model.maps import map_from_AI_output
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
 
-def train():
+def train(steps: int = 20):
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     game = Game(player_count=4, game_config=game_config)
 
@@ -21,7 +21,7 @@ def train():
     output_shape_dict = ActionOutput().in_dict_form()
     model:SplendidSplendorModel = SplendidSplendorModel(input_shape_dict,output_shape_dict,hidden_layer_width,n_hidden_layers)
 
-    for tries in range(20):
+    for tries in range(steps):
         AI_input = map_to_AI_input(game)
         forward_result = model.forward(AI_input)
 
