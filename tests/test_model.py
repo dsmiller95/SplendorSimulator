@@ -4,7 +4,7 @@ from game_model.AI_model.action_output import ActionOutput
 
 def test_model_setup():
 
-    input_dict = {'in1':1,'in2':3,'in3':7}
+    input_dict = {'in1':[1],'in2':[3],'in3':[7]}
     output_dict = {'out1':[1,0,0],'out2':[5,0,0]}
 
     model = SplendidSplendorModel(input_dict,output_dict,100,5)
