@@ -136,6 +136,8 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
         action_attempts+=1
     
     #taking noble goes here
+    # TODO: is hack. but kinda mostly will work
+    action_output.noble_choice = max(enumerate(action_output.noble_choice))[0]
     
     # discarding tokens goes here
     turn.set_discard_preferences(action_output.discard_amounts)
