@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SplendidSplendorModel(nn.Module):
-    def __init__(self, input_shape_dict, output_shape_dict, hidden_layers_width, hidden_layers_num):
+    def __init__(self, input_shape_dict, output_shape_dict: dict[str, list[float]], hidden_layers_width, hidden_layers_num):
         '''Takes input and output objects in a dict form, with the keys being the input/output
         names and the values being 1: length of vectors needed and 2: clamp bounds (output dict only).
         Takes hidden layer parameters to construct an arbitrary multi-layer perceptron'''
@@ -31,11 +31,11 @@ class SplendidSplendorModel(nn.Module):
             nn.init.orthogonal_(m.weight, val)
             torch.nn.utils.weight_norm(m)
     
-    def forward(self,input_dict):
+    def forward(self,input_dict: dict[str, torch.Tensor]):
         '''input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
         print(input_dict)
-        output = torch.stack([self.input_lanes[key](torch.Tensor(input_dict[key]).to(torch.device('cpu'))) for key in self.input_lanes],dim=0)
+        output : torch.Tensor = torch.stack([self.input_lanes[key](input_dict[key]) for key in self.input_lanes],dim=0)
         output = self.in_activation(output)
         for layer in self.hidden_layers:
             output = layer(output)

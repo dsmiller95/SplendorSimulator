@@ -7,13 +7,21 @@ from game_model.turn import Turn,Action_Type
 from utilities.subsamples import clone_shallow, pad_list
 from itertools import chain
 from game_model.AI_model.action_output import ActionOutput
+import torch
 
 from utilities.utils import Lazy
 
 def to_hot_from_scalar(scalar: int, length: int) -> list[int]:
     return [1 if scalar == i else 0 for i in range(length)]
 
-def map_to_AI_input(game_state: Game) -> dict[str, list[float]]:
+def map_all_to_valid_tensors(dict: dict[str, list[float]]) -> dict[str, torch.Tensor]:
+    return {
+        key: torch.Tensor([0 if x is None else x for x in value]).to(torch.device('cpu'))
+        for (key, value)
+        in dict.items()
+    }
+
+def map_to_AI_input(game_state: Game) -> dict[str, torch.Tensor]:
     input_vect_model = GamestateInputVector()
     input_vect_flattened : dict = {}
 
@@ -52,7 +60,6 @@ def map_to_AI_input(game_state: Game) -> dict[str, list[float]]:
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = player_vect.reserved_cards[j].points
 
 
-    noble_shape = 5+1
     for i,noble in enumerate(game_state.active_nobles):
         if noble is None:
             input_vect_flattened['board_noble_'+str(i)+'costs'] = [None]*5
@@ -84,7 +91,8 @@ def map_to_AI_input(game_state: Game) -> dict[str, list[float]]:
             input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'points'] = card_vect.points
     
 
-    return input_vect_model.flat_map()
+    flat_mapped_values = input_vect_model.flat_map()
+    return map_all_to_valid_tensors(flat_mapped_values)
 
 def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Turn:
     #Fit the AI output to valid game states

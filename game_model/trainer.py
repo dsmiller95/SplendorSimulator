@@ -11,7 +11,6 @@ def train():
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     game = Game(player_count=4, game_config=game_config)
 
-    agent_perception = GamestateInputVector()
     AI_input = map_to_AI_input(game)
 
     n_hidden_layers = 5
@@ -19,4 +18,7 @@ def train():
     input_shape_dict = AI_input
     output_shape_dict = ActionOutput().in_dict_form()
     model = SplendidSplendorModel(input_shape_dict,output_shape_dict,hidden_layer_width,n_hidden_layers)
-    print(model.forward(AI_input))
+    forward_result = model.forward(AI_input)
+    internal_len = len(forward_result['action_choice'])
+
+    print(forward_result)
