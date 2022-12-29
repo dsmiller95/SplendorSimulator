@@ -75,6 +75,7 @@ def map_to_AI_input(game_state: Game) -> dict[str, torch.Tensor]:
     for i,tier in enumerate(game_state.open_cards):
         tier_vect = input_vect_model.tiers[i]
         hidden_card = game_state.get_card_by_index(i * 5)
+        if hidden_card is not None:
         tier_vect.hidden_card.costs = hidden_card.costs
         tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.returns.value, 5)
         tier_vect.hidden_card.points = [hidden_card.points]
@@ -82,6 +83,8 @@ def map_to_AI_input(game_state: Game) -> dict[str, torch.Tensor]:
         input_vect_flattened['tier_'+str(i)+'_hidden_card_returns'] = tier_vect.hidden_card.returns
         input_vect_flattened['tier_'+str(i)+'_hidden_card_points'] = tier_vect.hidden_card.points
         for j,card in enumerate(tier):
+            if card is None:
+                continue
             card_vect = tier_vect.open_cards[j]
             card_vect.costs = card.costs
             input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'costs'] = card_vect.costs
@@ -145,7 +148,7 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Tu
     
     #taking noble goes here
     # TODO: is hack. but kinda mostly will work
-    action_output.noble_choice = max(enumerate(action_output.noble_choice))[0]
+    turn.noble_preference = max(enumerate(action_output.noble_choice))[0]
     
     # discarding tokens goes here
     turn.set_discard_preferences(action_output.discard_amounts)
