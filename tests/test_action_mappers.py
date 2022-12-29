@@ -132,7 +132,7 @@ def test_fit_buy_reserved_card():
     action_out.resource_token_draw = [.1, .2, .3, .4, .5]
     
     assert not (game.players[0].reserved_cards[0] is None)
-    assert game.players[0].reserved_cards[0].reward == ResourceType.EMERALD
+    assert game.players[0].reserved_cards[0].returns == ResourceType.EMERALD
 
     mapped_action = map_from_AI_output(action_out, game, game.players[0])
     assert not (mapped_action is None)
@@ -205,7 +205,7 @@ def test_fit_reserve_card_topdeck():
 
     
     assert not (game.players[0].reserved_cards[0] is None)
-    assert game.players[0].reserved_cards[0].reward == ResourceType.ONYX
+    assert game.players[0].reserved_cards[0].returns == ResourceType.ONYX
 
 
 def test_fit_reserve_card_second_choice():
@@ -238,7 +238,7 @@ def test_fit_reserve_card_second_choice():
 
     
     assert not (game.players[0].reserved_cards[0] is None)
-    assert game.players[0].reserved_cards[0].reward == ResourceType.EMERALD
+    assert game.players[0].reserved_cards[0].returns == ResourceType.EMERALD
 
 def test_fit_reserve_card_fail_full_reserve_take_3_instead():
     game = Game(2, test_config, force_shuffle=False)

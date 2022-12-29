@@ -44,7 +44,7 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
                 continue
             player_vect.reserved_cards[j].costs = card.costs
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_costs'] = player_vect.reserved_cards[j].costs
-            player_vect.reserved_cards[j].returns = [1 if card.reward.value == i else 0 for i in range(0, 5)]
+            player_vect.reserved_cards[j].returns = [1 if card.returns.value == i else 0 for i in range(0, 5)]
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_returns'] = player_vect.reserved_cards[j].returns
             player_vect.reserved_cards[j].points = card.points
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = player_vect.reserved_cards[j].points

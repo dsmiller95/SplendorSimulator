@@ -17,9 +17,9 @@ def test_game_unshuffled():
         for j, card in enumerate(tier):
             assert card.tier == i
             ## due to the test data setup, every resource type is sequential
-            assert card.reward.value == j
+            assert card.returns.value == j
         assert len(game.remaining_cards_by_level[i]) == 1
-        assert game.remaining_cards_by_level[i][0].reward == ResourceType.ONYX
+        assert game.remaining_cards_by_level[i][0].returns == ResourceType.ONYX
 
 def test_game_shuffled():
     random.seed(222)
@@ -29,7 +29,7 @@ def test_game_shuffled():
         for j, card in enumerate(tier):
             assert card.tier == i
             ## due to the test data setup, every resource type is sequential
-            if card.reward.value != j:
+            if card.returns.value != j:
                 return
     assert False
 
