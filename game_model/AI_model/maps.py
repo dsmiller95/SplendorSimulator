@@ -12,60 +12,68 @@ from utilities.utils import Lazy
 
 def map_to_AI_input(game_state: Game) -> GamestateInputVector:
     input_vect_model = GamestateInputVector()
-    input_vect_flattened = dict{}
+    input_vect_flattened = {}
     
     for i,player in enumerate(game_state.get_players_in_immediate_turn_priority()):
         if player is None:
-            input_vect_flattened['player_'+i+'_temp_resources'] = [None]*6
-            input_vect_flattened['player_'+i+'_perm_resources'] = [None]*5
-            input_vect_flattened['player_'+i+'_points'] = None
+            input_vect_flattened['player_'+str(i)+'_temp_resources'] = [None]*6
+            input_vect_flattened['player_'+str(i)+'_perm_resources'] = [None]*5
+            input_vect_flattened['player_'+str(i)+'_points'] = [None]
             for j in range(len(player.reserved_cards)):
-                input_vect_flattened['player_'+i+'_reserved_card_'+j+'_costs'] = [None]*5
-                input_vect_flattened['player_'+i+'_reserved_card_'+j+'_returns'] = [None]*5
-                input_vect_flattened['player_'+i+'_reserved_card_'+j+'_points'] = None
+                input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_costs'] = [None]*5
+                input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_returns'] = [None]*5
+                input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = [None]
             continue
+
         player_vect = input_vect_model.players[i]
         player_vect.temp_resources = player.resource_tokens
-        input_vect_flattened['player_'+i+'_temp_resources'] = player_vect.temp_resources
+        input_vect_flattened['player_'+str(i)+'_temp_resources'] = player_vect.temp_resources
         player_vect.perm_resources = player.resource_persistent
-        input_vect_flattened['player_'+i+'_perm_resources'] = player_vect.perm_resources
+        input_vect_flattened['player_'+str(i)+'_perm_resources'] = player_vect.perm_resources
         player_vect.points = player.sum_points
-        input_vect_flattened['player_'+i+'_points'] = player_vect.points
+        input_vect_flattened['player_'+str(i)+'_points'] = player_vect.points
 
         for j,card in enumerate(player.reserved_cards):
+            if card is None:
+                input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_costs'] = [None]*5
+                input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_returns'] = [None]*5
+                input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = [None]
+                continue
             player_vect.reserved_cards[j].costs = card.costs
-            input_vect_flattened['player_'+i+'_reserved_card_'+j+'_costs'] = player_vect.reserved_cards[j].costs
+            input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_costs'] = player_vect.reserved_cards[j].costs
             player_vect.reserved_cards[j].returns = [1 if card.reward.value == i else 0 for i in range(0, 5)]
-            input_vect_flattened['player_'+i+'_reserved_card_'+j+'_returns'] = player_vect.reserved_cards[j].returns
+            input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_returns'] = player_vect.reserved_cards[j].returns
             player_vect.reserved_cards[j].points = card.points
-            input_vect_flattened['player_'+i+'_reserved_card_'+j+'_points'] = player_vect.reserved_cards[j].points
+            input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = player_vect.reserved_cards[j].points
 
 
     noble_shape = 5+1
     for i,noble in enumerate(game_state.active_nobles):
         if noble is None:
-            input_vect_flattened['board_noble_'+i+'costs'] = [None]*5
-            input_vect_flattened['board_noble_'+i+'points'] = None
+            input_vect_flattened['board_noble_'+str(i)+'costs'] = [None]*5
+            input_vect_flattened['board_noble_'+str(i)+'points'] = [None]
             continue
         noble_vect = input_vect_model.nobles[i]
         
         noble_vect.costs = noble.costs
-        input_vect_flattened['board_noble_'+i+'_costs'] = noble_vect.costs
+        input_vect_flattened['board_noble_'+str(i)+'_costs'] = noble_vect.costs
         noble_vect.points = noble.points
-        input_vect_flattened['board_noble_'+i+'_points'] = noble_vect.points
+        input_vect_flattened['board_noble_'+str(i)+'_points'] = [noble_vect.points]
 
     for i,tier in enumerate(game_state.open_cards):
         tier_vect = input_vect_model.tiers[i]
         tier_vect.hidden_card = game_state.get_card_by_index(i * 5)
-        input_vect_flattened['tier_'+i+'_hidden_card'] = tier_vect.hidden_card
+        input_vect_flattened['tier_'+str(i)+'_hidden_card_costs'] = tier_vect.hidden_card.costs
+        input_vect_flattened['tier_'+str(i)+'_hidden_card_returns'] = [1 if tier_vect.hidden_card.returns.value == i else 0 for i in range(0, 5)]
+        input_vect_flattened['tier_'+str(i)+'_hidden_card_points'] = [tier_vect.hidden_card.points]
         for j,card in enumerate(tier):
             card_vect = tier_vect.open_cards[j]
             card_vect.costs = card.costs
-            input_vect_flattened['tier_'+i+'_open_card_'+j+'costs'] = card_vect.costs
-            card_vect.returns = [1 if card.reward.value == i else 0 for i in range(0, 5)]
-            input_vect_flattened['tier_'+i+'_open_card_'+j+'_returns'] = card_vect.returns
-            card_vect.points = card.points
-            input_vect_flattened['tier_'+i+'_open_card_'+j+'points'] = card_vect.points
+            input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'costs'] = card_vect.costs
+            card_vect.returns = [1 if card.returns.value == i else 0 for i in range(0, 5)]
+            input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'_returns'] = card_vect.returns
+            card_vect.points = [card.points]
+            input_vect_flattened['tier_'+str(i)+'_open_card_'+str(j)+'points'] = card_vect.points
     
 
     return input_vect_flattened

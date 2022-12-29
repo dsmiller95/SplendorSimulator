@@ -12,12 +12,10 @@ class SplendidSplendorModel(nn.Module):
         self.output_shape_dict = output_shape_dict
         self.hidden_num = hidden_layers_num
         self.hidden_width = hidden_layers_width
-        self.in_width = sum([value for value in self.input_shape_dict.values()])
-        self.out_width = sum([value[0] for value in self.output_shape_dict.values()])
         self.clamp_vals = [value[1:] for value in self.output_shape_dict.values()]
         self.input_lanes = nn.ModuleDict()
         for input_key in self.input_shape_dict:
-            self.input_lanes[input_key] = nn.Linear(in_features = self.input_shape_dict[input_key], out_features = self.hidden_width)
+            self.input_lanes[input_key] = nn.Linear(in_features = len(self.input_shape_dict[input_key]), out_features = self.hidden_width)
         self.in_activation = nn.ReLU()
         
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())

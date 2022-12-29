@@ -3,6 +3,7 @@ from game_model.game_runner import step_game
 from game_model.turn import Turn, Action_Type
 from game_model.game import Game
 from game_model.AI_model.maps import map_to_AI_input
+from game_model.trainer import train
 from input_parser.action_parser import get_action_from_user
 import random
 
@@ -12,6 +13,7 @@ random.seed(1337)
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=2, game_config=game_config)
 
+train()
 while True:
     print(game.describe_common_state())
     print(map_to_AI_input(game))

@@ -10,7 +10,7 @@ class Card:
         card_id: int):
         self.tier = card_level
         self.costs = resource_cost
-        self.reward = reward_resource
+        self.returns = reward_resource
         self.points = reward_points
         self.id = card_id
         
