@@ -11,8 +11,6 @@ from game_model.turn import Turn,Action_Type
 def test_game_state_input_correct_length_flat_map():
     empty_input = GamestateInputVector()
     flat_map = empty_input.flat_map()
-    all_keys = flat_map.keys()
-    str = ", ".join(all_keys)
     assert len(flat_map.keys()) == 107
     expected_keys = [
         "player_0_temp_resources",
