@@ -8,7 +8,7 @@ class GamestateInputVector:
     def __init__(self):
         self.players = [PlayerVector() for x in range(0, 4)]
         self.nobles = [NobleVector() for x in range(5)]
-        self.resources = [None] * 5
+        self.resources = [None] * 6
         self.tiers = [RowVector() for x in range(3)]
     
     def flat_map(self, prefix: str = "", into_dict: dict[str, list[float]] = {}) -> dict[str, list[float]]:

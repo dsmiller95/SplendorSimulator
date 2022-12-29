@@ -11,11 +11,13 @@ from game_model.AI_model.action_output import ActionOutput
 from utilities.utils import Lazy
 
 def to_hot_from_scalar(scalar: int, length: int) -> list[int]:
-    [1 if scalar == i else 0 for i in range(length)]
+    return [1 if scalar == i else 0 for i in range(length)]
 
-def map_to_AI_input(game_state: Game) -> GamestateInputVector:
+def map_to_AI_input(game_state: Game) -> dict[str, list[float]]:
     input_vect_model = GamestateInputVector()
     input_vect_flattened : dict = {}
+
+    input_vect_model.resources = game_state.available_resources
     
     for i,player in enumerate(game_state.get_players_in_immediate_turn_priority()):
         if player is None:
@@ -33,7 +35,7 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
         input_vect_flattened['player_'+str(i)+'_temp_resources'] = player_vect.temp_resources
         player_vect.perm_resources = player.resource_persistent
         input_vect_flattened['player_'+str(i)+'_perm_resources'] = player_vect.perm_resources
-        player_vect.points = player.sum_points
+        player_vect.points = [player.sum_points]
         input_vect_flattened['player_'+str(i)+'_points'] = player_vect.points
 
         for j,card in enumerate(player.reserved_cards):
@@ -46,7 +48,7 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_costs'] = player_vect.reserved_cards[j].costs
             player_vect.reserved_cards[j].returns = to_hot_from_scalar(card.returns.value, 5)
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_returns'] = player_vect.reserved_cards[j].returns
-            player_vect.reserved_cards[j].points = card.points
+            player_vect.reserved_cards[j].points = [card.points]
             input_vect_flattened['player_'+str(i)+'_reserved_card_'+str(j)+'_points'] = player_vect.reserved_cards[j].points
 
 
@@ -60,18 +62,18 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
         
         noble_vect.costs = noble.costs
         input_vect_flattened['board_noble_'+str(i)+'_costs'] = noble_vect.costs
-        noble_vect.points = noble.points
-        input_vect_flattened['board_noble_'+str(i)+'_points'] = [noble_vect.points]
+        noble_vect.points = [noble.points]
+        input_vect_flattened['board_noble_'+str(i)+'_points'] = noble_vect.points
 
     for i,tier in enumerate(game_state.open_cards):
         tier_vect = input_vect_model.tiers[i]
         hidden_card = game_state.get_card_by_index(i * 5)
         tier_vect.hidden_card.costs = hidden_card.costs
         tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.returns.value, 5)
-        tier_vect.hidden_card.points = hidden_card.points
+        tier_vect.hidden_card.points = [hidden_card.points]
         input_vect_flattened['tier_'+str(i)+'_hidden_card_costs'] = tier_vect.hidden_card.costs
         input_vect_flattened['tier_'+str(i)+'_hidden_card_returns'] = tier_vect.hidden_card.returns
-        input_vect_flattened['tier_'+str(i)+'_hidden_card_points'] = [tier_vect.hidden_card.points]
+        input_vect_flattened['tier_'+str(i)+'_hidden_card_points'] = tier_vect.hidden_card.points
         for j,card in enumerate(tier):
             card_vect = tier_vect.open_cards[j]
             card_vect.costs = card.costs
