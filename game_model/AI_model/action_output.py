@@ -35,3 +35,12 @@ class ActionOutput:
         action_output_dict['discard_amounts_clamp_range'] = self.discard_amounts_clamp_range
 
         return action_output_dict
+
+    def map_dict_into_self(self, into_dict: dict[str, list[float]]):
+        self.action_choice = into_dict['action_choice']
+        self.card_buy = into_dict['card_buy']
+        self.reserve_buy = into_dict['reserve_buy']
+        self.resource_token_draw = into_dict['resource_token_draw']
+        self.noble_choice = into_dict['noble_choice']
+        self.discard_choice = into_dict['discard_choice']
+        self.discard_amounts = into_dict['discard_amounts']

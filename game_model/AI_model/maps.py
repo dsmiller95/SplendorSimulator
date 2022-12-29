@@ -86,7 +86,7 @@ def map_to_AI_input(game_state: Game) -> dict[str, list[float]]:
 
     return input_vect_model.flat_map()
 
-def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
+def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Turn:
     #Fit the AI output to valid game states
     fit_check = False
     turn: Turn = None
