@@ -6,12 +6,12 @@ from utilities.print_utils import stringify_resources
 
 class Actor:
     def __init__(self):
-        self.claimed_nobles : list[Noble] = []
-        self.reserved_cards : list[Card] = [None, None, None]
-        self.resource_tokens : list[int] = [0, 0, 0, 0, 0, 0]
-        self.purchased_cards : list[Card] = []
-        self.resource_persistent: list[int] = [0, 0, 0, 0, 0]
-        self.sum_points = 0
+        self.claimed_nobles : list[Noble] = [None]
+        self.reserved_cards : list[Card] = [None]*3
+        self.resource_tokens : list[int] = [None]*6
+        self.purchased_cards : list[Card] = [None]
+        self.resource_persistent: list[int] = [None]*5
+        self.sum_points = [None]
     
     def clone(self) -> Actor:
         new = Actor()

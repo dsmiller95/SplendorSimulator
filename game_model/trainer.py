@@ -3,6 +3,7 @@ from game_data.game_config_data import GameConfigData
 from game_model.game import Game
 from game_model.AI_model.model import SplendidSplendorModel
 from game_model.AI_model.gamestate_input import GamestateInputVector
+from game_model.AI_model.action_output import ActionOutput
 
 game = Game()
 
