@@ -34,12 +34,8 @@ class SplendidSplendorModel(nn.Module):
     def forward(self,input_dict):
         '''input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
-        #for i,input in enumerate(input_dict):
-        #    outputs[]
-        #output = torch.cat([self.input_lanes.value()])
-        #combine all input linear layers by summing their hidden_width outputs together
-        #inputs = 
-        output = torch.stack([self.input_lanes[key](input_dict[key]) for key in self.input_lanes],dim=0)
+        print(input_dict)
+        output = torch.stack([self.input_lanes[key](torch.Tensor(input_dict[key]).to(torch.device('cpu'))) for key in self.input_lanes],dim=0)
         output = self.in_activation(output)
         for layer in self.hidden_layers:
             output = layer(output)
