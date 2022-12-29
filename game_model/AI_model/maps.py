@@ -10,6 +10,9 @@ from game_model.AI_model.action_output import ActionOutput
 
 from utilities.utils import Lazy
 
+def to_hot_from_scalar(scalar: int, length: int) -> list[int]:
+    [1 if scalar == i else 0 for i in range(length)]
+
 def map_to_AI_input(game_state: Game) -> GamestateInputVector:
     input_vect_model = GamestateInputVector()
     input_vect_flattened : dict = {}
@@ -35,7 +38,7 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
         for j,card in enumerate(player.reserved_cards):
             player_vect.reserved_cards[j].costs = card.costs
             input_vect_flattened['player_'+i+'_reserved_card_'+j+'_costs'] = player_vect.reserved_cards[j].costs
-            player_vect.reserved_cards[j].returns = [1 if card.reward.value == i else 0 for i in range(0, 5)]
+            player_vect.reserved_cards[j].returns = to_hot_from_scalar(hidden_card.reward.value, 5)
             input_vect_flattened['player_'+i+'_reserved_card_'+j+'_returns'] = player_vect.reserved_cards[j].returns
             player_vect.reserved_cards[j].points = card.points
             input_vect_flattened['player_'+i+'_reserved_card_'+j+'_points'] = player_vect.reserved_cards[j].points
@@ -56,19 +59,23 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
 
     for i,tier in enumerate(game_state.open_cards):
         tier_vect = input_vect_model.tiers[i]
+        hidden_card = game_state.get_card_by_index(i * 5)
+        tier_vect.hidden_card.costs = hidden_card.costs
+        tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.reward.value, 5)
+        tier_vect.hidden_card.points = hidden_card.points
         tier_vect.hidden_card = game_state.get_card_by_index(i * 5)
-        input_vect_flattened['tier_'+i+'_hidden_card'] = tier_vect.hidden_card
+        ##input_vect_flattened['tier_'+i+'_hidden_card'] = tier_vect.hidden_card
         for j,card in enumerate(tier):
             card_vect = tier_vect.open_cards[j]
             card_vect.costs = card.costs
             input_vect_flattened['tier_'+i+'_open_card_'+j+'costs'] = card_vect.costs
-            card_vect.returns = [1 if card.reward.value == i else 0 for i in range(0, 5)]
+            card_vect.returns = to_hot_from_scalar(card.reward.value, 5)
             input_vect_flattened['tier_'+i+'_open_card_'+j+'_returns'] = card_vect.returns
             card_vect.points = card.points
             input_vect_flattened['tier_'+i+'_open_card_'+j+'points'] = card_vect.points
     
 
-    return input_vect_flattened
+    return input_vect_model.flat_map()
 
 def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor):
     #Fit the AI output to valid game states

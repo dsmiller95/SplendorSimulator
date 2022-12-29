@@ -14,7 +14,7 @@ class GamestateInputVector:
     def flat_map(self, prefix: str = "") -> dict[str, list[float]]:
         into_dict: dict[str, list[float]] = {}
         flat_map_group(self.players, prefix + "player_", into_dict)
-        flat_map_group(self.nobles, prefix + "noble_", into_dict)
+        flat_map_group(self.nobles, prefix + "board_noble_", into_dict)
         flat_map_group(self.tiers, prefix + "tier_", into_dict)
         into_dict[prefix + "resources"] = self.resources
         return into_dict
@@ -44,7 +44,7 @@ class RowVector:
         self.open_cards = [CardVector() for x in range(4)]
         self.points = [None]
     def flat_map_into(self, prefix: str, into_dict: dict[str, list[int]]):
-        flat_map_group(self.open_cards, prefix + "_card_", into_dict)
+        flat_map_group(self.open_cards, prefix + "_open_card_", into_dict)
         self.hidden_card.flat_map_into(prefix + "_hidden_card", into_dict)
         into_dict[prefix + "_points"] = self.points
 
