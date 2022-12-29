@@ -23,7 +23,7 @@ class SplendidSplendorModel(nn.Module):
 
         self.output_lanes = nn.ModuleDict()
         for output_key in self.output_shape_dict:
-            self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = output_shape_dict[output_key][0])
+            self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = len(output_shape_dict[output_key][0]))
 
     def init_weights(self):
         #initialize with random noise
