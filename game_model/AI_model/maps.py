@@ -16,9 +16,9 @@ def map_to_AI_input(game_state: Game) -> GamestateInputVector:
     
     for i,player in enumerate(game_state.get_players_in_immediate_turn_priority()):
         if player is None:
-            input_vect_flattened['player_'+i+'_temp_resources'] =
-            input_vect_flattened['player_'+i+'_perm_resources'] =
-            input_vect_flattened['player_'+i+'_points'] =
+            input_vect_flattened['player_'+i+'_temp_resources'] = [None]*6
+            input_vect_flattened['player_'+i+'_perm_resources'] = [None]*5
+            input_vect_flattened['player_'+i+'_points'] = None
             for j in range(len(player.reserved_cards)):
                 input_vect_flattened['player_'+i+'_reserved_card_'+j+'_costs'] = [None]*5
                 input_vect_flattened['player_'+i+'_reserved_card_'+j+'_returns'] = [None]*5

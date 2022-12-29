@@ -7,6 +7,7 @@ from game_model.AI_model.action_output import ActionOutput
 
 game = Game()
 
+ai_input_dict = dict:GamestateInputVector()
 n_hidden_layers = 3
 hidden_layer_width = 20
 input_shape_dict = None
