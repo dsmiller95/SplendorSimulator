@@ -27,7 +27,7 @@ def purchase_card(player: Actor, game: Game, card: Card):
         remaining = spend_down(player, game, ResourceType.GOLD.value, remaining)
         if remaining > 0:
             raise "not enough spend. move is invalid"
-    player.resource_persistent[card.reward.value] += 1
+    player.resource_persistent[card.returns.value] += 1
     player.sum_points += card.points
     
 

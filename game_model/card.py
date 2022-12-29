@@ -23,6 +23,6 @@ class Card:
                 continue
             resource_name = ResourceType(index)
             result = result + str(cost) + " " + resource_name.name + ", "
-        result += "] Resource: " + self.reward.name
+        result += "] Resource: " + self.returns.name
         return result
     
