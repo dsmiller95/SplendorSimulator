@@ -11,8 +11,7 @@ class GamestateInputVector:
         self.resources = [None] * 5
         self.tiers = [RowVector() for x in range(3)]
     
-    def flat_map(self, prefix: str = "") -> dict[str, list[float]]:
-        into_dict: dict[str, list[float]] = {}
+    def flat_map(self, prefix: str = "", into_dict: dict[str, list[float]] = {}) -> dict[str, list[float]]:
         flat_map_group(self.players, prefix + "player_", into_dict)
         flat_map_group(self.nobles, prefix + "board_noble_", into_dict)
         flat_map_group(self.tiers, prefix + "tier_", into_dict)
