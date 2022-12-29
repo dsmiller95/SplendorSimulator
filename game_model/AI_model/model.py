@@ -46,8 +46,8 @@ class SplendidSplendorModel(nn.Module):
         
         out_dict = {}
         for key in self.output_lanes:
-            lower_clamp_bound = self.output_shape_dict[key][1]
-            upper_clamp_bound = self.output_shape_dict[key][2]
+            lower_clamp_bound = self.output_shape_dict[key][1][0]
+            upper_clamp_bound = self.output_shape_dict[key][1][1]
             out_dict[key] = self.output_lanes[key](output)#.clamp(lower_clamp_bound,upper_clamp_bound)
 
         return out_dict

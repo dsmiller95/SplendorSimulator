@@ -18,20 +18,12 @@ class ActionOutput:
     
     def in_dict_form(self):
         action_output_dict : dict[str, list[float]] = {}
-        action_output_dict['action_choice'] = self.action_choice
-        action_output_dict['action_choice_clamp_range'] = self.action_choice_clamp_range
-        action_output_dict['card_buy'] = self.card_buy
-        action_output_dict['card_buy_clamp_range'] = self.card_buy_clamp_range
-        action_output_dict['reserve_buy'] = self.reserve_buy
-        action_output_dict['reserve_buy_clamp_range'] = self.reserve_buy_clamp_range
-        action_output_dict['resource_token_draw'] = self.resource_token_draw
-        action_output_dict['resource_token_draw_clamp_range'] = self.resource_token_draw_clamp_range
-        
-        action_output_dict['noble_choice'] = self.noble_choice
-        action_output_dict['noble_choice_clamp_range'] = self.noble_choice_clamp_range
-        action_output_dict['discard_choice'] = self.discard_choice
-        action_output_dict['discard_choice_clamp_range'] = self.discard_choice_clamp_range
-        action_output_dict['discard_amounts'] = self.discard_amounts
-        action_output_dict['discard_amounts_clamp_range'] = self.discard_amounts_clamp_range
+        action_output_dict['action_choice'] = [self.action_choice,self.action_choice_clamp_range]
+        action_output_dict['card_buy'] = [self.card_buy,self.card_buy_clamp_range]
+        action_output_dict['reserve_buy'] = [self.reserve_buy,self.reserve_buy_clamp_range]
+        action_output_dict['resource_token_draw'] = [self.resource_token_draw,self.resource_token_draw_clamp_range]
+        action_output_dict['noble_choice'] = [self.noble_choice,self.noble_choice_clamp_range]
+        action_output_dict['discard_choice'] = [self.discard_choice,self.discard_choice_clamp_range]
+        action_output_dict['discard_amounts'] = [self.discard_amounts,self.discard_amounts_clamp_range]
 
         return action_output_dict
