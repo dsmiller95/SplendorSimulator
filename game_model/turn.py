@@ -83,6 +83,8 @@ class Turn:
         ## Validating resource taking moves
         if (self.action_type == Action_Type.TAKE_THREE_UNIQUE or
             self.action_type == Action_Type.TAKE_TWO):
+            if self.resources_desired is None:
+                return "no resource preferences provided for a take n action"
             total_buy = 0
             if self.action_type == Action_Type.TAKE_THREE_UNIQUE:
                 for idx, resource in enumerate(self.resources_desired):
@@ -110,6 +112,8 @@ class Turn:
                         ## 
                         return "cannot take two from bank with less than 4 available"
         else:
+            if self.card_index is None:
+                return "no card index provided for a pick card action"
             is_reserved_card = self.card_index >= game_state.config.total_available_card_indexes()
             reserved_card_index = self.card_index - game_state.config.total_available_card_indexes()
 

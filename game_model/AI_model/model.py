@@ -31,11 +31,16 @@ class SplendidSplendorModel(nn.Module):
             nn.init.orthogonal_(m.weight, val)
             torch.nn.utils.weight_norm(m)
     
-    def forward(self,input_dict: dict[str, torch.Tensor]):
+    def forward(self,input_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         '''input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
-        print(input_dict)
-        output : torch.Tensor = torch.stack([self.input_lanes[key](input_dict[key]) for key in self.input_lanes],dim=0)
+        
+        output:torch.Tensor = None
+        for key in self.input_lanes:
+            if output is None:
+                output = self.input_lanes[key](input_dict[key])
+            else:
+                output += self.input_lanes[key](input_dict[key])
         output = self.in_activation(output)
         for layer in self.hidden_layers:
             output = layer(output)
@@ -44,7 +49,9 @@ class SplendidSplendorModel(nn.Module):
         for key in self.output_lanes:
             lower_clamp_bound = self.output_shape_dict[key][1][0]
             upper_clamp_bound = self.output_shape_dict[key][1][1]
-            out_dict[key] = self.output_lanes[key](output)#.clamp(lower_clamp_bound,upper_clamp_bound)
+            range_size = abs(upper_clamp_bound - lower_clamp_bound)
+
+            out_dict[key] = self.output_lanes[key](output).add(1).mul(range_size / 2).add(lower_clamp_bound).clamp(lower_clamp_bound,upper_clamp_bound)
 
         return out_dict
 

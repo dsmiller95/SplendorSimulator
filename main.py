@@ -9,12 +9,12 @@ import random
 
 print("hello there")
 
-random.seed(1337)
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=2, game_config=game_config)
 
 train()
 while True:
+    random.seed(1337)
     print(game.describe_common_state())
     print(map_to_AI_input(game))
     print("player " + str(game.get_current_player_index() + 1) + "'s turn!")

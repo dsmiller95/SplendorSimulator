@@ -108,12 +108,12 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Tu
     prioritized_card_indexes : Lazy[list[ResourceType]] = Lazy(
         lambda: [i for i, x in sorted(enumerate(action_output.card_buy + action_output.reserve_buy), key = lambda tup: tup[1], reverse=True)]
     )
-
+    
     action = clone_shallow(action_output.action_choice)
-    while fit_check == False and action_attempts < 4:
+    while fit_check == False and action_attempts < 5:
         best_action_index = action.index(max(action))
         action_num = best_action_index #find most preferred action
-        action[best_action_index] = 0 #means it won't select this action again
+        action[best_action_index] = -1 #means it won't select this action again
         action_type = Action_Type(action_num)
         turn = Turn(action_type)
 
@@ -150,8 +150,9 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Tu
     # discarding tokens goes here
     turn.set_discard_preferences(action_output.discard_amounts)
 
-    if turn.validate(game,player) != None:
-        return "Something went wrong and the AI->game mapper couldn't coerce a valid state"
+    validate_msg = turn.validate(game,player)
+    if validate_msg != None:
+        return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts) + " times. " + validate_msg
     
     return turn
 
