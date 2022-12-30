@@ -54,8 +54,11 @@ def train(steps: int = 100):
             return
 
         # Take action and get reward
+        next_player = game.get_current_player()
+        original_fitness = next_player.get_fitness()
         step_status = step_game(game, next_action)
-        reward = _get_reward(game, step_status)
+        fitness_delta = next_player.get_fitness() - original_fitness
+        reward = _get_reward(game, step_status, fitness_delta)
 
         # Get next game state
         next_ai_input = map_to_AI_input(game)
@@ -114,7 +117,7 @@ def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game:
     next_action.map_dict_into_self(forward)
     return map_from_AI_output(next_action, game, game.get_current_player())
 
-def _get_reward(game: Game, step_status: str) -> float:
+def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     """Determine the reward for the current game state."""
     # If the game ended, return a large negative or positive reward
     if step_status == "game_over":
@@ -122,8 +125,8 @@ def _get_reward(game: Game, step_status: str) -> float:
     if step_status == "victory":
         return 100.0
 
-    # Otherwise, return a small positive reward for making progress
-    return 1.0
+    # Otherwise, return a small positive reward for making progress based on fitness
+    return fitness_delta
 
 def play_single_game():
     """Play a single game using the trained model."""
@@ -141,8 +144,11 @@ def play_single_game():
             return
 
         # Take action and get reward
+        next_player = game.get_current_player()
+        original_fitness = next_player.get_fitness()
         step_status = step_game(game, next_action)
-        reward = _get_reward(game, step_status)
+        fitness_delta = next_player.get_fitness() - original_fitness
+        reward = _get_reward(game, step_status, fitness_delta)
 
         run_count += 1
         # If the game ended, return the reward
