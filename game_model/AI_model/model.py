@@ -51,7 +51,7 @@ class SplendidSplendorModel(nn.Module):
             upper_clamp_bound = self.output_shape_dict[key][1][1]
             range_size = abs(upper_clamp_bound - lower_clamp_bound)
 
-            out_dict[key] = self.output_lanes[key](output).add(1).mul(range_size / 2).add(lower_clamp_bound).clamp(lower_clamp_bound,upper_clamp_bound)
+            out_dict[key] = self.output_lanes[key](output)#.add(1).mul(range_size / 2).add(lower_clamp_bound).clamp(lower_clamp_bound,upper_clamp_bound)
 
         return out_dict
 

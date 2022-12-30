@@ -37,7 +37,8 @@ loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Initialize replay memory
-memory: list[tuple[dict[str, torch.Tensor], Turn, int, dict[str, torch.Tensor]]] = []
+mem_slice_type = tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], int, dict[str, torch.Tensor]]
+memory: list[mem_slice_type] = []
 
 def train(steps: int = 20):
     """Train the model for a given number of steps."""
@@ -53,7 +54,6 @@ def train(steps: int = 20):
             return
 
         # Take action and get reward
-        next_player = game.get_current_player()
         step_status = step_game(game, next_action)
         reward = _get_reward(game, step_status)
 
@@ -61,22 +61,21 @@ def train(steps: int = 20):
         next_ai_input = map_to_AI_input(game)
 
         # Store transition in replay memory
-        memory.append((ai_input, next_action, reward, next_ai_input))
+        memory.append((ai_input, forward_result, reward, next_ai_input))
         if len(memory) > MEMORY_SIZE:
             memory.pop(0)
+        if len(memory) < 5:
+            continue
         
         # Sample mini-batch from replay memory
         batch = random.sample(memory, min(len(memory), BATCH_SIZE))
         states, actions, rewards, next_states = zip(*batch)
 
         # Convert inputs to tensors
-        states = [GamestateInputVector(x).to_tensor() for x in states]
-        states = torch.cat(states, dim=0)
-        actions = [ActionOutput.from_turn(x).to_tensor() for x in actions]
-        actions = torch.cat(actions, dim=0)
+        states = concat_dict_list_to_dict_tensors(states)
+        actions = concat_dict_list_to_dict_tensors(actions)
         rewards = torch.tensor(rewards)
-        next_states = [GamestateInputVector(x).to_tensor() for x in next_states]
-        next_states = torch.cat(next_states, dim=0)
+        next_states = concat_dict_list_to_dict_tensors(next_states)
 
         # Get model's predicted Q-values for next states
         next_q_values = model.forward(next_states).values()
@@ -88,13 +87,27 @@ def train(steps: int = 20):
         # Compute loss
         q_values = model.forward(states).values()
         q_values = torch.cat(list(q_values), dim=1)
-        q_values = q_values.gather(1, actions)
+        ##q_values = {name: val.gather(1, actions[name].long()) for name, val in q_values.items()}
+        action_flat = concat_dict_tensors_to_flat(actions)
+        as_str = str(action_flat)
+        _, action_indices = action_flat.max(dim=1)
+        as_2 = str(action_indices)
+        q_values = q_values.gather(1, action_indices.unsqueeze(1))
         loss = loss_fn(q_values, expected_q_values)
 
         # Backpropagate and optimize
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+def concat_dict_tensors_to_flat(input: dict[str, torch.Tensor]):
+    return torch.concat(list(input.values()), dim=1)
+
+def concat_dict_list_to_dict_tensors(dict_list: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
+    if len(dict_list) <= 0:
+        return None
+    return {key:torch.stack([x[key] for x in dict_list], dim=0) for key in dict_list[0]}
+    
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
     """Get the next action from the model's forward pass result."""

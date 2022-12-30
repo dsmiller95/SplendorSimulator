@@ -88,7 +88,7 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Tu
     while fit_check == False and action_attempts < 5:
         best_action_index = action.index(max(action))
         action_num = best_action_index #find most preferred action
-        action[best_action_index] = -1 #means it won't select this action again
+        action[best_action_index] = -10000000 #means it won't select this action again
         action_type = Action_Type(action_num)
         turn = Turn(action_type)
 
@@ -124,7 +124,9 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Tu
     
     # discarding tokens goes here
     turn.set_discard_preferences(action_output.discard_amounts)
-
+    if action_attempts >= 5:
+        ## for training, may be best to provide a noop when the game state prohibits any other actions
+        return Turn(Action_Type.NOOP) 
     validate_msg = turn.validate(game,player)
     if validate_msg != None:
         return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts) + " times. " + validate_msg

@@ -1,4 +1,4 @@
-
+import torch
 
 def flat_map_group(map_list: list, prefix: str, into_dict: dict[str, list[int]]):
     for i, item in enumerate(map_list):
