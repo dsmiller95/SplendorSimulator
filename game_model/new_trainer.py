@@ -40,7 +40,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 mem_slice_type = tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], int, dict[str, torch.Tensor]]
 memory: list[mem_slice_type] = []
 
-def train(steps: int = 20):
+def train(steps: int = 100):
     """Train the model for a given number of steps."""
     for step in range(steps):
         # Get current game state
@@ -64,7 +64,7 @@ def train(steps: int = 20):
         memory.append((ai_input, forward_result, reward, next_ai_input))
         if len(memory) > MEMORY_SIZE:
             memory.pop(0)
-        if len(memory) < 5:
+        if len(memory) < 32:
             continue
         
         # Sample mini-batch from replay memory
@@ -89,10 +89,9 @@ def train(steps: int = 20):
         q_values = torch.cat(list(q_values), dim=1)
         ##q_values = {name: val.gather(1, actions[name].long()) for name, val in q_values.items()}
         action_flat = concat_dict_tensors_to_flat(actions)
-        as_str = str(action_flat)
         _, action_indices = action_flat.max(dim=1)
-        as_2 = str(action_indices)
-        q_values = q_values.gather(1, action_indices.unsqueeze(1))
+        action_indices_unsqueezed = action_indices.unsqueeze(1)
+        q_values = q_values.gather(1, action_indices_unsqueezed)
         loss = loss_fn(q_values, expected_q_values)
 
         # Backpropagate and optimize
@@ -128,7 +127,8 @@ def _get_reward(game: Game, step_status: str) -> float:
 
 def play_single_game():
     """Play a single game using the trained model."""
-    game.reset()
+    game = Game(player_count=4, game_config=game_config)
+    run_count = 0
     while True:
         # Get current game state
         ai_input = map_to_AI_input(game)
@@ -141,16 +141,16 @@ def play_single_game():
             return
 
         # Take action and get reward
-        next_player = game.get_current_player()
         step_status = step_game(game, next_action)
         reward = _get_reward(game, step_status)
 
+        run_count += 1
         # If the game ended, return the reward
-        if step_status is not None:
+        if step_status is not None or run_count > 100:
             return reward
 
 # Train the model
-train(1000)
+train(100)
 
 # Play a single game using the trained model
 reward = play_single_game()

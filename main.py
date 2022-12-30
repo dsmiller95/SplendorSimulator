@@ -14,6 +14,7 @@ game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=2, game_config=game_config)
 
 train(100)
+exit(0)
 while True:
     random.seed(1337)
     print(game.describe_common_state())
