@@ -37,7 +37,7 @@ loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Initialize replay memory
-mem_slice_type = tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], int, dict[str, torch.Tensor]]
+mem_slice_type = tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], float, dict[str, torch.Tensor]]
 memory: list[mem_slice_type] = []
 
 def train(steps: int = 100):
@@ -72,7 +72,8 @@ def train(steps: int = 100):
         
         # Sample mini-batch from replay memory
         batch = random.sample(memory, min(len(memory), BATCH_SIZE))
-        states, actions, rewards, next_states = zip(*batch)
+        unziped : mem_slice_type = zip(*batch)
+        states, actions, rewards, next_states = unziped
 
         # Convert inputs to tensors
         states = concat_dict_list_to_dict_tensors(states)
