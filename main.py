@@ -3,7 +3,7 @@ from game_model.game_runner import step_game
 from game_model.turn import Turn, Action_Type
 from game_model.game import Game
 from game_model.AI_model.maps import map_to_AI_input
-from game_model.new_trainer import train
+from game_model.ChatGPT_trainer import train
 from input_parser.action_parser import get_action_from_user
 
 import random
