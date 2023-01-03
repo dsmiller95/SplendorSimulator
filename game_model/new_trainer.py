@@ -47,10 +47,9 @@ def train(steps: int = 100):
         ai_input = map_to_AI_input(game)
 
         # Get model's predicted action
-        forward_result = model.forward(ai_input)
-        next_action = _get_next_action_from_forward_result(forward_result, game)
+        Q_values = model.forward(ai_input) #Q values == expected reward for an action taken
+        next_action = _get_next_action_from_forward_result(Q_values, game) #this should pick the highest Q-valued action
         if not isinstance(next_action, Turn):
-            print(next_action)
             return
 
         # Take action and get reward
@@ -64,7 +63,7 @@ def train(steps: int = 100):
         next_ai_input = map_to_AI_input(game)
 
         # Store transition in replay memory
-        memory.append((ai_input, forward_result, reward, next_ai_input))
+        memory.append((ai_input, Q_values, reward, next_ai_input))
         if len(memory) > MEMORY_SIZE:
             memory.pop(0)
         if len(memory) < 32:
@@ -114,6 +113,7 @@ def concat_dict_list_to_dict_tensors(dict_list: list[dict[str, torch.Tensor]]) -
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
     """Get the next action from the model's forward pass result."""
     next_action = ActionOutput()
+    print(next_action)
     next_action.map_dict_into_self(forward)
     return map_from_AI_output(next_action, game, game.get_current_player())
 

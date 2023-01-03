@@ -12,7 +12,6 @@ class SplendidSplendorModel(nn.Module):
         self.output_shape_dict = output_shape_dict
         self.hidden_num = hidden_layers_num
         self.hidden_width = hidden_layers_width
-        self.clamp_vals = [value[1:] for value in self.output_shape_dict.values()]
         self.input_lanes = nn.ModuleDict()
         for input_key in self.input_shape_dict:
             self.input_lanes[input_key] = nn.Linear(in_features = len(self.input_shape_dict[input_key]), out_features = self.hidden_width)
@@ -47,11 +46,7 @@ class SplendidSplendorModel(nn.Module):
         
         out_dict = {}
         for key in self.output_lanes:
-            lower_clamp_bound = self.output_shape_dict[key][1][0]
-            upper_clamp_bound = self.output_shape_dict[key][1][1]
-            range_size = abs(upper_clamp_bound - lower_clamp_bound)
-
-            out_dict[key] = self.output_lanes[key](output)#.add(1).mul(range_size / 2).add(lower_clamp_bound).clamp(lower_clamp_bound,upper_clamp_bound)
+            out_dict[key] = self.output_lanes[key](output)
 
         return out_dict
 
