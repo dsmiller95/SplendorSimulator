@@ -3,15 +3,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SplendidSplendorModel(nn.Module):
-    def __init__(self, input_shape_dict, output_shape_dict: dict[str, list[float]], hidden_layers_width, hidden_layers_num):
-        '''Takes input and output objects in a dict form, with the keys being the input/output
-        names and the values being 1: length of vectors needed and 2: clamp bounds (output dict only).
-        Takes hidden layer parameters to construct an arbitrary multi-layer perceptron'''
+    def __init__(self,
+                 input_shape_dict,
+                 hidden_layers_width,
+                 hidden_layers_num,
+                 Q_width
+                 ):
+        '''Takes input in dict form, with the keys being
+        the input names and the values being the length of vectors needed.
+        Hidden layer parameters construct a multi-layer perceptron.
+        Output is Q-value vector with size Q_width.'''
         super().__init__()
         self.input_shape_dict = input_shape_dict
         self.output_shape_dict = output_shape_dict
         self.hidden_num = hidden_layers_num
         self.hidden_width = hidden_layers_width
+        self.Q_width = Q_width
         self.input_lanes = nn.ModuleDict()
         for input_key in self.input_shape_dict:
             self.input_lanes[input_key] = nn.Linear(in_features = len(self.input_shape_dict[input_key]), out_features = self.hidden_width)
@@ -20,9 +27,8 @@ class SplendidSplendorModel(nn.Module):
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())
         self.hidden_layers = nn.ModuleList([hidden_layer for i in range(self.hidden_num)])
 
-        self.output_lanes = nn.ModuleDict()
-        for output_key in self.output_shape_dict:
-            self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = len(output_shape_dict[output_key][0]))
+        self.Q_layer = nn.Linear(in_features = self.hidden_width,
+                                 out_features = self.Q_width)
 
     def init_weights(self):
         #initialize with random noise
@@ -44,11 +50,9 @@ class SplendidSplendorModel(nn.Module):
         for layer in self.hidden_layers:
             output = layer(output)
         
-        out_dict = {}
-        for key in self.output_lanes:
-            out_dict[key] = self.output_lanes[key](output)
+        output = self.Q_layer(output) #to save memory, we should name 
 
-        return out_dict
+        return output
 
 
 '''
@@ -57,12 +61,13 @@ Structure works like this:
       in1  in2  in3  [these are vectors with their own individual lengths]
          \  |  /
           \ | /
-         hidden1     [The hidden layer input size is the ]
+         hidden1
             |
          hidden2
             |
          hidden3
-           /\
-          /  \
-       out1  out2
+            |
+         Q-layer
+            |
+         output     [this is our Q-values vector]
 '''
