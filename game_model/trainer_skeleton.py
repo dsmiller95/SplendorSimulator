@@ -50,3 +50,43 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         #for each player
             #get loss from predicted reward and actual reward
             #backprop loss, update weights
+
+
+'''
+                                                                     Q
+                                                                   ┌───┐
+     gradient flows    ──►                                action?──┤8.6│
+                                                                   │2.3│
+gradient can't flow    -/►                            sub-action?──┤1.9│
+                                                                   │9.8│
+                                                      sub-action?──┤3.4│
+                                                                   │2.2│
+                                                                   └───┘
+
+
+
+
+       ┌─/►rules─────────/────┐
+       │                      │
+       │                 Q    ▼
+       │               ┌───┐ ┌─┐ ┌───┐
+       │               │8.6│ │1│ │8.6│
+       │               │2.3│ │1│ │2.3│
+  gamestate1-/►model──►│1.9│.│1│=│1.9│
+                       │9.8│ │1│ │9.8│
+                       │3.4│ │1│ │3.4│
+                       │2.2│ │1│ │2.2│
+                       └───┘ └─┘ └───┘
+
+       ┌─/►rules─────────/────┐
+       │                      │
+       │                 Q    ▼
+       │               ┌───┐ ┌─┐ ┌───┐
+       │               │0.3│ │0│ │0.0│
+       │               │6.4│ │1│ │6.4│
+  gamestate2-/►model──►│1.3│.│0│=│0.0│
+                       │4.3│ │0│ │0.0│
+                       │5.6│ │1│ │5.6│
+                       │8.9│ │1│ │8.9│
+                       └───┘ └─┘ └───┘
+'''
