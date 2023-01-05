@@ -1,5 +1,6 @@
 import torch
 import random
+from sys import getsizeof
 from game_data.game_config_data import GameConfigData
 from game_model.game import Game
 from game_model.AI_model.model import SplendidSplendorModel
@@ -14,7 +15,8 @@ def train():
     learning_rate = 0.001 
     gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
                 #(0: only current, 1: current and all future states)
-    memory_length = 1000 #number of rounds to play of the game
+    epsilon = 0.9 #how often to pick the maximum-Q-valued action
+    memory_length = 1000000 #number of rounds to play of the game
     target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
 
     # Load game configuration data
@@ -46,20 +48,24 @@ def train():
         while not won and len(replay_memory) < memory_length:
             ''' Use target network to play the games'''
             
+            # Store game state in memory
+            turn_memory[0] = game
+
             # Map game state to AI input
             ai_input = map_to_AI_input(game)
 
             # Get model's predicted action
             Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
-            next_action = _get_next_action_from_forward_result(Q, game) #this should pick the highest Q-valued action
             
-            # Store game state in memory
-            turn_memory[0] = game
             # Store Q-value dict in memory
             turn_memory[1] = Q
-            
-            
 
+            # Apply epsilon greedy function to somewhat randomize the action picks for exploration
+            Q = _epsilon_greedy(Q,epsilon)
+
+            # Pick the highest Q-valued action that works in the game
+            next_action = _get_next_action_from_forward_result(Q, game) 
+        
             original_fitness = game.get_current_player().get_fitness()
             # Play move
             step_game(game, next_action)
@@ -79,6 +85,8 @@ def train():
 
             #Store turn in replay memory
             replay_memory.append(turn_memory)
+            
+            print(len(replay_memory),getsizeof(replay_memory))
 
 
                 
@@ -106,3 +114,31 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
 
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
+
+def _epsilon_greedy(Q: torch.ModuleDict, epsilon: float):
+    '''The epsilon greedy algorithm is supposed to choose the max Q-valued
+    action with a probability of epsilon. Otherwise, it will randomly choose
+    another possible action. We're going to do this by either allowing the
+    Q values to go undisturbed to the action mapper, or by swapping the max
+    Q value for a particular action to another position, so that the action
+    mapper will pick that action instead.'''
+    
+    for choice_type in Q:
+        choices = Q[choice_type]
+        if random.uniform(0,1) > epsilon and len(choices) > 1:
+            maxIndex = choices.argmax()
+
+            index_clash = True
+            while index_clash:
+                swapIndex = random.randint(0, choices.size(0)-1)
+                if swapIndex != maxIndex:
+                    index_clash = False
+            
+            choices_copy = choices.clone()
+            #swapVal = choices[swapIndex]
+            choices_copy[swapIndex] = choices[maxIndex]
+            choices_copy[maxIndex] = choices[swapIndex]
+            #choices[maxIndex] = swapVal
+            Q[choice_type] = choices_copy
+    return Q
+            
