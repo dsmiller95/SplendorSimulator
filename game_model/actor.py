@@ -70,6 +70,10 @@ class Actor:
         
         total_fitness += self.sum_points * 10
         return total_fitness
+    
+    def has_won(self) -> bool:
+        '''check whether the player has enough points to win'''
+        return True if self.sum_points >= 15 else False
 
     def describe_state(self) -> str:
         result = ""
