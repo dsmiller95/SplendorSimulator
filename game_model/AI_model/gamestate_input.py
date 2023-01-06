@@ -1,6 +1,8 @@
 import torch
 
-def flat_map_group(map_list: list, prefix: str, into_dict: dict[str, list[int]]):
+from utilities.better_param_dict import BetterParamDict
+
+def flat_map_group(map_list: list, prefix: str, into_dict: BetterParamDict[list[float]]):
     for i, item in enumerate(map_list):
         item.flat_map_into(prefix + str(i), into_dict)
 
@@ -11,7 +13,9 @@ class GamestateInputVector:
         self.resources = [None] * 6
         self.tiers = [RowVector() for x in range(3)]
     
-    def flat_map(self, prefix: str = "", into_dict: dict[str, list[float]] = {}) -> dict[str, list[float]]:
+    def flat_map(self, prefix: str = "", into_dict: BetterParamDict[list[float]] = None) -> BetterParamDict[list[float]]:
+        if into_dict is None:
+            into_dict = BetterParamDict([])
         flat_map_group(self.players, prefix + "player_", into_dict)
         flat_map_group(self.nobles, prefix + "board_noble_", into_dict)
         flat_map_group(self.tiers, prefix + "tier_", into_dict)
@@ -24,7 +28,7 @@ class CardVector:
         self.costs = [None]*5
         self.returns = [None]*5
         self.points = [None]
-    def flat_map_into(self, prefix: str, into_dict: dict[str, list[int]]):
+    def flat_map_into(self, prefix: str, into_dict: BetterParamDict[list[float]]):
         into_dict[prefix + "_costs"] = self.costs
         into_dict[prefix + "_returns"] = self.returns
         into_dict[prefix + "_points"] = self.points
@@ -33,7 +37,7 @@ class NobleVector:
     def __init__(self):
         self.costs = [None]*5
         self.points = [None]
-    def flat_map_into(self, prefix: str, into_dict: dict[str, list[int]]):
+    def flat_map_into(self, prefix: str, into_dict: BetterParamDict[list[float]]):
         into_dict[prefix + "_costs"] = self.costs
         into_dict[prefix + "_points"] = self.points
 
@@ -42,7 +46,7 @@ class RowVector:
         self.hidden_card = CardVector()
         self.open_cards = [CardVector() for x in range(4)]
         self.points = [None]
-    def flat_map_into(self, prefix: str, into_dict: dict[str, list[int]]):
+    def flat_map_into(self, prefix: str, into_dict: BetterParamDict[list[float]]):
         flat_map_group(self.open_cards, prefix + "_open_card_", into_dict)
         self.hidden_card.flat_map_into(prefix + "_hidden_card", into_dict)
         into_dict[prefix + "_points"] = self.points
@@ -54,7 +58,7 @@ class PlayerVector:
         self.points = [None]
         self.reserved_cards = [CardVector() for x in range(3)]
 
-    def flat_map_into(self, prefix: str, into_dict: dict[str, list[int]]):
+    def flat_map_into(self, prefix: str, into_dict: BetterParamDict[list[float]]):
         into_dict[prefix + "_temp_resources"] = self.temp_resources
         into_dict[prefix + "_perm_resources"] = self.perm_resources
         into_dict[prefix + "_points"] = self.points
