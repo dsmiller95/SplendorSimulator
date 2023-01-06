@@ -10,13 +10,12 @@ class BetterParamDict:
         self.aggregate_list : torch.Tensor = []
         self.index_dict : dict[str, tuple[int, int]] = {}
         for key in data:
-            next_list = data[key]
             origin_index = len(self.aggregate_list)
             self.aggregate_list += data[key]
             end_index = len(self.aggregate_list)
             self.index_dict[key] = (origin_index, end_index)
     
-    def get_val(self, key: str) -> torch.Tensor:
+    def __getitem__(self, key: str) -> torch.Tensor:
         data_range = self.index_dict[key]
         return self.aggregate_list[data_range[0]:data_range[1]]
     

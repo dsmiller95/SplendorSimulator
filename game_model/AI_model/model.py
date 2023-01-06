@@ -19,7 +19,7 @@ class SplendidSplendorModel(nn.Module):
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())
         self.hidden_layers = nn.ModuleList([hidden_layer for i in range(self.hidden_num)])
 
-        self.output_layer = nn.Linear(in_features = self.hidden_width, out_features = self.output_len))
+        self.output_layer = nn.Linear(in_features = self.hidden_width, out_features = self.output_len)
 
     def init_weights(self):
         #initialize with random noise
