@@ -48,5 +48,5 @@ class ActionOutput:
         return len(self.mapped_properties.get_backing_packed_data())
 
     def map_tensor_into_self(self, into_tensor: torch.Tensor):
-        mapped_list = list(into_tensor)
+        mapped_list = into_tensor.tolist()
         self.mapped_properties = BetterParamDict.reindex_over_new_data(self.mapped_properties, mapped_list)

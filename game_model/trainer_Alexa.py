@@ -9,6 +9,7 @@ from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.maps import map_from_AI_output
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
+from utilities.better_param_dict import BetterParamDict
 
 
 
@@ -20,8 +21,8 @@ class ReplayMemoryEntry:
         game_state: torch.Tensor
         ):
         self.game_state : torch.Tensor = game_state
-        self.q_prediction: torch.Tensor = {}
-        self.next_turn_game_state: torch.Tensor = {}
+        self.q_prediction: torch.Tensor = None
+        self.next_turn_game_state: torch.Tensor = None
         self.reward: float = -1
         # Indicates if this is the last turn which was taken by this player in a game
         self.is_last_turn: bool = False
@@ -44,9 +45,9 @@ def train():
     game = Game(player_count=4, game_config=game_config)
     ai_input = map_to_AI_input(game)
     input_shape_size = len(ai_input.get_backing_packed_data())
-    output_shape_size = ActionOutput().get_data_length()
-    model = SplendidSplendorModel(input_shape_size, output_shape_size, 100, 3)
-    target_model = SplendidSplendorModel(input_shape_size, output_shape_size, 100, 3)
+    output_shape_size = ActionOutput()
+    model = SplendidSplendorModel(input_shape_size, output_shape_size.get_data_length(), 100, 3)
+    target_model = SplendidSplendorModel(input_shape_size, output_shape_size.get_data_length(), 100, 3)
 
     # Define loss function and optimizer
     loss_fn = torch.nn.MSELoss()
@@ -64,24 +65,24 @@ def train():
             ''' Use target network to play the games'''
 
             # Map game state to AI input
-            ai_input = map_to_AI_input(game)
+            ai_input = map_to_AI_input(game).get_backing_packed_data()
             
             # Store game state in memory
-            player_mem = ReplayMemoryEntry(ai_input.get_backing_packed_data())
+            player_mem = ReplayMemoryEntry(ai_input)
             
             #save this game to the last turn of this player's memory
             turns_since_last = game.get_player_num() - 1
             if len(replay_memory) >= turns_since_last:
-                replay_memory[-turns_since_last].next_turn_game_state = ai_input.get_backing_packed_data()
+                replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
             # Get model's predicted action
-            Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
+            Q : torch.Tensor = target_model.forward(ai_input) #Q values == expected reward for an action taken
             
             # Store Q-value dict in memory
             player_mem.q_prediction = Q
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
-            Q = _epsilon_greedy(Q,epsilon)
+            Q = _epsilon_greedy(Q, epsilon, output_shape_size)
 
             # Pick the highest Q-valued action that works in the game
             next_action = _get_next_action_from_forward_result(Q, game) 
@@ -117,8 +118,8 @@ def train():
 
     for i in range(100):
         turn_batch = random.sample(replay_memory,batch_size)
-        print([torch.ParameterDict(x.game_state) for x in turn_batch])
-        current_state_stack = torch.stack([torch.ParameterDict(x.game_state) for x in turn_batch])
+        current_state_stack = torch.stack([x.game_state for x in turn_batch])
+        q_prediction_stack = torch.stack([x.q_prediction for x in turn_batch])
         next_state_stack = torch.stack([x.next_turn_game_state for x in turn_batch])
         #main network is updated every step, its weights directly updated by the backwards pass
         #target network is updated less often, its weights copied directly from the main net
@@ -142,7 +143,7 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
 
-def _epsilon_greedy(Q: torch.Tensor, epsilon: float):
+def _epsilon_greedy(Q: torch.Tensor, epsilon: float, action_shape: ActionOutput) -> torch.Tensor:
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
     action with a probability of epsilon. Otherwise, it will randomly choose
     another possible action. We're going to do this by either allowing the
@@ -150,21 +151,24 @@ def _epsilon_greedy(Q: torch.Tensor, epsilon: float):
     Q value for a particular action to another position, so that the action
     mapper will pick that action instead.'''
     
-    ## TODO: refactor to operate on a single tensor, not a dict of tensors. input type signature has been updated.
-    for choice_type in Q:
-        choices = Q[choice_type]
-        if random.uniform(0,1) > epsilon and len(choices) > 1:
-            maxIndex = choices.argmax()
+    swaps : list[tuple[int, int]] = []
+    for action_key in action_shape.mapped_properties.index_dict:
+        index_range = action_shape.mapped_properties.index_dict[action_key]
+        if random.uniform(0, 1) <= epsilon or (index_range[1] - index_range[0]) <= 1:
+            continue
+        
+        tensor_slice = Q[index_range[0]:index_range[1]]
+        maxIndex = tensor_slice.argmax()
+        swapIndex = random.randint(0, len(tensor_slice) - 2)
+        if swapIndex >= maxIndex:
+            swapIndex += 1
 
-            index_clash = True
-            while index_clash:
-                swapIndex = random.randint(0, choices.size(0)-1)
-                if swapIndex != maxIndex:
-                    index_clash = False
-            
-            choices_copy = choices.clone()
-            choices_copy[swapIndex] = choices[maxIndex]
-            choices_copy[maxIndex] = choices[swapIndex]
-            Q[choice_type] = choices_copy
-    return Q
+        swaps.append((index_range[0] + maxIndex, index_range[0] + swapIndex))
+
+    Q_copy = Q.clone()
+    for swap_op in swaps:
+        Q_copy[swap_op[0]] = Q[swap_op[1]]
+        Q_copy[swap_op[1]] = Q[swap_op[0]]
+
+    return Q_copy
             
