@@ -48,6 +48,7 @@ def train():
     output_shape_size = ActionOutput()
     model = SplendidSplendorModel(input_shape_size, output_shape_size.get_data_length(), 100, 3)
     target_model = SplendidSplendorModel(input_shape_size, output_shape_size.get_data_length(), 100, 3)
+    target_model.load_state_dict(model.state_dict())
 
     # Define loss function and optimizer
     loss_fn = torch.nn.MSELoss()
@@ -78,11 +79,13 @@ def train():
             # Get model's predicted action
             Q : torch.Tensor = target_model.forward(ai_input) #Q values == expected reward for an action taken
             
-            # Store Q-value dict in memory
-            player_mem.q_prediction = Q
-
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q, epsilon, output_shape_size)
+
+            # Store Q-value in memory
+            # TODO: store q-mask to select for only the chosen actions when calculating predicted Q-values during training?
+            # apparently the way to do this is typically by storing the max index. but with this format we have many "chosen" actions, across all modules
+            player_mem.q_prediction = Q
 
             # Pick the highest Q-valued action that works in the game
             next_action = _get_next_action_from_forward_result(Q, game) 
