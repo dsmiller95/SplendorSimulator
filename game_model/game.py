@@ -112,8 +112,14 @@ class Game:
         result = result[self.active_index:] + result[:self.active_index]
         return result
     
+    def get_player_num(self) -> int:
+        return len(self.players)
+
     def get_current_player(self) -> Actor:
         return self.players[self.active_index]
+    
+    def get_num_players(self) -> int:
+        return len(self.players)
     
     def describe_common_state(self) -> str:
         result_str = ""

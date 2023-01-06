@@ -1,6 +1,5 @@
 import torch
 import random
-from sys import getsizeof
 from game_data.game_config_data import GameConfigData
 from game_model.game import Game
 from game_model.AI_model.model import SplendidSplendorModel
@@ -11,13 +10,31 @@ from game_model.AI_model.maps import map_from_AI_output
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
 
+
+
+
+class ReplayMemoryEntry:
+    '''Each memory instance contains the game state, the Q prediction, and the reward'''
+    def __init__(
+        self, 
+        game_state: dict[str, torch.Tensor]
+        ):
+        self.game_state : dict[str, torch.Tensor] = game_state
+        self.q_prediction: dict[str, torch.Tensor] = {}
+        self.next_turn_game_state: dict[str, torch.Tensor] = {}
+        self.reward: float = -1
+        # Indicates if this is the last turn which was taken by this player in a game
+        self.is_last_turn: bool = False
+        
+
 def train():
     learning_rate = 0.001 
     gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
                 #(0: only current, 1: current and all future states)
     epsilon = 0.9 #how often to pick the maximum-Q-valued action
-    memory_length = 1000000 #number of rounds to play of the game
+    memory_length = 100 #number of rounds to play of the game (not absolute, it will finish a game)
     target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
+    batch_size: int = 100
 
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
@@ -36,29 +53,32 @@ def train():
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # Instantiate memory
-    # Each memory instance contains the game state, the turn object, the Q prediction, and the reward
-    replay_memory: list[list[Game,torch.ModuleDict,float]] = []
-    turn_memory:        list[Game,torch.ModuleDict,float]  = [None,None,None]
+    replay_memory: list[ReplayMemoryEntry] = []
 
     while len(replay_memory) < memory_length:
 
         # Create game model
         game = Game(player_count=4, game_config=game_config)
         won = False
-        while not won and len(replay_memory) < memory_length:
+        while not (won and game.active_index == 0):
             ''' Use target network to play the games'''
-            
-            # Store game state in memory
-            turn_memory[0] = game
 
             # Map game state to AI input
             ai_input = map_to_AI_input(game)
-
+            
+            # Store game state in memory
+            player_mem = ReplayMemoryEntry(ai_input)
+            
+            #save this game to the last turn of this player's memory
+            turns_since_last = game.get_player_num() - 1
+            if len(replay_memory) >= turns_since_last:
+                replay_memory[-turns_since_last].next_turn_game_state = ai_input
+            
             # Get model's predicted action
             Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
             
             # Store Q-value dict in memory
-            turn_memory[1] = Q
+            player_mem.q_prediction = Q
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,epsilon)
@@ -68,31 +88,38 @@ def train():
         
             original_fitness = game.get_current_player().get_fitness()
             # Play move
-            step_game(game, next_action)
+            step_status = step_game(game, next_action)
+            if not (step_status is None):
+                raise Exception("invalid game step generated, " + step_status)
 
             fitness_delta = game.get_current_player().get_fitness() - original_fitness
 
-            step_status = None # Win/Lose condition descriptor
             if game.get_current_player().has_won():
                 step_status = "victory"
                 won = True
-
             # Get reward for action
             reward = _get_reward(game, step_status, fitness_delta)
 
             # Store reward in memory
-            turn_memory[2] = reward
+            player_mem.reward = reward
 
             #Store turn in replay memory
-            replay_memory.append(turn_memory)
-            
-            print(len(replay_memory),getsizeof(replay_memory))
+            replay_memory.append(player_mem)
 
+        ending_state = map_to_AI_input(game)
+        for player_index in range(game.get_num_players()):
+            last_turn_player = replay_memory[-player_index]
+            if last_turn_player.next_turn_game_state is None:
+                last_turn_player.next_turn_game_state = ending_state
+            last_turn_player.is_last_turn = True
 
-                
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    #non-batching
-    for i,turn in enumerate(replay_memory):
+    for i in range(100):
+        turn_batch = random.sample(replay_memory,batch_size)
+        print([torch.ParameterDict(x.game_state) for x in turn_batch])
+        current_state_stack = torch.stack([torch.ParameterDict(x.game_state) for x in turn_batch])
+        next_state_stack = torch.stack([x.next_turn_game_state for x in turn_batch])
         #main network is updated every step, its weights directly updated by the backwards pass
         #target network is updated less often, its weights copied directly from the main net
         pass
@@ -115,7 +142,7 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
 
-def _epsilon_greedy(Q: torch.ModuleDict, epsilon: float):
+def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
     action with a probability of epsilon. Otherwise, it will randomly choose
     another possible action. We're going to do this by either allowing the
@@ -135,10 +162,8 @@ def _epsilon_greedy(Q: torch.ModuleDict, epsilon: float):
                     index_clash = False
             
             choices_copy = choices.clone()
-            #swapVal = choices[swapIndex]
             choices_copy[swapIndex] = choices[maxIndex]
             choices_copy[maxIndex] = choices[swapIndex]
-            #choices[maxIndex] = swapVal
             Q[choice_type] = choices_copy
     return Q
             
