@@ -1,6 +1,5 @@
 import torch
 from game_model.AI_model.model import SplendidSplendorModel
-from game_model.AI_model.action_output import ActionOutput
 
 def test_model_setup():
 

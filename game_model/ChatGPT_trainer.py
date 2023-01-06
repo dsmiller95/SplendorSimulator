@@ -28,9 +28,9 @@ game = Game(player_count=4, game_config=game_config)
 ai_input = map_to_AI_input(game)
 
 # Create model
-input_shape_dict = ai_input
-output_shape_dict = ActionOutput().in_dict_form()
-model = SplendidSplendorModel(input_shape_dict, output_shape_dict, HIDDEN_LAYER_WIDTH, N_HIDDEN_LAYERS)
+input_shape_size = len(ai_input.get_backing_packed_data())
+output_shape_size = ActionOutput().get_data_length()
+model = SplendidSplendorModel(input_shape_size, output_shape_size, HIDDEN_LAYER_WIDTH, N_HIDDEN_LAYERS)
 
 # Define loss function and optimizer
 loss_fn = torch.nn.MSELoss()
@@ -111,11 +111,11 @@ def concat_dict_list_to_dict_tensors(dict_list: list[dict[str, torch.Tensor]]) -
     return {key:torch.stack([x[key] for x in dict_list], dim=0) for key in dict_list[0]}
     
 
-def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
+def _get_next_action_from_forward_result(forward: torch.Tensor, game: Game) -> Turn | str:
     """Get the next action from the model's forward pass result."""
     next_action = ActionOutput()
     print(next_action)
-    next_action.map_dict_into_self(forward)
+    next_action.map_tensor_into_self(forward)
     return map_from_AI_output(next_action, game, game.get_current_player())
 
 def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:

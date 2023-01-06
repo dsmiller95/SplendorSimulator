@@ -30,10 +30,11 @@ def train():
     # Map game state to AI input
     game = Game(player_count=4, game_config=game_config)
     ai_input = map_to_AI_input(game)
-    input_shape_dict = ai_input
-    output_shape_dict = ActionOutput().in_dict_form()
-    model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
+    input_shape_size = len(ai_input.get_backing_packed_data())
+    output_shape_size = ActionOutput()
+    model = SplendidSplendorModel(input_shape_size, output_shape_size.get_data_length(), 100, 3)
+    target_model = SplendidSplendorModel(input_shape_size, output_shape_size.get_data_length(), 100, 3)
+    target_model.load_state_dict(model.state_dict())
 
     # Define loss function and optimizer
     loss_fn = torch.nn.MSELoss()
@@ -51,7 +52,7 @@ def train():
             ''' Use target network to play the games'''
 
             # Map game state to AI input
-            ai_input = map_to_AI_input(game)
+            ai_input = map_to_AI_input(game).get_backing_packed_data()
             
             # Store game state in memory
             player_mem = ReplayMemoryEntry(ai_input)
@@ -62,13 +63,15 @@ def train():
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
             # Get model's predicted action
-            Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
+            Q : torch.Tensor = target_model.forward(ai_input) #Q values == expected reward for an action taken
             
-            # Store Q-value dict in memory
-            player_mem.q_prediction = Q
-
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
-            Q = _epsilon_greedy(Q,epsilon)
+            Q = _epsilon_greedy(Q, epsilon, output_shape_size)
+
+            # Store Q-value in memory
+            # TODO: store q-mask to select for only the chosen actions when calculating predicted Q-values during training?
+            # apparently the way to do this is typically by storing the max index. but with this format we have many "chosen" actions, across all modules
+            player_mem.q_prediction = Q
 
             # Pick the highest Q-valued action that works in the game
             next_action = _get_next_action_from_forward_result(Q, game) 
@@ -93,7 +96,7 @@ def train():
             #Store turn in replay memory
             replay_memory.append(player_mem)
 
-        ending_state = map_to_AI_input(game)
+        ending_state = map_to_AI_input(game).get_backing_packed_data()
         for player_index in range(game.get_num_players()):
             last_turn_player = replay_memory[-player_index]
             if last_turn_player.next_turn_game_state is None:
@@ -114,10 +117,10 @@ def train():
         pass
 
 
-def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
+def _get_next_action_from_forward_result(forward: torch.Tensor, game: Game) -> Turn | str:
     """Get the next action from the model's forward pass result."""
     next_action = ActionOutput()
-    next_action.map_dict_into_self(forward)
+    next_action.map_tensor_into_self(forward)
     return map_from_AI_output(next_action, game, game.get_current_player())
 
 def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
@@ -131,7 +134,7 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
 
-def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
+def _epsilon_greedy(Q: torch.Tensor, epsilon: float, action_shape: ActionOutput) -> torch.Tensor:
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
     action with a probability of epsilon. Otherwise, it will randomly choose
     another possible action. We're going to do this by either allowing the
@@ -139,20 +142,24 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
     Q value for a particular action to another position, so that the action
     mapper will pick that action instead.'''
     
-    for choice_type in Q:
-        choices = Q[choice_type]
-        if random.uniform(0,1) > epsilon and len(choices) > 1:
-            maxIndex = choices.argmax()
+    swaps : list[tuple[int, int]] = []
+    for action_key in action_shape.mapped_properties.index_dict:
+        index_range = action_shape.mapped_properties.index_dict[action_key]
+        if random.uniform(0, 1) <= epsilon or (index_range[1] - index_range[0]) <= 1:
+            continue
+        
+        tensor_slice = Q[index_range[0]:index_range[1]]
+        maxIndex = tensor_slice.argmax()
+        swapIndex = random.randint(0, len(tensor_slice) - 2)
+        if swapIndex >= maxIndex:
+            swapIndex += 1
 
-            index_clash = True
-            while index_clash:
-                swapIndex = random.randint(0, choices.size(0)-1)
-                if swapIndex != maxIndex:
-                    index_clash = False
-            
-            choices_copy = choices.clone()
-            choices_copy[swapIndex] = choices[maxIndex]
-            choices_copy[maxIndex] = choices[swapIndex]
-            Q[choice_type] = choices_copy
-    return Q
+        swaps.append((index_range[0] + maxIndex, index_range[0] + swapIndex))
+
+    Q_copy = Q.clone()
+    for swap_op in swaps:
+        Q_copy[swap_op[0]] = Q[swap_op[1]]
+        Q_copy[swap_op[1]] = Q[swap_op[0]]
+
+    return Q_copy
             
