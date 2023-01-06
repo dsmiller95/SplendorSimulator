@@ -1,39 +1,52 @@
 import torch
+
+from utilities.better_param_dict import BetterParamDict
 class ActionOutput:
     def __init__(self):
-        self.action_choice: list[float] = [0] * 4
+        self.mapped_properties : BetterParamDict[list[float]] = BetterParamDict([])
+
+        self.mapped_properties["action_choice"] = [0] * 4
         self.action_choice_clamp_range = [0,1]
-        self.card_buy: list[float] = [0] * 15
+        self.mapped_properties["card_buy"] = [0] * 15
         self.card_buy_clamp_range = [0,1]
-        self.reserve_buy: list[float]= [0] * 3
+        self.mapped_properties["reserve_buy"]= [0] * 3
         self.reserve_buy_clamp_range = [0,1]
-        self.resource_token_draw: list[float] = [0] * 5
+        self.mapped_properties["resource_token_draw"] = [0] * 5
         self.resource_token_draw_clamp_range = [0,1]
         
-        self.noble_choice: list[float] = [0] * 5
+        self.mapped_properties["noble_choice"] = [0] * 5
         self.noble_choice_clamp_range = [0,1]
-        self.discard_choice: list[float] = [0]
+        self.mapped_properties["discard_choice"] = [0]
         self.discard_choice_clamp_range = [0,1]
-        self.discard_amounts: list[float] = [0] * 6
+        self.mapped_properties["discard_amounts"] = [0] * 6
         self.discard_amounts_clamp_range = [0,7]
+
+    def __setattr__(self, name: str, value):
+        '''Try to set the attribute in the mapped_properties ParamDict first, then default to normal implementation'''
+        try:
+            my_props = object.__getattribute__(self, "mapped_properties")
+            if name in my_props:
+                my_props[name] = value
+                return
+        except AttributeError:
+            pass
+        
+        object.__setattr__(self, name, value)
     
-    def in_dict_form(self):
-        action_output_dict : dict[str, list[float]] = {}
-        action_output_dict['action_choice'] = [self.action_choice,self.action_choice_clamp_range]
-        action_output_dict['card_buy'] = [self.card_buy,self.card_buy_clamp_range]
-        action_output_dict['reserve_buy'] = [self.reserve_buy,self.reserve_buy_clamp_range]
-        action_output_dict['resource_token_draw'] = [self.resource_token_draw,self.resource_token_draw_clamp_range]
-        action_output_dict['noble_choice'] = [self.noble_choice,self.noble_choice_clamp_range]
-        action_output_dict['discard_choice'] = [self.discard_choice,self.discard_choice_clamp_range]
-        action_output_dict['discard_amounts'] = [self.discard_amounts,self.discard_amounts_clamp_range]
+    def __getattribute__(self, name: str):
+        '''Try to get the attribute from the mapped_properties ParamDict first, then default to normal implementation'''
+        try:
+            my_props = object.__getattribute__(self, "mapped_properties")
+            if name in my_props:
+                return my_props[name]
+        except AttributeError:
+            pass
+        
+        return object.__getattribute__(self, name)
 
-        return action_output_dict
+    def get_data_length(self) -> int:
+        return len(self.mapped_properties.get_backing_packed_data())
 
-    def map_dict_into_self(self, into_dict: dict[str, torch.Tensor]):
-        self.action_choice = into_dict['action_choice'].tolist()
-        self.card_buy = into_dict['card_buy'].tolist()
-        self.reserve_buy = into_dict['reserve_buy'].tolist()
-        self.resource_token_draw = into_dict['resource_token_draw'].tolist()
-        self.noble_choice = into_dict['noble_choice'].tolist()
-        self.discard_choice = into_dict['discard_choice'].tolist()
-        self.discard_amounts = into_dict['discard_amounts'].tolist()
+    def map_tensor_into_self(self, into_tensor: torch.Tensor):
+        mapped_list = list(into_tensor)
+        self.mapped_properties = BetterParamDict.reindex_over_new_data(self.mapped_properties, mapped_list)
