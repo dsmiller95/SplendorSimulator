@@ -17,11 +17,11 @@ class ReplayMemoryEntry:
     '''Each memory instance contains the game state, the Q prediction, and the reward'''
     def __init__(
         self, 
-        game_state: dict[str, torch.Tensor]
+        game_state: torch.Tensor
         ):
-        self.game_state : dict[str, torch.Tensor] = game_state
-        self.q_prediction: dict[str, torch.Tensor] = {}
-        self.next_turn_game_state: dict[str, torch.Tensor] = {}
+        self.game_state : torch.Tensor = game_state
+        self.q_prediction: torch.Tensor = {}
+        self.next_turn_game_state: torch.Tensor = {}
         self.reward: float = -1
         # Indicates if this is the last turn which was taken by this player in a game
         self.is_last_turn: bool = False
@@ -67,12 +67,12 @@ def train():
             ai_input = map_to_AI_input(game)
             
             # Store game state in memory
-            player_mem = ReplayMemoryEntry(ai_input)
+            player_mem = ReplayMemoryEntry(ai_input.get_backing_packed_data())
             
             #save this game to the last turn of this player's memory
             turns_since_last = game.get_player_num() - 1
             if len(replay_memory) >= turns_since_last:
-                replay_memory[-turns_since_last].next_turn_game_state = ai_input
+                replay_memory[-turns_since_last].next_turn_game_state = ai_input.get_backing_packed_data()
             
             # Get model's predicted action
             Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
@@ -106,7 +106,7 @@ def train():
             #Store turn in replay memory
             replay_memory.append(player_mem)
 
-        ending_state = map_to_AI_input(game)
+        ending_state = map_to_AI_input(game).get_backing_packed_data()
         for player_index in range(game.get_num_players()):
             last_turn_player = replay_memory[-player_index]
             if last_turn_player.next_turn_game_state is None:
@@ -142,7 +142,7 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
 
-def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
+def _epsilon_greedy(Q: torch.Tensor, epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
     action with a probability of epsilon. Otherwise, it will randomly choose
     another possible action. We're going to do this by either allowing the
@@ -150,6 +150,7 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
     Q value for a particular action to another position, so that the action
     mapper will pick that action instead.'''
     
+    ## TODO: refactor to operate on a single tensor, not a dict of tensors. input type signature has been updated.
     for choice_type in Q:
         choices = Q[choice_type]
         if random.uniform(0,1) > epsilon and len(choices) > 1:
