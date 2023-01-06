@@ -12,48 +12,61 @@ from utilities.subsamples import clone_shallow, pad_list
 pick_three_choices = CombinatorialIndexMapping(5, 3, allow_pick_multiple=False, allow_pick_less=False)
 discard_choices = CombinatorialIndexMapping(6, 3, allow_pick_multiple=True, allow_pick_less=True)
 
+from utilities.better_param_dict import BetterParamDict
 class ActionOutput:
     def __init__(self):
-        self.action_choice: torch.Tensor = torch.Tensor([0] * 4)
-        self.card_pref: torch.Tensor = torch.Tensor([0] * 15) #this will be used for both card buying and reserving
-        self.reserve_buy: torch.Tensor= torch.Tensor([0] * 3) #this is specifically for buying cards from reserve
-        self.noble_choice: torch.Tensor = torch.Tensor([0] * 5)
+        self.mapped_properties : BetterParamDict[torch.Tensor] = BetterParamDict([])
+        self.mapped_properties['action_choice'] = torch.Tensor([0] * 4)
+        self.mapped_properties['card_pref'] = torch.Tensor([0] * 15) #this will be used for both card buying and reserving
+        self.mapped_properties['reserve_buy'] = torch.Tensor([0] * 3) #this is specifically for buying cards from reserve
+        self.mapped_properties['noble_choice'] = torch.Tensor([0] * 5)
         
-        self.pick_three_choice: torch.Tensor = torch.Tensor([0] * pick_three_choices.total_possible_options())
-        self.pick_two_choice: torch.Tensor = torch.Tensor([0] * 5)
-        self.discard_combination_choice: torch.Tensor = torch.Tensor([0] * discard_choices.total_possible_options())
+        self.mapped_properties['pick_three_choice'] = torch.Tensor([0] * pick_three_choices.total_possible_options())
+        self.mapped_properties['pick_two_choice'] = torch.Tensor([0] * 5)
+        self.mapped_properties['discard_combination_choice'] = torch.Tensor([0] * discard_choices.total_possible_options())
     
     def in_dict_form(self):
-        action_output_dict : dict[str, torch.Tensor] = {}
-        action_output_dict['action_choice'] = torch.Tensor(self.action_choice)
-        action_output_dict['card_buy'] = torch.Tensor(self.card_pref)
-        action_output_dict['reserve_buy'] = torch.Tensor(self.reserve_buy)
-        action_output_dict['noble_choice'] = torch.Tensor(self.noble_choice)
-
-        action_output_dict['pick_three_choice'] = torch.Tensor(self.pick_three_choice)
-        action_output_dict['pick_two_choice'] = torch.Tensor(self.pick_two_choice)
-        action_output_dict['discard_combination_choice'] = torch.Tensor(self.discard_combination_choice)
-
-        return action_output_dict
-
-    def map_dict_into_self(self, into_dict: dict[str, torch.Tensor]):
-        self.action_choice = into_dict['action_choice']
-        self.card_pref = into_dict['card_buy']
-        self.reserve_buy = into_dict['reserve_buy']
-        self.noble_choice = into_dict['noble_choice']
-
-        self.pick_three_choice = into_dict['pick_three_choice']
-        self.pick_two_choice = into_dict['pick_two_choice']
-        self.discard_combination_choice = into_dict['discard_combination_choice']
+        return self.mapped_properties
+        
+    def __setattr__(self, name: str, value):
+        '''Try to set the attribute in the mapped_properties ParamDict first, then default to normal implementation'''
+        try:
+            my_props = object.__getattribute__(self, "mapped_properties")
+            if name in my_props:
+                my_props[name] = value
+                return
+        except AttributeError:
+            pass
+        
+        object.__setattr__(self, name, value)
     
+    def __getattribute__(self, name: str):
+        '''Try to get the attribute from the mapped_properties ParamDict first, then default to normal implementation'''
+        try:
+            my_props = object.__getattribute__(self, "mapped_properties")
+            if name in my_props:
+                return my_props[name]
+        except AttributeError:
+            pass
+        
+        return object.__getattribute__(self, name)
+
+    def get_data_length(self) -> int:
+        return len(self.mapped_properties.get_backing_packed_data())
+
+    def map_tensor_into_self(self, into_tensor: torch.Tensor):
+        mapped_list = list(into_tensor)
+        self.mapped_properties = BetterParamDict.reindex_over_new_data(self.mapped_properties, mapped_list)
+        
     @staticmethod
-    def map_from_AI_output(forward_result: dict[str, torch.Tensor],game:Game,player:Actor) -> tuple[Turn | str, dict[str, torch.Tensor]]:
+    def map_from_AI_output(forward_result: torch.Tensor,game:Game,player:Actor) -> tuple[Turn | str, dict[str, torch.Tensor]]:
         '''
         TODO: map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
         '''
 
         action_output = ActionOutput()
-        action_output.map_dict_into_self(forward_result)
+        ## TODO: map in using backing dictionary remap
+        action_output.map_tensor_into_self(forward_result)
         turn_index_tuple = ActionOutput._map_internal(action_output, game, player)
         if turn_index_tuple[1] == None: # This happens when _map_internal fails to find a valid action and returns NOOP
             turn,_ = turn_index_tuple

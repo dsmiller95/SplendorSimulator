@@ -1,11 +1,5 @@
 
-from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.gamestate_input import GamestateInputVector
-from game_model.game import Game
-from game_model.game_runner import step_game
-from game_model.resource_types import ResourceType
-from tests.test_helpers import assert_banks, test_config
-from game_model.turn import Turn,Action_Type
 
 def test_game_state_input_correct_length_flat_map():
     empty_input = GamestateInputVector()
