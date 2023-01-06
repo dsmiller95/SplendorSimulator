@@ -11,22 +11,22 @@ class ActionOutput:
         self.discard_amounts: list[float] = [0] * 6
     
     def in_dict_form(self):
-        action_output_dict : dict[str, list[float]] = {}
-        action_output_dict['action_choice'] = self.action_choice
-        action_output_dict['card_buy'] = self.card_buy
-        action_output_dict['reserve_buy'] = self.reserve_buy
-        action_output_dict['resource_token_draw'] = self.resource_token_draw
-        action_output_dict['noble_choice'] = self.noble_choice
-        action_output_dict['discard_choice'] = self.discard_choice
-        action_output_dict['discard_amounts'] = self.discard_amounts
+        action_output_dict : dict[str, torch.Tensor] = {}
+        action_output_dict['action_choice'] = torch.Tensor(self.action_choice)
+        action_output_dict['card_buy'] = torch.Tensor(self.card_buy)
+        action_output_dict['reserve_buy'] = torch.Tensor(self.reserve_buy)
+        action_output_dict['resource_token_draw'] = torch.Tensor(self.resource_token_draw)
+        action_output_dict['noble_choice'] = torch.Tensor(self.noble_choice)
+        action_output_dict['discard_choice'] = torch.Tensor(self.discard_choice)
+        action_output_dict['discard_amounts'] = torch.Tensor(self.discard_amounts)
 
         return action_output_dict
 
     def map_dict_into_self(self, into_dict: dict[str, torch.Tensor]):
-        self.action_choice = into_dict['action_choice']
-        self.card_buy = into_dict['card_buy']
-        self.reserve_buy = into_dict['reserve_buy']
-        self.resource_token_draw = into_dict['resource_token_draw']
-        self.noble_choice = into_dict['noble_choice']
-        self.discard_choice = into_dict['discard_choice']
-        self.discard_amounts = into_dict['discard_amounts']
+        self.action_choice = into_dict['action_choice'].tolist()
+        self.card_buy = into_dict['card_buy'].tolist()
+        self.reserve_buy = into_dict['reserve_buy'].tolist()
+        self.resource_token_draw = into_dict['resource_token_draw'].tolist()
+        self.noble_choice = into_dict['noble_choice'].tolist()
+        self.discard_choice = into_dict['discard_choice'].tolist()
+        self.discard_amounts = into_dict['discard_amounts'].tolist()

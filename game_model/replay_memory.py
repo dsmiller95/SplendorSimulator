@@ -1,3 +1,4 @@
+import torch
 class ReplayMemoryEntry:
     '''Each memory instance contains the game state, the Q prediction, and the reward'''
     def __init__(
