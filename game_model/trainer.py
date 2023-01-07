@@ -31,8 +31,9 @@ def train(steps: int = 20):
     n_hidden_layers = 5
     hidden_layer_width = 100
     input_shape_dict = AI_input
-    output_shape_dict = ActionOutput().in_dict_form()
-    model:SplendidSplendorModel = SplendidSplendorModel(input_shape_dict,output_shape_dict,hidden_layer_width,n_hidden_layers)
+    input_shape_size = len(AI_input.get_backing_packed_data())
+    output_shape_size = ActionOutput().get_data_length()
+    model:SplendidSplendorModel = SplendidSplendorModel(input_shape_size,output_shape_size,hidden_layer_width,n_hidden_layers)
 
     for tries in range(steps):
         AI_input = map_to_AI_input(game)
@@ -56,7 +57,7 @@ def train(steps: int = 20):
     print(game.describe_common_state())
     print("=====================================================")
     
-def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
+def _get_next_action_from_forward_result(forward: torch.Tensor, game: Game) -> Turn | str:
         next_action = ActionOutput()
-        next_action.map_dict_into_self(forward)
+        next_action.map_tensor_into_self(forward)
         return map_from_AI_output(next_action, game, game.get_current_player())
