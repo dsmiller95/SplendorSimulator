@@ -13,7 +13,7 @@ class BellmanEquationDataSet(Dataset):
         next_game_state = self.input_data[index]['next_turn_game_state']
         reward = self.input_data[index]['reward']
         is_last_turn = self.input_data[index]['is_last_turn']
-        return current_game_state,next_game_state,reward,is_last_turn
+        return [current_game_state,next_game_state,reward,is_last_turn]
     
     def __len__(self):
         print(len(self.input_data))

@@ -19,7 +19,7 @@ def train():
     gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
                 #(0: only current, 1: current and all future states)
     epsilon = 0.9 #how often to pick the maximum-Q-valued action
-    memory_length = 100 #number of rounds to play of the game (not absolute, it will finish a game)
+    memory_length = 1000 #number of rounds to play of the game (not absolute, it will finish a game)
     target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
     batch_size: int = 3
 
@@ -100,6 +100,8 @@ def train():
             replay_memory.append(player_dict_mem)
             #replay_memory.append(player_mem)
 
+            print(len(replay_memory))
+
         ending_state = map_to_AI_input(game)
         for player_index in range(game.get_num_players()):
             if replay_memory[-player_index]['next_turn_game_state'] is None:
@@ -109,30 +111,32 @@ def train():
             #if last_turn_player.next_turn_game_state is None:
             #    last_turn_player.next_turn_game_state = ending_state
             #last_turn_player.is_last_turn = True
+        
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Transfer all the data to the GPU for blazing fast train speed
     for i,turn in enumerate(replay_memory):
         for key in turn['game_state']:
-            replay_memory[i]['game_state'][key].to(device)
+            replay_memory[i]['game_state'][key] = replay_memory[i]['game_state'][key].to(device)
         for key in turn['q_prediction']:
-            replay_memory[i]['q_prediction'][key].to(device)
+            replay_memory[i]['q_prediction'][key] = replay_memory[i]['q_prediction'][key].to(device)
         for key in turn['next_turn_game_state']:
-            replay_memory[i]['next_turn_game_state'][key].to(device)
-        replay_memory[i]['reward'].to(device)
-        replay_memory[i]['is_last_turn'].to(device)
+            replay_memory[i]['next_turn_game_state'][key] = replay_memory[i]['next_turn_game_state'][key].to(device)
+        replay_memory[i]['reward'] = replay_memory[i]['reward'].to(device)
+        replay_memory[i]['is_last_turn'] = replay_memory[i]['is_last_turn'].to(device)
 
-
+    model = model.to(device)
+    target_model = target_model.to(device)
     dataset = BellmanEquationDataSet(replay_memory,device)
     dataloader = DataLoader(dataset,batch_size,shuffle=False,num_workers=0)
 
-    for batch in dataloader:
-        print(batch)
+    for iteration,batch in enumerate(dataloader):
+        Q_dicts = model(batch[0])
+        print(Q_dicts)
         
         #main network is updated every step, its weights directly updated by the backwards pass
         #target network is updated less often, its weights copied directly from the main net
-        pass
 
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
