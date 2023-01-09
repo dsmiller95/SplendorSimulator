@@ -21,7 +21,7 @@ def train():
     epsilon = 0.9 #how often to pick the maximum-Q-valued action
     memory_length = 100 #number of rounds to play of the game (not absolute, it will finish a game)
     target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
-    batch_size: int = 100
+    batch_size: int = 3
 
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
@@ -54,18 +54,22 @@ def train():
             ai_input = map_to_AI_input(game)
             
             # Store game state in memory
-            player_mem = ReplayMemoryEntry(ai_input)
+            player_dict_mem = {'game_state':None,'q_prediction':None,'next_turn_game_state':None,'reward':None,'is_last_turn':False}
+            player_dict_mem['game_state'] = ai_input
+            #player_mem = ReplayMemoryEntry(ai_input)
             
             #save this game to the last turn of this player's memory
             turns_since_last = game.get_player_num() - 1
             if len(replay_memory) >= turns_since_last:
-                replay_memory[-turns_since_last].next_turn_game_state = ai_input
+                replay_memory[-turns_since_last]['next_turn_game_state'] = ai_input
+                #replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
             # Get model's predicted action
             Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
             
             # Store Q-value dict in memory
-            player_mem.q_prediction = Q
+            player_dict_mem['q_prediction'] = Q
+            #player_mem.q_prediction = Q
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,epsilon)
@@ -88,23 +92,29 @@ def train():
             reward = _get_reward(game, step_status, fitness_delta)
 
             # Store reward in memory
-            player_mem.reward = reward
+            player_dict_mem['reward'] = reward
+            #player_mem.reward = reward
 
             #Store turn in replay memory
-            replay_memory.append(player_mem)
+            replay_memory.append(player_dict_mem)
+            #replay_memory.append(player_mem)
 
         ending_state = map_to_AI_input(game)
         for player_index in range(game.get_num_players()):
-            last_turn_player = replay_memory[-player_index]
-            if last_turn_player.next_turn_game_state is None:
-                last_turn_player.next_turn_game_state = ending_state
-            last_turn_player.is_last_turn = True
-
+            if replay_memory[-player_index]['next_turn_game_state'] is None:
+                replay_memory[-player_index]['next_turn_game_state'] = ending_state
+            replay_memory[-player_index]['is_last_turn'] = True
+            #last_turn_player = replay_memory[-player_index]
+            #if last_turn_player.next_turn_game_state is None:
+            #    last_turn_player.next_turn_game_state = ending_state
+            #last_turn_player.is_last_turn = True
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    dataset = BellmanEquationDataSet(replay_memory)
-    dataloader = DataLoader(dataset,batch_size,shuffle=True,num_workers=0)
 
+    
+            
+    dataset = BellmanEquationDataSet(replay_memory,device)
+    dataloader = DataLoader(dataset,batch_size,shuffle=False,num_workers=0)
 
     for batch in dataloader:
         print(batch)
