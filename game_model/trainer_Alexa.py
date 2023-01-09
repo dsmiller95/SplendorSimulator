@@ -54,7 +54,7 @@ def train():
             ai_input = map_to_AI_input(game)
             
             # Store game state in memory
-            player_dict_mem = {'game_state':None,'q_prediction':None,'next_turn_game_state':None,'reward':None,'is_last_turn':False}
+            player_dict_mem = {'game_state':None,'q_prediction':None,'next_turn_game_state':None,'reward':None,'is_last_turn':None}
             player_dict_mem['game_state'] = ai_input
             #player_mem = ReplayMemoryEntry(ai_input)
             
@@ -92,9 +92,10 @@ def train():
             reward = _get_reward(game, step_status, fitness_delta)
 
             # Store reward in memory
-            player_dict_mem['reward'] = reward
+            player_dict_mem['reward'] = torch.as_tensor(reward)
             #player_mem.reward = reward
 
+            player_dict_mem['is_last_turn'] = torch.as_tensor(int(0))
             #Store turn in replay memory
             replay_memory.append(player_dict_mem)
             #replay_memory.append(player_mem)
@@ -103,16 +104,26 @@ def train():
         for player_index in range(game.get_num_players()):
             if replay_memory[-player_index]['next_turn_game_state'] is None:
                 replay_memory[-player_index]['next_turn_game_state'] = ending_state
-            replay_memory[-player_index]['is_last_turn'] = True
+            replay_memory[-player_index]['is_last_turn'] = torch.as_tensor(int(1))
             #last_turn_player = replay_memory[-player_index]
             #if last_turn_player.next_turn_game_state is None:
             #    last_turn_player.next_turn_game_state = ending_state
             #last_turn_player.is_last_turn = True
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    
-            
+    # Transfer all the data to the GPU for blazing fast train speed
+    for i,turn in enumerate(replay_memory):
+        for key in turn['game_state']:
+            replay_memory[i]['game_state'][key].to(device)
+        for key in turn['q_prediction']:
+            replay_memory[i]['q_prediction'][key].to(device)
+        for key in turn['next_turn_game_state']:
+            replay_memory[i]['next_turn_game_state'][key].to(device)
+        replay_memory[i]['reward'].to(device)
+        replay_memory[i]['is_last_turn'].to(device)
+
+
     dataset = BellmanEquationDataSet(replay_memory,device)
     dataloader = DataLoader(dataset,batch_size,shuffle=False,num_workers=0)
 
