@@ -16,5 +16,4 @@ class BellmanEquationDataSet(Dataset):
         return [current_game_state,next_game_state,reward,is_last_turn]
     
     def __len__(self):
-        print(len(self.input_data))
         return len(self.input_data)
