@@ -14,15 +14,16 @@ from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
         
 
-def train():
-    learning_rate = 0.001 
-    gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
-                #(0: only current, 1: current and all future states)
-    epsilon = 0.9 #how often to pick the maximum-Q-valued action
-    memory_length = 1000      #number of rounds to play of the game (not absolute, it will finish a game)
-    target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
-    batch_size: int = 3
+# Hyperparameters
+learning_rate = 0.001 
+gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
+            #(0: only current, 1: current and all future states)
+epsilon = 0.9 #how often to pick the maximum-Q-valued action
+memory_length = 100      #number of rounds to play of the game (not absolute, it will finish a game)
+target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
+batch_size: int = 3
 
+def train():
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
 
@@ -97,7 +98,7 @@ def train():
                 replay_memory.append(player_dict_mem)
                 #replay_memory.append(player_mem)
 
-                print(len(replay_memory))
+                #print(len(replay_memory))
 
             ending_state = map_to_AI_input(game)
             for player_index in range(game.get_num_players()):
@@ -141,14 +142,26 @@ def train():
 
         for iteration,batch in enumerate(dataloader):
             Q_dicts = model(batch[0])
-            print(Q_dicts)
+            next_Q_dicts = target_model(batch[1])
+            rewards = batch[2]
+            is_last_turns = batch[3]
+            error = {}
+            for i,key in enumerate(Q_dicts):
+                target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards,gamma,is_last_turns)
+                loss = loss_fn(Q_dicts[key],target)
+                model.backwards(loss)
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
+            if (iteration+1)%target_network_update_rate == 0:
+                print("updating target model")
+                target_model = model
+
+        return target_model
 
     for epoch in range(2):
         replay_memory = play(target_model)
-        learn(target_model,replay_memory)
+        target_model = learn(target_model,replay_memory)
         target_model.to(torch.device('cpu'))
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
@@ -197,3 +210,19 @@ def _avg_turns_to_win(replay_memory) -> int:
     total_len = len(replay_memory)
     last_round_count = sum([1 if x['is_last_turn'] == 1 else 0 for x in replay_memory])
     return round(total_len/last_round_count)
+
+def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
+         next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
+         reward:torch.Tensor, #[batch_size, action_space_len]
+         gamma:float,
+         is_last_turn:torch.Tensor) -> torch.Tensor:
+    '''This function operates on a single action-space (key) in the
+    Q dictionary'''
+    assert reward.size() == Q_vals.size()
+
+    # is_last_turn functions as an on-off switch for the next state Q values
+    max_next_reward = torch.mul(is_last_turn,torch.max(next_Q_vals.detach())) #detach because we don't want gradients from the next state
+    
+    discounted_next_reward_estimation = torch.add(reward,(torch.mul(gamma,max_next_reward)))
+
+    return discounted_next_reward_estimation

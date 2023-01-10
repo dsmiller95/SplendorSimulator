@@ -132,6 +132,7 @@ def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Tu
         return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts) + " times. " + validate_msg
     
     return turn
+    
 
 def _find_best_pick_three(sorted_resource_prefs: list[ResourceType], available_resources: list[int]) -> list[float]:
     selected_num = 0
