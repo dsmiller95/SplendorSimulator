@@ -6,8 +6,13 @@ class ReplayMemoryEntry:
         game_state: dict[str, torch.Tensor]
         ):
         self.game_state : dict[str, torch.Tensor] = game_state
-        self.q_prediction: dict[str, torch.Tensor] = {}
-        self.next_turn_game_state: dict[str, torch.Tensor] = {}
-        self.reward: float = -1
+        self.next_turn_game_state: dict[str, torch.Tensor] = {} 
+        ## dict of 1-hot representation of action which was actually taken, as sub-actions
+        ##  after action coercion process chooses a valid action based on game state
+        self.taken_action: dict[str, torch.Tensor] = {} 
+        self.reward: dict[str, torch.Tensor] = {} ## dict of reward. equals reward scaler multiplied by chosen_action
+
         # Indicates if this is the last turn which was taken by this player in a game
-        self.is_last_turn: bool = False
+        self.is_last_turn: torch.Tensor = torch.as_tensor(int(0))
+
+        self.q_prediction: dict[str, torch.Tensor] = {}

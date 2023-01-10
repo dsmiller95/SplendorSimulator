@@ -1,4 +1,7 @@
 import torch
+from game_model.AI_model.maps import map_all_to_valid_tensors, to_hot_from_scalar
+
+from game_model.game import Game
 
 def flat_map_group(map_list: list, prefix: str, into_dict: dict[str, list[int]]):
     for i, item in enumerate(map_list):
@@ -17,6 +20,57 @@ class GamestateInputVector:
         flat_map_group(self.tiers, prefix + "tier_", into_dict)
         into_dict[prefix + "resources"] = self.resources
         return into_dict
+    
+    @staticmethod
+    def map_to_AI_input(game_state: Game) -> dict[str, torch.Tensor]:
+        '''
+        Maps the game state into a dictionary of tensors, for use by the AI model
+        '''
+        input_vect_model = GamestateInputVector()
+
+        input_vect_model.resources = game_state.available_resources
+        
+        for i,player in enumerate(game_state.get_players_in_immediate_turn_priority()):
+            player_vect = input_vect_model.players[i]
+            player_vect.temp_resources = player.resource_tokens
+            player_vect.perm_resources = player.resource_persistent
+            player_vect.points = [player.sum_points]
+
+            for j,card in enumerate(player.reserved_cards):
+                if card is None:
+                    continue
+                player_vect.reserved_cards[j].costs = card.costs
+                player_vect.reserved_cards[j].returns = to_hot_from_scalar(card.returns.value, 5)
+                player_vect.reserved_cards[j].points = [card.points]
+
+
+        for i,noble in enumerate(game_state.active_nobles):
+            if noble is None:
+                continue
+            noble_vect = input_vect_model.nobles[i]
+            
+            noble_vect.costs = noble.costs
+            noble_vect.points = [noble.points]
+
+        for i,tier in enumerate(game_state.open_cards):
+            tier_vect = input_vect_model.tiers[i]
+            hidden_card = game_state.get_card_by_index(i * 5)
+            if hidden_card is not None:
+                tier_vect.hidden_card.costs = hidden_card.costs
+                tier_vect.hidden_card.returns = to_hot_from_scalar(hidden_card.returns.value, 5)
+                tier_vect.hidden_card.points = [hidden_card.points]
+            for j,card in enumerate(tier):
+                if card is None:
+                    continue
+                card_vect = tier_vect.open_cards[j]
+                card_vect.costs = card.costs
+                card_vect.returns = to_hot_from_scalar(card.returns.value, 5)
+                card_vect.points = [card.points]
+        
+
+        flat_mapped_values = input_vect_model.flat_map()
+        return map_all_to_valid_tensors(flat_mapped_values)
+
         
 
 class CardVector:

@@ -2,8 +2,7 @@ from game_data.game_config_data import GameConfigData
 from game_model.game_runner import step_game
 from game_model.turn import Turn, Action_Type
 from game_model.game import Game
-from game_model.AI_model.maps import map_to_AI_input
-from game_model.trainer_Alexa import train
+from game_model.trainer import train
 from input_parser.action_parser import get_action_from_user
 
 import random
@@ -19,7 +18,7 @@ exit(0)
 # while True:
 #     random.seed(1337)
 #     print(game.describe_common_state())
-#     print(map_to_AI_input(game))
+#     print(GamestateInputVector.GamestateInputVector.map_to_AI_input(game))
 #     print("player " + str(game.get_current_player_index() + 1) + "'s turn!")
 #     next_action: Turn = None
 #     while next_action is None:

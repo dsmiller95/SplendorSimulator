@@ -1,7 +1,8 @@
 
 from statistics import mean, median, stdev
 from game_model.AI_model.action_output import ActionOutput
-from game_model.AI_model.maps import map_from_AI_output, map_to_AI_input
+from game_model.AI_model.gamestate_input import GamestateInputVector
+from game_model.AI_model.maps import map_from_AI_output
 from game_model.game import Game
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
@@ -45,7 +46,7 @@ def test_all_action_performance_by_segment():
             assert step_status is None, step_status
 
             start = time.perf_counter()
-            ai_input = map_to_AI_input(game)
+            ai_input = GamestateInputVector.map_to_AI_input(game)
             map_to_ai_input_duration.append(time.perf_counter() - start)
 
     
