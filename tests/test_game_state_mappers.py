@@ -1,7 +1,6 @@
 
 from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.gamestate_input import GamestateInputVector
-from game_model.AI_model.maps import map_from_AI_output
 from game_model.game import Game
 from game_model.game_runner import step_game
 from game_model.resource_types import ResourceType

@@ -1,8 +1,7 @@
-
+import torch
 from statistics import mean, median, stdev
 from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.gamestate_input import GamestateInputVector
-from game_model.AI_model.maps import map_from_AI_output
 from game_model.game import Game
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
@@ -16,16 +15,16 @@ def test_all_action_performance_by_segment():
     turn_objs = [ActionOutput() for x in range(4)]
 
     #pick 2
-    turn_objs[0].action_choice = [0, 1, 0, 0]
-    turn_objs[0].resource_token_draw = [0, 1, 0, 0, 0]
+    turn_objs[0].action_choice = torch.Tensor([0, 1, 0, 0])
+    turn_objs[0].resource_token_draw = torch.Tensor([0, 1, 0, 0, 0])
     #pick 3
-    turn_objs[1].action_choice = [1, 0, 0, 0]
-    turn_objs[1].resource_token_draw = [1, 1, 1, 0, 0]
+    turn_objs[1].action_choice = torch.Tensor([1, 0, 0, 0])
+    turn_objs[1].resource_token_draw = torch.Tensor([1, 1, 1, 0, 0])
     # reserve card
-    turn_objs[2].action_choice = [0, 0, 0, 1]
+    turn_objs[2].action_choice = torch.Tensor([0, 0, 0, 1])
     turn_objs[2].card_buy[2] = 1
     # buy card in reserve
-    turn_objs[3].action_choice = [0, 0, 1, 0]
+    turn_objs[3].action_choice = torch.Tensor([0, 0, 1, 0])
     turn_objs[3].reserve_buy[1] = 1
 
     map_to_action_durations = []
@@ -36,7 +35,7 @@ def test_all_action_performance_by_segment():
         game = Game(2, test_config, force_shuffle=False)
         for i, turn_obj in enumerate(turn_objs):
             start = time.perf_counter()
-            next_action = map_from_AI_output(turn_obj, game, game.get_current_player())
+            next_action = ActionOutput._map_internal(turn_obj, game, game.get_current_player())
             map_to_action_durations.append(time.perf_counter() - start)
 
             start = time.perf_counter()

@@ -11,14 +11,14 @@ from utilities.subsamples import clone_shallow, pad_list
 
 class ActionOutput:
     def __init__(self):
-        self.action_choice: list[float] = [0] * 4
-        self.card_buy: list[float] = [0] * 15
-        self.reserve_buy: list[float]= [0] * 3
-        self.resource_token_draw: list[float] = [0] * 5
+        self.action_choice: torch.Tensor = torch.Tensor([0] * 4)
+        self.card_buy: torch.Tensor = torch.Tensor([0] * 15)
+        self.reserve_buy: torch.Tensor= torch.Tensor([0] * 3)
+        self.resource_token_draw: torch.Tensor = torch.Tensor([0] * 5)
         
-        self.noble_choice: list[float] = [0] * 5
-        self.discard_choice: list[float] = [0]
-        self.discard_amounts: list[float] = [0] * 6
+        self.noble_choice: torch.Tensor = torch.Tensor([0] * 5)
+        self.discard_choice: torch.Tensor = torch.Tensor([0])
+        self.discard_amounts: torch.Tensor = torch.Tensor([0] * 6)
     
     def in_dict_form(self):
         action_output_dict : dict[str, torch.Tensor] = {}
@@ -33,18 +33,26 @@ class ActionOutput:
         return action_output_dict
 
     def map_dict_into_self(self, into_dict: dict[str, torch.Tensor]):
-        self.action_choice = into_dict['action_choice'].tolist()
-        self.card_buy = into_dict['card_buy'].tolist()
-        self.reserve_buy = into_dict['reserve_buy'].tolist()
-        self.resource_token_draw = into_dict['resource_token_draw'].tolist()
-        self.noble_choice = into_dict['noble_choice'].tolist()
-        self.discard_choice = into_dict['discard_choice'].tolist()
-        self.discard_amounts = into_dict['discard_amounts'].tolist()
+        self.action_choice = into_dict['action_choice']
+        self.card_buy = into_dict['card_buy']
+        self.reserve_buy = into_dict['reserve_buy']
+        self.resource_token_draw = into_dict['resource_token_draw']
+        self.noble_choice = into_dict['noble_choice']
+        self.discard_choice = into_dict['discard_choice']
+        self.discard_amounts = into_dict['discard_amounts']
     
-    def map_from_AI_output(action_output: ActionOutput,game:Game,player:Actor) -> Turn:
+    @staticmethod
+    def map_from_AI_output(forward_result: dict[str, torch.Tensor],game:Game,player:Actor) -> Turn:
         '''
         TODO: map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
         '''
+
+        action_output = ActionOutput()
+        action_output.map_dict_into_self(forward_result)
+        return ActionOutput._map_internal(action_output, game, player)
+    @staticmethod
+    def _map_internal(action_output: ActionOutput,game:Game,player:Actor) -> Turn:
+
         #Fit the AI output to valid game states
         fit_check = False
         turn: Turn = None
@@ -53,13 +61,13 @@ class ActionOutput:
         action_attempts = 0
 
         prioritized_resource_preferences : Lazy[list[ResourceType]] = Lazy(
-            lambda: [ResourceType(i) for i, x in sorted(enumerate(action_output.resource_token_draw), key = lambda tup: tup[1], reverse=True)]
+            lambda: [ResourceType(i) for i, x in sorted(enumerate(action_output.resource_token_draw.tolist()), key = lambda tup: tup[1], reverse=True)]
         )
         prioritized_card_indexes : Lazy[list[ResourceType]] = Lazy(
-            lambda: [i for i, x in sorted(enumerate(action_output.card_buy + action_output.reserve_buy), key = lambda tup: tup[1], reverse=True)]
+            lambda: [i for i, x in sorted(enumerate(action_output.card_buy.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
         )
         
-        action = clone_shallow(action_output.action_choice)
+        action = clone_shallow(action_output.action_choice.tolist())
         while fit_check == False and action_attempts < 5:
             best_action_index = action.index(max(action))
             action_num = best_action_index #find most preferred action
@@ -95,10 +103,10 @@ class ActionOutput:
         
         #taking noble goes here
         # TODO: is hack. but kinda mostly will work
-        turn.noble_preference = max(enumerate(action_output.noble_choice))[0]
+        turn.noble_preference = max(enumerate(action_output.noble_choice.tolist()))[0]
         
         # discarding tokens goes here
-        turn.set_discard_preferences(action_output.discard_amounts)
+        turn.set_discard_preferences(action_output.discard_amounts.tolist())
         if action_attempts >= 5:
             ## for training, may be best to provide a noop when the game state prohibits any other actions
             return Turn(Action_Type.NOOP) 

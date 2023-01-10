@@ -152,9 +152,7 @@ def train():
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
     """Get the next action from the model's forward pass result."""
-    next_action = ActionOutput()
-    next_action.map_dict_into_self(forward)
-    return ActionOutput.map_from_AI_output(next_action, game, game.get_current_player())
+    return ActionOutput.map_from_AI_output(forward, game, game.get_current_player())
 
 def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     """Determine the reward for the current game state."""
