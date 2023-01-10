@@ -35,9 +35,9 @@ def train():
     target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
 
 
-    def play(target_model):
+    def play(target_model) -> list[ReplayMemoryEntry]:
         # Instantiate memory
-        replay_memory: list[dict] = []
+        replay_memory: list[ReplayMemoryEntry] = []
 
         while len(replay_memory) < memory_length:
 
@@ -51,22 +51,18 @@ def train():
                 ai_input = GamestateInputVector.map_to_AI_input(game)
                 
                 # Store game state in memory
-                player_dict_mem = {'game_state':None,'q_prediction':None,'next_turn_game_state':None,'reward':None,'is_last_turn':None}
-                player_dict_mem['game_state'] = ai_input
-                #player_mem = ReplayMemoryEntry(ai_input)
+                player_mem = ReplayMemoryEntry(ai_input)
                 
                 #save this game to the last turn of this player's memory
                 turns_since_last = game.get_player_num() - 1
                 if len(replay_memory) >= turns_since_last:
-                    replay_memory[-turns_since_last]['next_turn_game_state'] = ai_input
-                    #replay_memory[-turns_since_last].next_turn_game_state = ai_input
+                    replay_memory[-turns_since_last].next_turn_game_state = ai_input
                 
                 # Get model's predicted action
                 Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
                 
                 # Store Q-value dict in memory
-                player_dict_mem['q_prediction'] = Q
-                #player_mem.q_prediction = Q
+                player_mem.q_prediction = Q
 
                 # Apply epsilon greedy function to somewhat randomize the action picks for exploration
                 Q = _epsilon_greedy(Q,epsilon)
@@ -86,29 +82,23 @@ def train():
                     won = True
 
                 # Store reward in memory
-                player_dict_mem['reward'] = torch.as_tensor(reward)
-                #player_mem.reward = reward
+                player_mem.reward = torch.as_tensor(reward)
 
-                player_dict_mem['is_last_turn'] = torch.as_tensor(int(0))
                 #Store turn in replay memory
-                replay_memory.append(player_dict_mem)
-                #replay_memory.append(player_mem)
+                replay_memory.append(player_mem)
 
                 #print(len(replay_memory))
 
             ending_state = GamestateInputVector.map_to_AI_input(game)
             for player_index in range(game.get_num_players()):
-                if replay_memory[-player_index]['next_turn_game_state'] is None:
-                    replay_memory[-player_index]['next_turn_game_state'] = ending_state
-                replay_memory[-player_index]['is_last_turn'] = torch.as_tensor(int(1))
-                #last_turn_player = replay_memory[-player_index]
-                #if last_turn_player.next_turn_game_state is None:
-                #    last_turn_player.next_turn_game_state = ending_state
-                #last_turn_player.is_last_turn = True
+                last_turn_player = replay_memory[-player_index]
+                if last_turn_player.next_turn_game_state is None:
+                   last_turn_player.next_turn_game_state = ending_state
+                last_turn_player.is_last_turn = torch.as_tensor(int(1))
 
         return replay_memory
         
-    def learn(target_model,replay_memory):
+    def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = target_model
 
@@ -119,14 +109,14 @@ def train():
         # Transfer all the data to the GPU for blazing fast train speed
         if device == torch.device("cuda"):
             for i,turn in enumerate(replay_memory):
-                for key in turn['game_state']:
-                    replay_memory[i]['game_state'][key] = replay_memory[i]['game_state'][key].to(device)
-                for key in turn['q_prediction']:
-                    replay_memory[i]['q_prediction'][key] = replay_memory[i]['q_prediction'][key].to(device)
-                for key in turn['next_turn_game_state']:
-                    replay_memory[i]['next_turn_game_state'][key] = replay_memory[i]['next_turn_game_state'][key].to(device)
-                replay_memory[i]['reward'] = replay_memory[i]['reward'].to(device)
-                replay_memory[i]['is_last_turn'] = replay_memory[i]['is_last_turn'].to(device)
+                for key in turn.game_state:
+                    turn.game_state[key] = turn.game_state[key].to(device)
+                for key in turn.q_prediction:
+                    turn.q_prediction[key] = turn.q_prediction[key].to(device)
+                for key in turn.next_turn_game_state:
+                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device)
+                turn.reward = turn.reward.to(device)
+                turn.is_last_turn = turn.is_last_turn.to(device)
 
         model = model.to(device)
         target_model = target_model.to(device)
@@ -202,9 +192,9 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
             Q[choice_type] = choices_copy
     return Q
             
-def _avg_turns_to_win(replay_memory) -> int:
+def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
-    last_round_count = sum([1 if x['is_last_turn'] == 1 else 0 for x in replay_memory])
+    last_round_count = sum([1 if x.is_last_turn == 1 else 0 for x in replay_memory])
     return round(total_len/last_round_count)
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
