@@ -42,16 +42,17 @@ class ActionOutput:
         self.discard_amounts = into_dict['discard_amounts']
     
     @staticmethod
-    def map_from_AI_output(forward_result: dict[str, torch.Tensor],game:Game,player:Actor) -> Turn:
+    def map_from_AI_output(forward_result: dict[str, torch.Tensor],game:Game,player:Actor) -> tuple[Turn | str, dict[str, torch.Tensor]]:
         '''
         TODO: map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
         '''
 
         action_output = ActionOutput()
         action_output.map_dict_into_self(forward_result)
-        return ActionOutput._map_internal(action_output, game, player)
+        turn = ActionOutput._map_internal(action_output, game, player)
+        return (turn, forward_result)
     @staticmethod
-    def _map_internal(action_output: ActionOutput,game:Game,player:Actor) -> Turn:
+    def _map_internal(action_output: ActionOutput,game:Game,player:Actor) -> Turn | str:
 
         #Fit the AI output to valid game states
         fit_check = False

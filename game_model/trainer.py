@@ -68,8 +68,11 @@ def train():
                 Q = _epsilon_greedy(Q,epsilon)
 
                 # Pick the highest Q-valued action that works in the game
-                next_action = _get_next_action_from_forward_result(Q, game) 
-                
+                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
+
+                ## TODO: this does not populate with real proper values yet. but this is the scaffolding of how it will be passed through.
+                player_mem.taken_action = chosen_Action
+
                 original_fitness = Reward(game)
                 # Play move
                 step_status = step_game(game, next_action)
@@ -150,7 +153,7 @@ def train():
         target_model = learn(target_model,replay_memory)
         target_model.to(torch.device('cpu'))
 
-def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> Turn | str:
+def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> tuple[Turn | str, dict[str, torch.Tensor]]:
     """Get the next action from the model's forward pass result."""
     return ActionOutput.map_from_AI_output(forward, game, game.get_current_player())
 
