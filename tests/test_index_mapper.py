@@ -4,12 +4,12 @@ from utilities.better_param_dict import BetterParamDict
 def test_n_hot_representation_accurate_size_when_no_multiples():
 
     representation = CombinatorialIndexMapping(5, 3)
-    assert 10 == representation.total_options
+    assert 10 == representation.total_possible_options()
 
 def test_n_hot_representation_accurate_size_when_multiples():
 
     representation = CombinatorialIndexMapping(5, 3, pick_multiples=True)
-    assert 125 == representation.total_options
+    assert 35 == representation.total_possible_options()
 
 def test_n_hot_maps_to_and_back_no_multiples():
 
@@ -36,6 +36,8 @@ def test_n_hot_maps_to_and_back_with_multiples():
     representation = CombinatorialIndexMapping(6, 3, pick_multiples=True, all_option_numbers=True)
 
     test_arrays = [
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
         [1, 1, 0, 0, 0, 0],
         [2, 1, 0, 0, 0, 0],
         [0, 1, 0, 1, 0, 1],
