@@ -35,7 +35,7 @@ def test_all_action_performance_by_segment():
         game = Game(2, test_config, force_shuffle=False)
         for i, turn_obj in enumerate(turn_objs):
             start = time.perf_counter()
-            next_action = ActionOutput._map_internal(turn_obj, game, game.get_current_player())
+            (next_action, choice_dict) = ActionOutput._map_internal(turn_obj, game, game.get_current_player())
             map_to_action_durations.append(time.perf_counter() - start)
 
             start = time.perf_counter()

@@ -70,7 +70,6 @@ def train():
                 # Pick the highest Q-valued action that works in the game
                 (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
 
-                ## TODO: this does not populate with real proper values yet. but this is the scaffolding of how it will be passed through.
                 player_mem.taken_action = chosen_Action
 
                 original_fitness = Reward(game)

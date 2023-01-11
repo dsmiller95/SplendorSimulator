@@ -49,7 +49,7 @@ class Turn:
 
     def set_discard_preferences(self, new_preferences: list[int]):
         if len(new_preferences) < 6:
-            raise RuntimeError("discard preferences must be length 6, matching number of resource types")
+            raise RuntimeError("discard preferences must be length 6, matching number of resource types. got " + str(len(new_preferences)))
         self._discard_commands = [(ResourceType(i), x) for i, x in enumerate(new_preferences)]
         self._discard_commands.sort(key= lambda x: x[1], reverse=True)
     

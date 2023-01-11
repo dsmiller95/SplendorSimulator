@@ -15,21 +15,21 @@ class CombinatorialIndexMapping:
     and how many options can be chosen at once. Can be used to map a list of these characteristics into a single number,
     in the range [0, total_options), and back.
     '''
-    def __init__(self, option_space_size: int, option_choices: int, pick_multiples: bool = False, all_option_numbers: bool = False):
+    def __init__(self, option_space_size: int, option_choices: int, allow_pick_multiple: bool = False, allow_pick_less: bool = False):
         self.length = option_space_size
         self.option_choices = option_choices
-        self.multiple = pick_multiples
+        self.multiple = allow_pick_multiple
         
         self.options_list = []
 
-        all_option_choice_list = range(0, option_choices + 1) if all_option_numbers else [option_choices]
+        all_option_choice_list = range(0, option_choices + 1) if allow_pick_less else [option_choices]
         for choice_n in all_option_choice_list:
-            self.options_list += self.generate_combinations(choice_n)
+            self.options_list += self._generate_combinations(choice_n)
     
     def total_possible_options(self):
         return len(self.options_list)
     
-    def generate_combinations(self, choice_n: int) -> Generator[list[int], None, None]:
+    def _generate_combinations(self, choice_n: int) -> Generator[list[int], None, None]:
         combo_iterator = itertools.combinations_with_replacement if self.multiple else itertools.combinations
         for combo in combo_iterator(range(self.length), choice_n):
             new_list = [0] * self.length
