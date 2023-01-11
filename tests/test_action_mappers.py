@@ -92,7 +92,7 @@ def test_fit_buy_second_choice_card():
 
     action_out = ActionOutput()
     action_out.action_choice = torch.Tensor([0, 1, 2, 0])
-    action_out.card_buy = torch.Tensor([
+    action_out.card_pref = torch.Tensor([
         0, 2, 1, 0, 0, 
         0, 0, 0, 0, 0, 
         0, 0, 0, 0, 0, 
@@ -123,7 +123,7 @@ def test_fit_buy_reserved_card():
 
     action_out = ActionOutput()
     action_out.action_choice = torch.Tensor([0, 1, 2, 0])
-    action_out.card_buy = torch.Tensor([
+    action_out.card_pref = torch.Tensor([
         0, 2, 1, 0, 0, 
         0, 0, 0, 0, 0, 
         0, 0, 0, 0, 0, 
@@ -154,7 +154,7 @@ def test_fit_buy_card_fails_take_3_instead():
 
     action_out = ActionOutput()
     action_out.action_choice = torch.Tensor([.1, 1, 2, 0])
-    action_out.card_buy = torch.Tensor([
+    action_out.card_pref = torch.Tensor([
         0, 2, 1, 0, 0, 
         0, 0, 0, 0, 0, 
         0, 0, 0, 0, 0, 
@@ -182,7 +182,7 @@ def test_fit_reserve_card_topdeck():
 
     action_out = ActionOutput()
     action_out.action_choice = torch.Tensor([.1, 1, 2, 3])
-    action_out.card_buy = torch.Tensor([
+    action_out.card_pref = torch.Tensor([
         10, 2, 1, 0, 0, 
         0, 0, 0, 0, 0, 
         0, 0, 0, 0, 0, 
@@ -215,7 +215,7 @@ def test_fit_reserve_card_second_choice():
 
     action_out = ActionOutput()
     action_out.action_choice = torch.Tensor([.1, 1, 2, 3])
-    action_out.card_buy = torch.Tensor([
+    action_out.card_pref = torch.Tensor([
         0, 2, 1, 0, 0, 
         0, 0, 0, 0, 0, 
         0, 0, 0, 0, 0, 
@@ -251,7 +251,7 @@ def test_fit_reserve_card_fail_full_reserve_take_3_instead():
 
     action_out = ActionOutput()
     action_out.action_choice = torch.Tensor([1, 0.1, 0.1, 3])
-    action_out.card_buy = torch.Tensor([
+    action_out.card_pref = torch.Tensor([
         0, 2, 1, 0, 0, 
         0, 0, 0, 0, 0, 
         0, 0, 0, 0, 0, 

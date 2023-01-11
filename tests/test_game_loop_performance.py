@@ -22,7 +22,7 @@ def test_all_action_performance_by_segment():
     turn_objs[1].resource_token_draw = torch.Tensor([1, 1, 1, 0, 0])
     # reserve card
     turn_objs[2].action_choice = torch.Tensor([0, 0, 0, 1])
-    turn_objs[2].card_buy[2] = 1
+    turn_objs[2].card_pref[2] = 1
     # buy card in reserve
     turn_objs[3].action_choice = torch.Tensor([0, 0, 1, 0])
     turn_objs[3].reserve_buy[1] = 1

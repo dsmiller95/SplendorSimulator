@@ -15,8 +15,8 @@ discard_choices = CombinatorialIndexMapping(6, 3, allow_pick_multiple=True, allo
 class ActionOutput:
     def __init__(self):
         self.action_choice: torch.Tensor = torch.Tensor([0] * 4)
-        self.card_buy: torch.Tensor = torch.Tensor([0] * 15)
-        self.reserve_buy: torch.Tensor= torch.Tensor([0] * 3)
+        self.card_pref: torch.Tensor = torch.Tensor([0] * 15) #this will be used for both card buying and reserving
+        self.reserve_buy: torch.Tensor= torch.Tensor([0] * 3) #this is specifically for buying cards from reserve
         self.noble_choice: torch.Tensor = torch.Tensor([0] * 5)
         
         self.pick_three_choice: torch.Tensor = torch.Tensor([0] * pick_three_choices.total_possible_options())
@@ -26,7 +26,7 @@ class ActionOutput:
     def in_dict_form(self):
         action_output_dict : dict[str, torch.Tensor] = {}
         action_output_dict['action_choice'] = torch.Tensor(self.action_choice)
-        action_output_dict['card_buy'] = torch.Tensor(self.card_buy)
+        action_output_dict['card_buy'] = torch.Tensor(self.card_pref)
         action_output_dict['reserve_buy'] = torch.Tensor(self.reserve_buy)
         action_output_dict['noble_choice'] = torch.Tensor(self.noble_choice)
 
@@ -38,7 +38,7 @@ class ActionOutput:
 
     def map_dict_into_self(self, into_dict: dict[str, torch.Tensor]):
         self.action_choice = into_dict['action_choice']
-        self.card_buy = into_dict['card_buy']
+        self.card_pref = into_dict['card_buy']
         self.reserve_buy = into_dict['reserve_buy']
         self.noble_choice = into_dict['noble_choice']
 
@@ -54,24 +54,31 @@ class ActionOutput:
 
         action_output = ActionOutput()
         action_output.map_dict_into_self(forward_result)
-        (turn, taken_action_indexes) = ActionOutput._map_internal(action_output, game, player)
-        zero_dict = ActionOutput().in_dict_form()
-        for key in taken_action_indexes:
-            chosen_index = taken_action_indexes[key]
-            zero_dict[key][chosen_index] = 1
+        turn_index_tuple = ActionOutput._map_internal(action_output, game, player)
+        if turn_index_tuple[1] == None: # This happens when _map_internal fails to find a valid action and returns NOOP
+            turn,_ = turn_index_tuple
+            zero_dict = ActionOutput().in_dict_form() #return an ActionOutput with all 0's because no action was taken
+        else:
+            (turn, taken_action_indexes) = turn_index_tuple
+            zero_dict = ActionOutput().in_dict_form()
+            for key in taken_action_indexes:
+                chosen_index = taken_action_indexes[key]
+                zero_dict[key][chosen_index] = 1 #put a 1 at the location of the action that was taken
+            
+        
         return (turn, zero_dict)
     @staticmethod
     def _map_internal(action_output: ActionOutput,game:Game,player:Actor) -> tuple[Turn | str, dict[str, int]]:
 
         #Fit the AI output to valid game states
-        fit_check = False
+        fit_check: bool = False
         turn: Turn = None
         
         #behavior: first it will try to validate the most preferred action, then the second most, etc.
-        action_attempts = 0
+        action_attempts: int = 0
 
         prioritized_card_indexes : Lazy[list[ResourceType]] = Lazy(
-            lambda: [i for i, x in sorted(enumerate(action_output.card_buy.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
+            lambda: [i for i, x in sorted(enumerate(action_output.card_pref.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
         )
         
         chosen_action_indexes: dict[str, int] = {}
@@ -82,7 +89,13 @@ class ActionOutput:
             action_type = Action_Type(best_action_index)
             chosen_action_indexes['action_choice'] = best_action_index
             turn = Turn(action_type)
-
+            # Diagnosis printout
+            # print(action_type,'\n',
+            #       'pick_three_choice',[f'{val:.2f}' for val in action_output.pick_three_choice.tolist()],'\n',
+            #       'pick_two_choice',[f'{val:.2f}' for val in action_output.pick_two_choice.tolist()],'\n',
+            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_pref.tolist()],'\n',
+            #       'reserve_choice',[f'{val:.2f}' for val in action_output.reserve_buy.tolist()],'\n',
+            #       'available_resources',game.available_resources,'\n\n')
             if action_type==Action_Type.TAKE_THREE_UNIQUE:
                 best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources)
                 if not (best_pick is None):
@@ -135,7 +148,7 @@ class ActionOutput:
 
         if action_attempts >= 5:
             ## for training, may be best to provide a noop when the game state prohibits any other actions
-            return Turn(Action_Type.NOOP) 
+            return (Turn(Action_Type.NOOP),None)
         validate_msg = turn.validate(game,player)
         if validate_msg != None:
             return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts) + " times. " + validate_msg

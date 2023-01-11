@@ -78,13 +78,17 @@ def train():
                 if not (step_status is None):
                     raise Exception("invalid game step generated, " + step_status)
 
+                # Get reward from state transition, and convert to dict form 
                 reward = Reward(game).base_reward - original_fitness.base_reward
+                reward_as_dict = {choice:reward*player_mem.taken_action[choice] for choice in player_mem.taken_action}
+                
+                # Store reward in memory
+                player_mem.reward_new = reward_as_dict
+
 
                 if game.get_current_player().qualifies_to_win():
                     won = True
 
-                # Store reward in memory
-                player_mem.reward = torch.as_tensor(reward)
 
                 #Store turn in replay memory
                 replay_memory.append(player_mem)
