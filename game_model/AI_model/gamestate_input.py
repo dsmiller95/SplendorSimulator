@@ -1,5 +1,5 @@
 import torch
-from game_model.AI_model.maps import map_all_to_valid_tensors, to_hot_from_scalar
+from game_model.AI_model.maps import map_all_to_tensors, to_hot_from_scalar
 
 from game_model.game import Game
 
@@ -69,7 +69,7 @@ class GamestateInputVector:
         
 
         flat_mapped_values = input_vect_model.flat_map()
-        return map_all_to_valid_tensors(flat_mapped_values)
+        return map_all_to_tensors(flat_mapped_values)
 
         
 

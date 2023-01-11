@@ -8,7 +8,7 @@ def to_hot_from_scalar(scalar: int, length: int) -> list[int]:
     new_list[scalar] = 1
     return new_list
 
-def map_all_to_valid_tensors(dict: dict[str, list[float]]) -> dict[str, torch.Tensor]:
+def map_all_to_tensors(dict: dict[str, list[float]]) -> dict[str, torch.Tensor]:
     return {
         key: torch.Tensor([0 if x is None else x for x in value]).to(torch.device('cpu'))
         for (key, value)
