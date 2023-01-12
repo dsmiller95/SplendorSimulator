@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import random
-from math import ceil
+from torch.utils.tensorboard import SummaryWriter
 from game_data.game_config_data import GameConfigData
 from game_model.AI_model.reward import Reward
 from game_model.game import Game
@@ -23,17 +23,21 @@ memory_length: int = 10000      #number of rounds to play of the game
 batch_size: int = 500
 epochs: int = 100000 #how many play->learn cycles to run
 
+
 def train():
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    writer = SummaryWriter(flush_secs=15) #tensorboard writer
+    # Keeps track of the training steps for tensorboard
+    step_tracker: dict[str,int] = {'epoch':0,'play_loop_iters':0,'learn_loop_iters':0,'total_learn_iters':0}
+    
     # Create models
     # Map game state to AI input
     game = Game(player_count=4, game_config=game_config)
     input_shape_dict = GamestateInputVector.map_to_AI_input(game)
     output_shape_dict = ActionOutput().in_dict_form()
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
+    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, hidden_layers_width=100, hidden_layers_num=3)
     target_model = target_model.to(device)
 
 
@@ -116,6 +120,7 @@ def train():
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
+        writer.add_scalar('Avg turns to win',target_network_update_rate,step_tracker['epoch'])
 
         model.train()
 
@@ -149,18 +154,19 @@ def train():
             error = {}
             optimizer.zero_grad()
             avg_loss: float = 0.0
-            iter_count: int = 0
+            batch_len: int = 0
             for i,key in enumerate(Q_dicts):
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.cpu().item()
+                writer.add_scalar('Iter loss/'+key,loss.cpu().item(),step_tracker["total_learn_iters"])
             
-            iter_count += int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
+            batch_len = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
 
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
             optimizer.step() #update the weights
-            print(avg_loss/iter_count)
+            writer.add_scalar('Avg iter loss', avg_loss/batch_len,step_tracker["total_learn_iters"])
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
@@ -169,12 +175,16 @@ def train():
             #     print("updating target model")
             #     target_model = model
             target_model = model #changed this to just run the batch size as the average win period
+            step_tracker["learn_loop_iters"] += 1
+            step_tracker["total_learn_iters"] += 1
 
+        step_tracker["learn_loop_iters"] = 0
         return target_model
 
     for epoch in range(epochs):
         replay_memory = play(target_model)
         target_model = learn(target_model,replay_memory)
+        step_tracker['epoch'] += 1
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> tuple[Turn | str, dict[str, torch.Tensor]]:
     """Get the next action from the model's forward pass result."""
