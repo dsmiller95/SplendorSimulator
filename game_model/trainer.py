@@ -15,8 +15,8 @@ from game_model.replay_memory import ReplayMemoryEntry
         
 
 # Hyperparameters
-learning_rate: float = 0.0001 
-gamma: float = 0.5 #discount factor, how much it cares about future reward vs current reward
+learning_rate: float = 0.00001 
+gamma: float = 0.9 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
 epsilon: float = 0.95 #how often to pick the maximum-Q-valued action
 memory_length: int = 10000      #number of rounds to play of the game (not absolute, it will finish a game)
@@ -114,6 +114,10 @@ def train():
     def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = target_model
+
+        # Base the target model update rate on how many turns it takes to win
+        target_network_update_rate: int = _avg_turns_to_win(replay_memory)
+
         model.train()
 
         # Define loss function and optimizer
@@ -136,10 +140,7 @@ def train():
         model = model.to(device)
         target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
-        dataloader = DataLoader(dataset,batch_size,shuffle=False,num_workers=0)
-
-        # Base the target model update rate on how many turns it takes to win
-        target_network_update_rate: int = _avg_turns_to_win(replay_memory)
+        dataloader = DataLoader(dataset,batch_size=target_network_update_rate,shuffle=True,num_workers=0)
 
         for iteration,batch in enumerate(dataloader):
             Q_dicts = model(batch[0]) ## dict of tensors of size batch x orig size
@@ -154,7 +155,7 @@ def train():
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                iter_count += 1
+                iter_count += _avg_turns_to_win #this is also the batch size, so we always get the loss divided by the number of samples
                 avg_loss += loss.cpu().item()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
@@ -164,9 +165,10 @@ def train():
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
             
-            if (iteration+1) % ceil(target_network_update_rate / batch_size) == 0:
-                print("updating target model")
-                target_model = model
+            # if (iteration+1) % ceil(target_network_update_rate / batch_size) == 0:
+            #     print("updating target model")
+            #     target_model = model
+            target_model = model #changed this to just run the batch size as the average win period
 
         return target_model
 
