@@ -155,7 +155,7 @@ def train():
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                iter_count += _avg_turns_to_win #this is also the batch size, so we always get the loss divided by the number of samples
+                iter_count += int(target_network_update_rate) #this is also the batch size, so we always get the loss divided by the number of samples
                 avg_loss += loss.cpu().item()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
