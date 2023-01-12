@@ -14,17 +14,18 @@ from game_model.replay_memory import ReplayMemoryEntry
         
 
 # Hyperparameters
-learning_rate = 0.0001 
-gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
+learning_rate: float = 0.0001 
+gamma: float = 0.5 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
-epsilon = 0.9 #how often to pick the maximum-Q-valued action
-memory_length = 1000      #number of rounds to play of the game (not absolute, it will finish a game)
-target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
-batch_size: int = 10
+epsilon: float = 0.95 #how often to pick the maximum-Q-valued action
+memory_length: int = 10000      #number of rounds to play of the game (not absolute, it will finish a game)
+batch_size: int = 500
+epochs: int = 100 #how many play->learn cycles to run
 
 def train():
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Create models
     # Map game state to AI input
@@ -32,7 +33,8 @@ def train():
     ai_input = GamestateInputVector.map_to_AI_input(game)
     input_shape_dict = ai_input
     output_shape_dict = ActionOutput().in_dict_form()
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
+    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 1024, 10)
+    target_model = target_model.to(device)
 
 
     def play(target_model) -> list[ReplayMemoryEntry]:
@@ -61,8 +63,12 @@ def train():
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
             # Get model's predicted action
-            Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
-            
+            ai_input = {key:ai_input[key].to(device) for key in ai_input}
+            target_model.eval()
+            with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
+                Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
+                Q = {key:Q[key].to(torch.device('cpu')) for key in Q}
+
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,epsilon)
 
@@ -103,6 +109,7 @@ def train():
     def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = target_model
+        model.train()
 
         # Define loss function and optimizer
         loss_fn = torch.nn.MSELoss()
@@ -151,16 +158,15 @@ def train():
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
-            if (iteration+1)%target_network_update_rate == 0:
+            if (iteration+1) % int(target_network_update_rate / batch_size) == 0:
                 print("updating target model")
                 target_model = model
 
         return target_model
 
-    for epoch in range(2):
+    for epoch in range(epochs):
         replay_memory = play(target_model)
         target_model = learn(target_model,replay_memory)
-        target_model.to(torch.device('cpu'))
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> tuple[Turn | str, dict[str, torch.Tensor]]:
     """Get the next action from the model's forward pass result."""
