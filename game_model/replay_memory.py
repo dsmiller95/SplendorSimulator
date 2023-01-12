@@ -13,7 +13,7 @@ class ReplayMemoryEntry:
         ## dict of 1-hot representation of action which was actually taken, as sub-actions
         ##  after action coercion process chooses a valid action based on game state
         self.taken_action: dict[str, torch.Tensor] = {} 
-        self.reward_new: dict[str, torch.Tensor] = {} ## dict of reward. equals reward scaler multiplied by chosen_action
+        self.reward_new: dict[str, torch.Tensor] = {} ## dict of reward. equals reward scalar multiplied by chosen_action
 
         #### depreciated ####
         self.q_prediction: dict[str, torch.Tensor] = {}

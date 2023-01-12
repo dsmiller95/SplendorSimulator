@@ -83,7 +83,7 @@ class ActionOutput:
         
         chosen_action_indexes: dict[str, int] = {}
         action = clone_shallow(action_output.action_choice.tolist())
-        while fit_check == False and action_attempts < 5:
+        while fit_check == False and action_attempts < 4:
             best_action_index = action.index(max(action))
             action[best_action_index] = -10000000 #means it won't select this action again
             action_type = Action_Type(best_action_index)
@@ -146,7 +146,7 @@ class ActionOutput:
             chosen_action_indexes['discard_combination_choice'] = discard_choice
             turn.set_discard_preferences(discard_choices.map_from_index(discard_choice))
 
-        if action_attempts >= 5:
+        if action_attempts >= 4:
             ## for training, may be best to provide a noop when the game state prohibits any other actions
             return (Turn(Action_Type.NOOP),None)
         validate_msg = turn.validate(game,player)

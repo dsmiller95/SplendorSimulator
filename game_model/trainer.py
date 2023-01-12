@@ -14,13 +14,13 @@ from game_model.replay_memory import ReplayMemoryEntry
         
 
 # Hyperparameters
-learning_rate = 0.001 
+learning_rate = 0.0001 
 gamma = 0.9 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
 epsilon = 0.9 #how often to pick the maximum-Q-valued action
-memory_length = 100      #number of rounds to play of the game (not absolute, it will finish a game)
+memory_length = 1000      #number of rounds to play of the game (not absolute, it will finish a game)
 target_network_update_rate = 10 #number of rounds to play before copying weights from main to target network
-batch_size: int = 3
+batch_size: int = 10
 
 def train():
     # Load game configuration data
@@ -80,8 +80,8 @@ def train():
 
                 # Get reward from state transition, and convert to dict form 
                 reward = Reward(game).base_reward - original_fitness.base_reward
-                reward_as_dict = {choice:reward*player_mem.taken_action[choice] for choice in player_mem.taken_action}
-                
+                reward_as_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
+
                 # Store reward in memory
                 player_mem.reward_new = reward_as_dict
 
@@ -92,8 +92,6 @@ def train():
 
                 #Store turn in replay memory
                 replay_memory.append(player_mem)
-
-                #print(len(replay_memory))
 
             ending_state = GamestateInputVector.map_to_AI_input(game)
             for player_index in range(game.get_num_players()):
@@ -117,11 +115,12 @@ def train():
             for i,turn in enumerate(replay_memory):
                 for key in turn.game_state:
                     turn.game_state[key] = turn.game_state[key].to(device)
-                for key in turn.q_prediction:
-                    turn.q_prediction[key] = turn.q_prediction[key].to(device)
+                for key in turn.taken_action:
+                    turn.taken_action[key] = turn.taken_action[key].to(device)
                 for key in turn.next_turn_game_state:
                     turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device)
-                turn.reward = turn.reward.to(device)
+                for key in turn.reward_new:
+                    turn.reward_new[key] = turn.reward_new[key].to(device)
                 turn.is_last_turn = turn.is_last_turn.to(device)
 
         model = model.to(device)
@@ -138,10 +137,19 @@ def train():
             rewards = batch[2]
             is_last_turns = batch[3]
             error = {}
+            optimizer.zero_grad()
+            avg_loss: float = 0.0
+            iter_count: int = 0
             for i,key in enumerate(Q_dicts):
-                target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards,gamma,is_last_turns)
+                target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
-                model.backwards(loss)
+                loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
+                iter_count += 1
+                avg_loss += loss.cpu().item()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
+            optimizer.step() #update the weights
+            print(avg_loss/iter_count)
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
@@ -210,9 +218,11 @@ def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
     Q dictionary'''
     assert reward.size() == Q_vals.size()
 
+    #flip the 1's and 0's so the last_turn designator becomes a 0
+    is_last_turn = (~is_last_turn.bool()).int() 
     # is_last_turn functions as an on-off switch for the next state Q values
-    max_next_reward = torch.mul(is_last_turn,torch.max(next_Q_vals.detach())) #detach because we don't want gradients from the next state
-    
-    discounted_next_reward_estimation = torch.add(reward,(torch.mul(gamma,max_next_reward)))
+    max_next_reward = is_last_turn * torch.max(next_Q_vals.detach()) #detach because we don't want gradients from the next state
+    max_next_reward = max_next_reward.unsqueeze(1)
+    discounted_next_reward_estimation = reward + (gamma * max_next_reward)
 
     return discounted_next_reward_estimation

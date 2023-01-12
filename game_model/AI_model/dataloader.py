@@ -11,7 +11,7 @@ class BellmanEquationDataSet(Dataset):
     def __getitem__(self, index):
         current_game_state = self.input_data[index].game_state
         next_game_state = self.input_data[index].next_turn_game_state
-        reward = self.input_data[index].reward
+        reward = self.input_data[index].reward_new
         is_last_turn = self.input_data[index].is_last_turn
         return [current_game_state,next_game_state,reward,is_last_turn]
     
