@@ -6,7 +6,7 @@ class ReplayMemoryEntry:
         game_state: dict[str, torch.Tensor]
         ):
         self.game_state : dict[str, torch.Tensor] = game_state
-        self.next_turn_game_state: dict[str, torch.Tensor] = {} 
+        self.next_turn_game_state: dict[str, torch.Tensor] = None
         # Indicates if this is the last turn which was taken by this player in a game
         self.is_last_turn: torch.Tensor = torch.as_tensor(int(0))
 

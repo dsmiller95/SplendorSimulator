@@ -38,70 +38,68 @@ def train():
     def play(target_model) -> list[ReplayMemoryEntry]:
         # Instantiate memory
         replay_memory: list[ReplayMemoryEntry] = []
-
         while len(replay_memory) < memory_length:
-
-            # Create game model
-            game = Game(player_count=4, game_config=game_config)
-            won = False
-            while not (won and game.active_index == 0):
-                ''' Use target network to play the games'''
-
-                # Map game state to AI input
-                ai_input = GamestateInputVector.map_to_AI_input(game)
-                
-                # Store game state in memory
-                player_mem = ReplayMemoryEntry(ai_input)
-                
-                #save this game to the last turn of this player's memory
-                turns_since_last = game.get_player_num() - 1
-                if len(replay_memory) >= turns_since_last:
-                    replay_memory[-turns_since_last].next_turn_game_state = ai_input
-                
-                # Get model's predicted action
-                Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
-                
-                # Store Q-value dict in memory
-                player_mem.q_prediction = Q
-
-                # Apply epsilon greedy function to somewhat randomize the action picks for exploration
-                Q = _epsilon_greedy(Q,epsilon)
-
-                # Pick the highest Q-valued action that works in the game
-                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
-
-                player_mem.taken_action = chosen_Action
-
-                original_fitness = Reward(game)
-                # Play move
-                step_status = step_game(game, next_action)
-                if not (step_status is None):
-                    raise Exception("invalid game step generated, " + step_status)
-
-                # Get reward from state transition, and convert to dict form 
-                reward = Reward(game).base_reward - original_fitness.base_reward
-                reward_as_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
-
-                # Store reward in memory
-                player_mem.reward_new = reward_as_dict
-
-
-                if game.get_current_player().qualifies_to_win():
-                    won = True
-
-
-                #Store turn in replay memory
-                replay_memory.append(player_mem)
-
-            ending_state = GamestateInputVector.map_to_AI_input(game)
-            for player_index in range(game.get_num_players()):
-                last_turn_player = replay_memory[-player_index]
-                if last_turn_player.next_turn_game_state is None:
-                   last_turn_player.next_turn_game_state = ending_state
-                last_turn_player.is_last_turn = torch.as_tensor(int(1))
-
+            replay_memory += play_single_game(target_model)
         return replay_memory
-        
+    
+    def play_single_game(target_model) -> list[ReplayMemoryEntry]:
+        replay_memory: list[ReplayMemoryEntry] = []
+        game = Game(player_count=4, game_config=game_config)
+        won = False
+        while not (won and game.active_index == 0):
+            ''' Use target network to play the games'''
+
+            # Map game state to AI input
+            ai_input = GamestateInputVector.map_to_AI_input(game)
+            
+            # Store game state in memory
+            player_mem = ReplayMemoryEntry(ai_input)
+            
+            #save this game to the last turn of this player's memory
+            turns_since_last = game.get_player_num() - 1
+            if len(replay_memory) >= turns_since_last:
+                replay_memory[-turns_since_last].next_turn_game_state = ai_input
+            
+            # Get model's predicted action
+            Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
+            
+            # Apply epsilon greedy function to somewhat randomize the action picks for exploration
+            Q = _epsilon_greedy(Q,epsilon)
+
+            # Pick the highest Q-valued action that works in the game
+            (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
+
+            player_mem.taken_action = chosen_Action
+
+            original_fitness = Reward(game)
+            # Play move
+            step_status = step_game(game, next_action)
+            if not (step_status is None):
+                raise Exception("invalid game step generated, " + step_status)
+
+            # Get reward from state transition, and convert to dict form 
+            reward = Reward(game).base_reward - original_fitness.base_reward
+            reward_as_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
+
+            # Store reward in memory
+            player_mem.reward_new = reward_as_dict
+
+
+            if game.get_current_player().qualifies_to_win():
+                won = True
+
+            #Store turn in replay memory
+            replay_memory.append(player_mem)
+
+        ending_state = GamestateInputVector.map_to_AI_input(game)
+        for player_index in range(game.get_num_players()):
+            last_turn_player = replay_memory[-player_index]
+            if last_turn_player.next_turn_game_state is None:
+                last_turn_player.next_turn_game_state = ending_state
+            last_turn_player.is_last_turn = torch.as_tensor(int(1))
+        print("Played a full game. Working replay mem length: " + str(len(replay_memory)))
+        return replay_memory
+
     def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = target_model
