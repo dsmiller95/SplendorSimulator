@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import random
+from math import ceil
 from game_data.game_config_data import GameConfigData
 from game_model.AI_model.reward import Reward
 from game_model.game import Game
@@ -41,10 +42,11 @@ def train():
         # Instantiate memory
         replay_memory: list[ReplayMemoryEntry] = []
         while len(replay_memory) < memory_length:
-            replay_memory += play_single_game(target_model)
+            len_left_in_replay: int = memory_length - len(replay_memory)
+            replay_memory += play_single_game(target_model,len_left_in_replay)
         return replay_memory
     
-    def play_single_game(target_model) -> list[ReplayMemoryEntry]:
+    def play_single_game(target_model,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
         game = Game(player_count=4, game_config=game_config)
         won = False
@@ -97,6 +99,9 @@ def train():
             #Store turn in replay memory
             replay_memory.append(player_mem)
 
+            if len(replay_memory) == len_left_in_replay:
+                break
+        
         ending_state = GamestateInputVector.map_to_AI_input(game)
         for player_index in range(game.get_num_players()):
             last_turn_player = replay_memory[-player_index]
@@ -134,7 +139,7 @@ def train():
         dataloader = DataLoader(dataset,batch_size,shuffle=False,num_workers=0)
 
         # Base the target model update rate on how many turns it takes to win
-        target_network_update_rate = _avg_turns_to_win(replay_memory)
+        target_network_update_rate: int = _avg_turns_to_win(replay_memory)
 
         for iteration,batch in enumerate(dataloader):
             Q_dicts = model(batch[0]) ## dict of tensors of size batch x orig size
@@ -158,7 +163,8 @@ def train():
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
-            if (iteration+1) % int(target_network_update_rate / batch_size) == 0:
+            
+            if (iteration+1) % ceil(target_network_update_rate / batch_size) == 0:
                 print("updating target model")
                 target_model = model
 
