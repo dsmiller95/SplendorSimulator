@@ -182,19 +182,19 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             error = {}
             optimizer.zero_grad()
             avg_loss: float = 0.0
-            batch_len: int = 0
-            for i,key in enumerate(Q_dicts):
+            batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
+            for key in Q_dicts:
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                avg_loss += loss.cpu().item()
-                writer.add_scalar('Iter loss/'+key,loss.cpu().item(),step_tracker["total_learn_iters"])
+                avg_loss += loss.cpu().item()/batch_len
+                writer.add_scalar('Iter loss/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
             
-            batch_len = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
-
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
             optimizer.step() #update the weights
-            writer.add_scalar('Avg iter loss', avg_loss/batch_len,step_tracker["total_learn_iters"])
+
+            n_keys = len(Q_dicts)
+            writer.add_scalar('Avg iter loss', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
