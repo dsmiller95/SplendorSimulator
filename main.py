@@ -23,7 +23,7 @@ game = Game(player_count=2, game_config=game_config)
 def set_game(game: Game) -> None:
     game_data.game = game
 
-train(set_game)
+train(set_game, game_data.lock_object)
 exit(0)
 
 # while True:

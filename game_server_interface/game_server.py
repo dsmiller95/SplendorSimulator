@@ -1,11 +1,13 @@
+import threading
 from game_model.game import Game
 from flask import Flask, Response, jsonify
 
 class BoundData:
     def __init__(self):
         self.game : Game
+        self.lock_object: threading.Lock = threading.Lock()
 
-game_data = BoundData()
+game_data: BoundData = BoundData()
 
 app = Flask(__name__)
 
@@ -15,6 +17,16 @@ def index():
 
 @app.route("/game/json")
 def get_game_json():
+    acquired = game_data.lock_object.acquire(timeout=5)
+    if not acquired:
+        return {
+            "Error": "could not get lock on game object after 5 seconds"
+        }
+    try:
+        json_data = jsonify(game_data.game.as_serializable_data())
+    finally:
+        game_data.lock_object.release()
+
     return game_data.game.as_serializable_data()
     ## return Response(game_data.game.as_serializable_data(), mimetype='text/json')
 
