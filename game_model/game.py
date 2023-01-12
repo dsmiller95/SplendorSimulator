@@ -13,6 +13,7 @@ class Game:
         if player_count <= 1 or player_count > 4:
             raise "Invalid player number, must have 2, 3, or 4 players"
 
+        self.turn_n = 0
         self.players = [Actor() for x in range(0, player_count)]
         self.active_index = 0
         self.config = game_config
@@ -57,7 +58,6 @@ class Game:
         new.remaining_cards_by_level = clone_two_deep(self.remaining_cards_by_level)
         new.open_cards = clone_two_deep(self.open_cards)
         new.available_resources = clone_shallow(self.available_resources)
-        new.active_nobles = clone_shallow(self.active_nobles)
         return new
 
     def get_tier_and_selected(self, card_index: int) -> tuple[int, int]:
@@ -122,7 +122,7 @@ class Game:
         return len(self.players)
     
     def describe_common_state(self) -> str:
-        result_str = ""
+        result_str = "Turn: " + str(self.turn_n) + "\n"
         result_str += "Nobles:\n"
         for noble in self.active_nobles:
             result_str += noble.describe_self() + "\n"
@@ -130,11 +130,25 @@ class Game:
         for tier, cards in reversed(list(enumerate(self.open_cards))):
             result_str += "Tier " + str(tier + 1) + ":\n"
             for card in cards:
-                result_str += card.describe_state() + "\n"
+                result_str += (card.describe_state() if card != None else "EMPTY") + "\n"
         result_str += "\nBank:\n" + stringify_resources(self.available_resources) + "\n"
 
         for idx, player in enumerate(self.players):
             result_str += "\n-----Player " + str(idx + 1) + "-----\n" + player.describe_state()
         return result_str
+    
+    def as_serializable_data(self) -> dict:
+        return {
+            "turn" : self.turn_n,
+            "nobles" : [x.as_serializable_data() for x in self.active_nobles],
+            "cards": [
+                [c.as_serializable_data() for c in cards]
+                for cards in self.open_cards
+            ],
+            "cardStacks": [len(x) for x in self.remaining_cards_by_level],
+            "bank": self.available_resources,
+            "players": [x.as_serializable_data() for x in self.players],
+            "nextPlayer": self.active_index
+        }
 
     

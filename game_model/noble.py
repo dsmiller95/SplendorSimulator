@@ -24,3 +24,9 @@ class Noble:
             result = result + str(cost) + " " + resource_name.name + ", "
         return result + "]"
     
+    def as_serializable_data(self) -> dict:
+        return {
+            "id": self.id,
+            "costs": self.costs,
+            "points": self.points
+        }

@@ -1,3 +1,4 @@
+import threading
 from game_data.game_config_data import GameConfigData
 from game_model.game_runner import step_game
 from game_model.turn import Turn, Action_Type
@@ -9,10 +10,20 @@ import random
 
 print("hello there")
 
+from game_server_interface.game_server import app, game_data
+
+host_name = "127.0.0.1"
+port = 5000
+if __name__ == "__main__":
+    threading.Thread(target=lambda: app.run(host=host_name, port=port, debug=True, use_reloader=False)).start()
+
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=2, game_config=game_config)
 
-train()
+def set_game(game: Game) -> None:
+    game_data.game = game
+
+train(set_game, game_data.lock_object)
 exit(0)
 
 # while True:

@@ -1,3 +1,5 @@
+import threading
+from typing import Callable
 import torch
 from torch.utils.data import DataLoader
 import random
@@ -25,7 +27,7 @@ batch_size: int = 500
 epochs: int = 100000 #how many play->learn cycles to run
 
 
-def train():
+def train(set_current_game : Callable[[Game], None], game_data_lock: threading.Lock):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,19 +59,29 @@ def train():
     
     def play_single_game(target_model,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
-        game = Game(player_count=4, game_config=game_config)
+        game_data_lock.acquire()
+        try:
+            game = Game(player_count=4, game_config=game_config)
+            set_current_game(game)
+            next_player_index = game.active_index
+        finally:
+            game_data_lock.release()
         won = False
-        while not (won and game.active_index == 0):
+        while not (won and next_player_index == 0):
             ''' Use target network to play the games'''
 
             # Map game state to AI input
-            ai_input = GamestateInputVector.map_to_AI_input(game)
+            game_data_lock.acquire()
+            try:
+                ai_input = GamestateInputVector.map_to_AI_input(game)
+                turns_since_last = game.get_player_num() - 1
+            finally:
+                game_data_lock.release()
             
             # Store game state in memory
             player_mem = ReplayMemoryEntry(ai_input)
             
             #save this game to the last turn of this player's memory
-            turns_since_last = game.get_player_num() - 1
             if len(replay_memory) >= turns_since_last:
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
@@ -83,27 +95,32 @@ def train():
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,epsilon)
 
-            # Pick the highest Q-valued action that works in the game
-            (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
+            game_data_lock.acquire()
+            try:
+                # Pick the highest Q-valued action that works in the game
+                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
 
-            player_mem.taken_action = chosen_Action
+                player_mem.taken_action = chosen_Action
 
-            original_fitness = Reward(game)
-            # Play move
-            step_status = step_game(game, next_action)
-            if not (step_status is None):
-                raise Exception("invalid game step generated, " + step_status)
+                original_fitness = Reward(game)
+                # Play move
+                step_status = step_game(game, next_action)
+                next_player_index = game.active_index
+                if not (step_status is None):
+                    raise Exception("invalid game step generated, " + step_status)
 
-            # Get reward from state transition, and convert to dict form 
-            reward = Reward(game).base_reward - original_fitness.base_reward
-            reward_as_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
+                # Get reward from state transition, and convert to dict form 
+                reward = Reward(game).base_reward - original_fitness.base_reward
+                reward_as_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
 
-            # Store reward in memory
-            player_mem.reward_new = reward_as_dict
+                # Store reward in memory
+                player_mem.reward_new = reward_as_dict
 
 
-            if game.get_current_player().qualifies_to_win():
-                won = True
+                if game.get_current_player().qualifies_to_win():
+                    won = True
+            finally:
+                game_data_lock.release()
 
             #Store turn in replay memory
             replay_memory.append(player_mem)
@@ -111,8 +128,13 @@ def train():
             if len(replay_memory) == len_left_in_replay:
                 break
         
-        ending_state = GamestateInputVector.map_to_AI_input(game)
-        for player_index in range(game.get_num_players()):
+        game_data_lock.acquire()
+        try:
+            ending_state = GamestateInputVector.map_to_AI_input(game)
+            total_players = game.get_num_players()
+        finally:
+            game_data_lock.release()
+        for player_index in range(total_players):
             last_turn_player = replay_memory[-player_index]
             if last_turn_player.next_turn_game_state is None:
                 last_turn_player.next_turn_game_state = ending_state
