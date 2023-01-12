@@ -34,7 +34,7 @@ def train():
     input_shape_dict = GamestateInputVector.map_to_AI_input(game)
     output_shape_dict = ActionOutput().in_dict_form()
     target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
-    target_model = target_model.to(device).half()
+    target_model = target_model.to(device)
 
 
     def play(target_model) -> list[ReplayMemoryEntry]:
@@ -64,7 +64,7 @@ def train():
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
             # Get model's predicted action
-            ai_input = {key:ai_input[key].to(device).half() for key in ai_input}
+            ai_input = {key:ai_input[key].to(device) for key in ai_input}
             target_model.eval()
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
                 Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
@@ -127,17 +127,17 @@ def train():
         if device == torch.device("cuda"):
             for turn in replay_memory:
                 for key in turn.game_state:
-                    turn.game_state[key] = turn.game_state[key].to(device).half()
+                    turn.game_state[key] = turn.game_state[key].to(device)
                 for key in turn.taken_action:
-                    turn.taken_action[key] = turn.taken_action[key].to(device).half()
+                    turn.taken_action[key] = turn.taken_action[key].to(device)
                 for key in turn.next_turn_game_state:
-                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device).half()
+                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device)
                 for key in turn.reward_new:
-                    turn.reward_new[key] = turn.reward_new[key].to(device).half()
-                turn.is_last_turn = turn.is_last_turn.to(device).half()
+                    turn.reward_new[key] = turn.reward_new[key].to(device)
+                turn.is_last_turn = turn.is_last_turn.to(device)
 
-        model = model.to(device).half()
-        target_model = target_model.to(device).half()
+        model = model.to(device)
+        target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
         dataloader = DataLoader(dataset,batch_size=target_network_update_rate,shuffle=True,num_workers=0)
 
