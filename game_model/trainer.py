@@ -16,12 +16,12 @@ from game_model.replay_memory import ReplayMemoryEntry
 
 # Hyperparameters
 learning_rate: float = 0.00001 
-gamma: float = 0.9 #discount factor, how much it cares about future reward vs current reward
+gamma: float = 0.99 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
-epsilon: float = 0.95 #how often to pick the maximum-Q-valued action
-memory_length: int = 10000      #number of rounds to play of the game (not absolute, it will finish a game)
+epsilon: float = 0.5 #how often to pick the maximum-Q-valued action
+memory_length: int = 10000      #number of rounds to play of the game
 batch_size: int = 500
-epochs: int = 100 #how many play->learn cycles to run
+epochs: int = 100000 #how many play->learn cycles to run
 
 def train():
     # Load game configuration data
@@ -31,11 +31,10 @@ def train():
     # Create models
     # Map game state to AI input
     game = Game(player_count=4, game_config=game_config)
-    ai_input = GamestateInputVector.map_to_AI_input(game)
-    input_shape_dict = ai_input
+    input_shape_dict = GamestateInputVector.map_to_AI_input(game)
     output_shape_dict = ActionOutput().in_dict_form()
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 1024, 10)
-    target_model = target_model.to(device)
+    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 100, 3)
+    target_model = target_model.to(device).half()
 
 
     def play(target_model) -> list[ReplayMemoryEntry]:
@@ -65,7 +64,7 @@ def train():
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
             
             # Get model's predicted action
-            ai_input = {key:ai_input[key].to(device) for key in ai_input}
+            ai_input = {key:ai_input[key].to(device).half() for key in ai_input}
             target_model.eval()
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
                 Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
@@ -128,17 +127,17 @@ def train():
         if device == torch.device("cuda"):
             for turn in replay_memory:
                 for key in turn.game_state:
-                    turn.game_state[key] = turn.game_state[key].to(device)
+                    turn.game_state[key] = turn.game_state[key].to(device).half()
                 for key in turn.taken_action:
-                    turn.taken_action[key] = turn.taken_action[key].to(device)
+                    turn.taken_action[key] = turn.taken_action[key].to(device).half()
                 for key in turn.next_turn_game_state:
-                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device)
+                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device).half()
                 for key in turn.reward_new:
-                    turn.reward_new[key] = turn.reward_new[key].to(device)
-                turn.is_last_turn = turn.is_last_turn.to(device)
+                    turn.reward_new[key] = turn.reward_new[key].to(device).half()
+                turn.is_last_turn = turn.is_last_turn.to(device).half()
 
-        model = model.to(device)
-        target_model = target_model.to(device)
+        model = model.to(device).half()
+        target_model = target_model.to(device).half()
         dataset = BellmanEquationDataSet(replay_memory,device)
         dataloader = DataLoader(dataset,batch_size=target_network_update_rate,shuffle=True,num_workers=0)
 
@@ -155,10 +154,11 @@ def train():
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                iter_count += int(target_network_update_rate) #this is also the batch size, so we always get the loss divided by the number of samples
                 avg_loss += loss.cpu().item()
+            
+            iter_count += int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
             optimizer.step() #update the weights
             print(avg_loss/iter_count)
             
@@ -219,7 +219,7 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
 def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
     last_round_count = sum([1 if x.is_last_turn == 1 else 0 for x in replay_memory])
-    return round(total_len/last_round_count)
+    return round(4*total_len/last_round_count)
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
          next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
