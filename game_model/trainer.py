@@ -110,7 +110,7 @@ def train():
         
         # Transfer all the data to the GPU for blazing fast train speed
         if device == torch.device("cuda"):
-            for i,turn in enumerate(replay_memory):
+            for turn in replay_memory:
                 for key in turn.game_state:
                     turn.game_state[key] = turn.game_state[key].to(device)
                 for key in turn.taken_action:
