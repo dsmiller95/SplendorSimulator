@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import random
+from os.path import exists
 from torch.utils.tensorboard import SummaryWriter
 from game_data.game_config_data import GameConfigData
 from game_model.AI_model.reward import Reward
@@ -15,7 +16,7 @@ from game_model.replay_memory import ReplayMemoryEntry
         
 
 # Hyperparameters
-learning_rate: float = 0.00001 
+learning_rate: float = 0.0001 
 gamma: float = 0.99 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
 epsilon: float = 0.5 #how often to pick the maximum-Q-valued action
@@ -37,7 +38,12 @@ def train():
     game = Game(player_count=4, game_config=game_config)
     input_shape_dict = GamestateInputVector.map_to_AI_input(game)
     output_shape_dict = ActionOutput().in_dict_form()
+
+    
     target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, hidden_layers_width=100, hidden_layers_num=3)
+    if exists('AI_model/SplendidSplendor-model.pkl'):
+        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
+                                         map_location='cpu'))
     target_model = target_model.to(device)
 
 
@@ -111,7 +117,7 @@ def train():
             if last_turn_player.next_turn_game_state is None:
                 last_turn_player.next_turn_game_state = ending_state
             last_turn_player.is_last_turn = torch.as_tensor(int(1))
-        print("Played a full game. Working replay mem length: " + str(len(replay_memory)))
+        
         return replay_memory
 
     def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
@@ -185,6 +191,7 @@ def train():
         replay_memory = play(target_model)
         target_model = learn(target_model,replay_memory)
         step_tracker['epoch'] += 1
+        torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
 
 def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> tuple[Turn | str, dict[str, torch.Tensor]]:
     """Get the next action from the model's forward pass result."""

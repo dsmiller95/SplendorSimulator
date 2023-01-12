@@ -133,3 +133,6 @@ dmypy.json
 
 # Tensorboard saved run files
 *.tfevents*
+
+# NN model pickle files
+*.pkl
