@@ -26,3 +26,11 @@ class Card:
         result += "] Resource: " + self.returns.name
         return result
     
+    def as_serializable_data(self) -> dict:
+        return {
+            "id": self.id,
+            "costs": self.costs,
+            "points": self.points,
+            "returns": self.returns,
+            "tier": self.tier
+        }

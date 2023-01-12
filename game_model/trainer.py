@@ -1,3 +1,4 @@
+from typing import Callable
 import torch
 from torch.utils.data import DataLoader
 import random
@@ -24,7 +25,7 @@ batch_size: int = 500
 epochs: int = 100000 #how many play->learn cycles to run
 
 
-def train():
+def train(set_current_game : Callable[[Game], None]):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -52,6 +53,7 @@ def train():
     def play_single_game(target_model,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
         game = Game(player_count=4, game_config=game_config)
+        set_current_game(game)
         won = False
         while not (won and game.active_index == 0):
             ''' Use target network to play the games'''

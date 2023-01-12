@@ -57,7 +57,6 @@ class Game:
         new.remaining_cards_by_level = clone_two_deep(self.remaining_cards_by_level)
         new.open_cards = clone_two_deep(self.open_cards)
         new.available_resources = clone_shallow(self.available_resources)
-        new.active_nobles = clone_shallow(self.active_nobles)
         return new
 
     def get_tier_and_selected(self, card_index: int) -> tuple[int, int]:
@@ -136,5 +135,18 @@ class Game:
         for idx, player in enumerate(self.players):
             result_str += "\n-----Player " + str(idx + 1) + "-----\n" + player.describe_state()
         return result_str
+    
+    def as_serializable_data(self) -> dict:
+        return {
+            "nobles" : [x.as_serializable_data() for x in self.active_nobles],
+            "cards": [
+                [c.as_serializable_data() for c in cards]
+                for cards in self.open_cards
+            ],
+            "cardStacks": [len(x) for x in self.remaining_cards_by_level],
+            "bank": self.available_resources,
+            "players": [x.as_serializable_data() for x in self.players],
+            "nextPlayer": self.active_index
+        }
 
     
