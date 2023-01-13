@@ -208,7 +208,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
             for key in Q_dicts:
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],settings['gamma'],is_last_turns)
-                loss = loss_fn(Q_dicts[key],target)
+                loss = loss_fn(target,Q_dicts[key])
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.cpu().item()/batch_len
                 writer.add_scalar('Iter loss/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
@@ -310,7 +310,8 @@ def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
     # expect for the action it just took.
     # All put together, what this means is that we add the reward to the predicted next reward, and subtract the predicted
     # current reward to get the difference between the two states. This gives us our target Q value, which we can send off
-    # to the loss function, where the Q value will be compared to this target Q value from that we get a loss value.  
-    discounted_next_reward_estimation = reward + (gamma * max_next_reward) - Q_vals
+    # to the loss function, where the Q value will be compared to this target Q value from that we get a loss value.
+    
+    discounted_reward_estimate = reward + (gamma * max_next_reward)
 
-    return discounted_next_reward_estimation
+    return discounted_reward_estimate
