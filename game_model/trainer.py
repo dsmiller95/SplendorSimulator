@@ -134,7 +134,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             #Store turn in replay memory
             replay_memory.append(player_mem)
 
-            if len(replay_memory) == len_left_in_replay:
+            if (len(replay_memory) == len_left_in_replay) or (len(replay_memory) >= 1000): #games shouldn't last longer than 1000 turns
                 break
         
         game_data_lock.acquire()
