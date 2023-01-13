@@ -87,7 +87,6 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             
             # Store game state in memory
             player_mem = ReplayMemoryEntry(ai_input)
-            
             #save this game to the last turn of this player's memory
             if len(replay_memory) >= turns_since_last:
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
@@ -293,7 +292,7 @@ def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
     is_last_turn = (~is_last_turn.bool()).int() 
     # is_last_turn functions as an on-off switch for the next state Q values
     max_next_reward = is_last_turn * torch.max(next_Q_vals.detach()) #detach because we don't want gradients from the next state
-    max_next_reward = max_next_reward.unsqueeze(1)
+    max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
     discounted_next_reward_estimation = reward + (gamma * max_next_reward)
 
     return discounted_next_reward_estimation

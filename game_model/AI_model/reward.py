@@ -9,7 +9,12 @@ class Reward:
 
         
     def all_rewards(self) -> float:
-        return self.tokens_held_reward()+self.cards_held_reward()+self.points_reward()+self.win_lose_reward()
+        reward = self.tokens_held_reward()
+        reward += self.cards_held_reward()
+        reward += self.points_reward()
+        reward += self.win_lose_reward()
+        reward += self.length_of_game_reward()
+        return reward
 
     def tokens_held_reward(self) -> float:
         reward: float = 0.0
@@ -38,3 +43,6 @@ class Reward:
             return -200.0
         else:
             return 0.0
+
+    def length_of_game_reward(self) -> float:
+        return -0.1 * float(self.game_state.turn_n)
