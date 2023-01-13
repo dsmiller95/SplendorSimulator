@@ -28,6 +28,7 @@ settings['gamma']: float = 0.99 #discount factor, how much it cares about future
 settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
 settings['memory_length']: int = 10000      #number of rounds to play of the game
 settings['batch_size_multiplier']: float = 1.0 #batch size is set to the average number of turns per game multiplied by this factor
+settings['max_batch_size']: int = 1000 #so that we don't run out of memory accidentally
 settings['epochs']: int = 1 #how many play->learn cycles to run
 settings['hidden_layer_width'] = 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
 settings['n_hidden_layers'] = 3
@@ -191,8 +192,9 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         model = model.to(device)
         target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
+        batch_size: float = min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
         dataloader = DataLoader(dataset,
-                                batch_size=ceil(target_network_update_rate*settings['batch_size_multiplier']),
+                                batch_size=batch_size,
                                 shuffle=True,
                                 num_workers=0)
 
@@ -279,8 +281,13 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
             
 def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
-    last_round_count = sum([(1/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
-    return ceil(total_len/last_round_count)
+    last_round_count: float = sum([(1.0/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
+
+    # something produces a divide-by-0 error but I can't reproduce it consistently, figure out later
+    try:
+        return ceil(total_len/last_round_count)
+    except:
+        return(settings['memory_length'])
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
          next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
