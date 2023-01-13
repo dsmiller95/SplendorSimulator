@@ -2,7 +2,9 @@ import threading
 from typing import Callable
 import torch
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import random
+from math import ceil
 from os.path import exists
 from torch.utils.tensorboard import SummaryWriter
 from game_data.game_config_data import GameConfigData
@@ -23,7 +25,7 @@ gamma: float = 0.99 #discount factor, how much it cares about future reward vs c
             #(0: only current, 1: current and all future states)
 epsilon: float = 0.5 #how often to pick the maximum-Q-valued action
 memory_length: int = 10000      #number of rounds to play of the game
-batch_size: int = 500
+batch_size_multiplier: int = 1 #batch size is set to the average number of turns in a game, this multiplies that
 epochs: int = 100000 #how many play->learn cycles to run
 
 
@@ -148,14 +150,20 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
-        writer.add_scalar('Avg turns to win',target_network_update_rate,step_tracker['epoch'])
+        writer.add_scalar('Avg turns to win',ceil(target_network_update_rate*batch_size_multiplier),step_tracker['epoch'])
 
         model.train()
 
         # Define loss function and optimizer
         loss_fn = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        
+        scheduler = CosineAnnealingWarmRestarts(optimizer,
+                                                T_0=2,
+                                                T_mult=2,
+                                                eta_min=1e-12,
+                                                last_epoch=-1,
+                                                verbose=False)
+            
         # Transfer all the data to the GPU for blazing fast train speed
         if device == torch.device("cuda"):
             for turn in replay_memory:
@@ -191,7 +199,8 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
                 writer.add_scalar('Iter loss/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
             
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
-            optimizer.step() #update the weights
+            scheduler.step(step_tracker['total_learn_iters']) #update the weights
+            writer.add_scalar('Learning rate', scheduler._last_lr[0], step_tracker['total_learn_iters'])
 
             n_keys = len(Q_dicts)
             writer.add_scalar('Avg iter loss', avg_loss/n_keys,step_tracker["total_learn_iters"])
