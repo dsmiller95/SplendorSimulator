@@ -108,8 +108,8 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
                 (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
 
                 player_mem.taken_action = chosen_Action
+                player_mem.num_players = game.get_num_players()
 
-                original_fitness = Reward(game)
                 # Play move
                 step_status = step_game(game, next_action)
                 next_player_index = game.active_index
@@ -117,11 +117,11 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
                     raise Exception("invalid game step generated, " + step_status)
 
                 # Get reward from state transition, and convert to dict form 
-                reward = Reward(game).base_reward - original_fitness.base_reward
-                reward_as_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
+                reward = Reward(game,game.get_current_player_index()).all_rewards()# - original_fitness.base_reward
+                reward_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
 
                 # Store reward in memory
-                player_mem.reward_new = reward_as_dict
+                player_mem.reward_new = reward_dict
 
 
                 if game.get_current_player().qualifies_to_win():
@@ -141,11 +141,16 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             total_players = game.get_num_players()
         finally:
             game_data_lock.release()
+        
         for player_index in range(total_players):
             last_turn_player = replay_memory[-player_index]
             if last_turn_player.next_turn_game_state is None:
                 last_turn_player.next_turn_game_state = ending_state
-            last_turn_player.is_last_turn = torch.as_tensor(int(1))
+            if won == True: #if a game overruns the replay length, this will eval false
+                last_turn_player.is_last_turn = torch.as_tensor(int(1))
+                reward = Reward(game,player_index).all_rewards()
+                reward_dict = {choice:(reward * last_turn_player.taken_action[choice]) for choice in last_turn_player.taken_action}
+                last_turn_player.reward_new = reward_dict
         
         return replay_memory
 
@@ -194,7 +199,6 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             next_Q_dicts = target_model(batch[1])
             rewards = batch[2]
             is_last_turns = batch[3]
-            error = {}
             optimizer.zero_grad()
             avg_loss: float = 0.0
             batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
@@ -273,8 +277,8 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
             
 def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
-    last_round_count = sum([1 if x.is_last_turn == 1 else 0 for x in replay_memory])
-    return round(4*total_len/last_round_count)
+    last_round_count = sum([(1/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
+    return round(total_len/last_round_count)
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
          next_Q_vals:torch.Tensor, #[batch_size, action_space_len]

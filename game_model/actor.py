@@ -55,22 +55,6 @@ class Actor:
                 return False
         return True
     
-    def get_fitness(self) -> float:
-        '''return a single number indicating player progress.
-        small reward for resources, larger reward for resources and points'''
-        total_fitness = 0
-        for i in range(5):
-            total_fitness += self.resource_tokens[i]
-        ## gold token is worth 1.5 regular resource tokens
-        total_fitness += self.resource_tokens[5] * 1.5 
-
-        ## a card is worth 10x a resource token
-        for i in range(5):
-            total_fitness += self.resource_persistent[i] * 10
-        
-        total_fitness += self.sum_points * 10
-        return total_fitness
-    
     def qualifies_to_win(self) -> bool:
         '''check whether the player has enough points to win'''
         return True if self.sum_points >= 15 else False
