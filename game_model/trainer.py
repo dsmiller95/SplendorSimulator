@@ -29,6 +29,8 @@ settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
 settings['memory_length']: int = 10000      #number of rounds to play of the game
 settings['batch_size_multiplier']: float = 1.0 #batch size is set to the average number of turns per game multiplied by this factor
 settings['epochs']: int = 1 #how many play->learn cycles to run
+settings['hidden_layer_width'] = 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
+settings['n_hidden_layers'] = 3
 
 # Overwrite with user-defined parameters if they exist
 if exists('game_model/AI_model/train_settings.yaml'):
@@ -49,7 +51,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
     output_shape_dict = ActionOutput().in_dict_form()
 
     
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, hidden_layers_width=128, hidden_layers_num=3)
+    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, settings['hidden_layer_width'], settings['n_hidden_layers'])
     if exists('AI_model/SplendidSplendor-model.pkl'):
         target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
@@ -159,9 +161,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
-        writer.add_scalar('Avg turns to win',
-                          ceil(target_network_update_rate*settings['batch_size_multiplier']),
-                          step_tracker['epoch'])
+        writer.add_scalar('Avg turns to win',target_network_update_rate,step_tracker['epoch'])
 
         model.train()
 
@@ -191,7 +191,10 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         model = model.to(device)
         target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
-        dataloader = DataLoader(dataset,batch_size=target_network_update_rate,shuffle=True,num_workers=0)
+        dataloader = DataLoader(dataset,
+                                batch_size=ceil(target_network_update_rate*settings['batch_size_multiplier']),
+                                shuffle=True,
+                                num_workers=0)
 
         for iteration,batch in enumerate(dataloader):
             Q_dicts = model(batch[0]) ## dict of tensors of size batch x orig size
@@ -277,7 +280,7 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
 def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
     last_round_count = sum([(1/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
-    return round(total_len/ceil(last_round_count))
+    return ceil(total_len/last_round_count)
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
          next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
