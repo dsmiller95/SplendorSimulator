@@ -162,7 +162,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
-        writer.add_scalar('Avg turns to win',target_network_update_rate,step_tracker['epoch'])
+        writer.add_scalar('Avg turns to win (epoch)',target_network_update_rate,step_tracker['epoch'])
 
         model.train()
 
@@ -211,14 +211,14 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
                 loss = loss_fn(target,Q_dicts[key])
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.cpu().item()/batch_len
-                writer.add_scalar('Iter loss/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
+                writer.add_scalar('Loss (iter)/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
             
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
             scheduler.step(step_tracker['total_learn_iters']) #update the weights
-            writer.add_scalar('Learning rate', scheduler._last_lr[0], step_tracker['total_learn_iters'])
+            writer.add_scalar('Learning rate (iter)', scheduler._last_lr[0], step_tracker['total_learn_iters'])
 
             n_keys = len(Q_dicts)
-            writer.add_scalar('Avg iter loss', avg_loss/n_keys,step_tracker["total_learn_iters"])
+            writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
