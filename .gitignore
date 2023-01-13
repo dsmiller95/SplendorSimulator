@@ -131,8 +131,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Tensorboard saved run files
+# Tensorboard saved runs
 *.tfevents*
 
-# NN model pickle files
+# NN model pickles
 *.pkl

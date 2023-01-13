@@ -1,11 +1,12 @@
+import random
+from math import ceil
+from os.path import exists
 import threading
 from typing import Callable
 import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-import random
-from math import ceil
-from os.path import exists
+from yaml import safe_load as load
 from torch.utils.tensorboard import SummaryWriter
 from game_data.game_config_data import GameConfigData
 from game_model.AI_model.reward import Reward
@@ -19,15 +20,19 @@ from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
         
 
-# Hyperparameters
-learning_rate: float = 0.0001 
-gamma: float = 0.99 #discount factor, how much it cares about future reward vs current reward
+# Default hyperparameters
+settings: dict[str,float|int] = {}
+settings['learning_rate']: float = 0.0001 
+settings['gamma']: float = 0.99 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
-epsilon: float = 0.5 #how often to pick the maximum-Q-valued action
-memory_length: int = 10000      #number of rounds to play of the game
-batch_size_multiplier: int = 1 #batch size is set to the average number of turns in a game, this multiplies that
-epochs: int = 100000 #how many play->learn cycles to run
+settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
+settings['memory_length']: int = 10000      #number of rounds to play of the game
+settings['batch_size_multiplier']: float = 1.0 #batch size is set to the average number of turns per game multiplied by this factor
+settings['epochs']: int = 1 #how many play->learn cycles to run
 
+# Overwrite with user-defined parameters if they exist
+if exists('game_model/AI_model/train_settings.yaml'):
+    settings = load(open('game_model/AI_model/train_settings.yaml','r'))
 
 def train(set_current_game : Callable[[Game], None], game_data_lock: threading.Lock):
     # Load game configuration data
@@ -44,7 +49,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
     output_shape_dict = ActionOutput().in_dict_form()
 
     
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, hidden_layers_width=100, hidden_layers_num=3)
+    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, hidden_layers_width=128, hidden_layers_num=3)
     if exists('AI_model/SplendidSplendor-model.pkl'):
         target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
@@ -54,8 +59,8 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
     def play(target_model) -> list[ReplayMemoryEntry]:
         # Instantiate memory
         replay_memory: list[ReplayMemoryEntry] = []
-        while len(replay_memory) < memory_length:
-            len_left_in_replay: int = memory_length - len(replay_memory)
+        while len(replay_memory) < settings['memory_length']:
+            len_left_in_replay: int = settings['memory_length'] - len(replay_memory)
             replay_memory += play_single_game(target_model,len_left_in_replay)
         return replay_memory
     
@@ -95,7 +100,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
                 Q = {key:Q[key].to(torch.device('cpu')) for key in Q}
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
-            Q = _epsilon_greedy(Q,epsilon)
+            Q = _epsilon_greedy(Q,settings['epsilon'])
 
             game_data_lock.acquire()
             try:
@@ -150,13 +155,15 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
-        writer.add_scalar('Avg turns to win',ceil(target_network_update_rate*batch_size_multiplier),step_tracker['epoch'])
+        writer.add_scalar('Avg turns to win',
+                          ceil(target_network_update_rate*settings['batch_size_multiplier']),
+                          step_tracker['epoch'])
 
         model.train()
 
         # Define loss function and optimizer
         loss_fn = torch.nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(model.parameters(), lr=settings['learning_rate'])
         scheduler = CosineAnnealingWarmRestarts(optimizer,
                                                 T_0=2,
                                                 T_mult=2,
@@ -192,7 +199,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             avg_loss: float = 0.0
             batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
             for key in Q_dicts:
-                target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],gamma,is_last_turns)
+                target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],settings['gamma'],is_last_turns)
                 loss = loss_fn(Q_dicts[key],target)
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.cpu().item()/batch_len
@@ -218,7 +225,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         step_tracker["learn_loop_iters"] = 0
         return target_model
 
-    for epoch in range(epochs):
+    for epoch in range(settings['epochs']):
         replay_memory = play(target_model)
         target_model = learn(target_model,replay_memory)
         step_tracker['epoch'] += 1
