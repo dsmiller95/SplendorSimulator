@@ -68,7 +68,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         replay_memory: list[ReplayMemoryEntry] = []
         game_data_lock.acquire()
         try:
-            game = Game(player_count=4, game_config=game_config)
+            game = Game(player_count=random.randint(2,4), game_config=game_config)
             set_current_game(game)
             next_player_index = game.active_index
         finally:
@@ -277,7 +277,7 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
 def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
     last_round_count = sum([(1/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
-    return round(total_len/last_round_count)
+    return round(total_len/ceil(last_round_count))
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
          next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
