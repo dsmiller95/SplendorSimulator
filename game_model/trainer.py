@@ -296,6 +296,14 @@ def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
     # is_last_turn functions as an on-off switch for the next state Q values
     max_next_reward = is_last_turn * torch.max(next_Q_vals.detach()) #detach because we don't want gradients from the next state
     max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
-    discounted_next_reward_estimation = reward + (gamma * max_next_reward)
+
+    # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
+    # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the reward
+    # it will be able to acheive at the next turn. Q_vals describes the model's best prediction of the reward it should
+    # expect for the action it just took.
+    # All put together, what this means is that we add the reward to the predicted next reward, and subtract the predicted
+    # current reward to get the difference between the two states. This gives us our target Q value, which we can send off
+    # to the loss function, where the Q value will be compared to this target Q value from that we get a loss value.  
+    discounted_next_reward_estimation = reward + (gamma * max_next_reward) - Q_vals
 
     return discounted_next_reward_estimation
