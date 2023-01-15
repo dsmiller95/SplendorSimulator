@@ -28,7 +28,10 @@ settings['gamma']: float = 0.99 #discount factor, how much it cares about future
 settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
 settings['memory_length']: int = 10000      #number of rounds to play of the game
 settings['batch_size_multiplier']: float = 1.0 #batch size is set to the average number of turns per game multiplied by this factor
+settings['max_batch_size']: int = 1000 #so that we don't run out of memory accidentally
 settings['epochs']: int = 1 #how many play->learn cycles to run
+settings['hidden_layer_width'] = 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
+settings['n_hidden_layers'] = 3
 
 # Overwrite with user-defined parameters if they exist
 if exists('game_model/AI_model/train_settings.yaml'):
@@ -49,7 +52,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
     output_shape_dict = ActionOutput().in_dict_form()
 
     
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, hidden_layers_width=128, hidden_layers_num=3)
+    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, settings['hidden_layer_width'], settings['n_hidden_layers'])
     if exists('AI_model/SplendidSplendor-model.pkl'):
         target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
@@ -68,7 +71,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         replay_memory: list[ReplayMemoryEntry] = []
         game_data_lock.acquire()
         try:
-            game = Game(player_count=4, game_config=game_config)
+            game = Game(player_count=random.randint(2,4), game_config=game_config)
             set_current_game(game)
             next_player_index = game.active_index
         finally:
@@ -131,7 +134,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             #Store turn in replay memory
             replay_memory.append(player_mem)
 
-            if len(replay_memory) == len_left_in_replay:
+            if (len(replay_memory) == len_left_in_replay) or (len(replay_memory) >= 1000): #games shouldn't last longer than 1000 turns
                 break
         
         game_data_lock.acquire()
@@ -159,9 +162,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
-        writer.add_scalar('Avg turns to win',
-                          ceil(target_network_update_rate*settings['batch_size_multiplier']),
-                          step_tracker['epoch'])
+        writer.add_scalar('Avg turns to win (epoch)',target_network_update_rate,step_tracker['epoch'])
 
         model.train()
 
@@ -191,7 +192,11 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         model = model.to(device)
         target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
-        dataloader = DataLoader(dataset,batch_size=target_network_update_rate,shuffle=True,num_workers=0)
+        batch_size: float = min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
+        dataloader = DataLoader(dataset,
+                                batch_size=batch_size,
+                                shuffle=True,
+                                num_workers=0)
 
         for iteration,batch in enumerate(dataloader):
             Q_dicts = model(batch[0]) ## dict of tensors of size batch x orig size
@@ -203,17 +208,17 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
             batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
             for key in Q_dicts:
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],settings['gamma'],is_last_turns)
-                loss = loss_fn(Q_dicts[key],target)
+                loss = loss_fn(target,Q_dicts[key])
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.cpu().item()/batch_len
-                writer.add_scalar('Iter loss/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
+                writer.add_scalar('Loss (iter)/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
             
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
             scheduler.step(step_tracker['total_learn_iters']) #update the weights
-            writer.add_scalar('Learning rate', scheduler._last_lr[0], step_tracker['total_learn_iters'])
+            writer.add_scalar('Learning rate (iter)', scheduler._last_lr[0], step_tracker['total_learn_iters'])
 
             n_keys = len(Q_dicts)
-            writer.add_scalar('Avg iter loss', avg_loss/n_keys,step_tracker["total_learn_iters"])
+            writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
             #main network is updated every step, its weights directly updated by the backwards pass
             #target network is updated less often, its weights copied directly from the main net
@@ -276,8 +281,13 @@ def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
             
 def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     total_len = len(replay_memory)
-    last_round_count = sum([(1/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
-    return round(total_len/last_round_count)
+    last_round_count: float = sum([(1.0/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
+
+    # something produces a divide-by-0 error but I can't reproduce it consistently, figure out later
+    try:
+        return ceil(total_len/last_round_count)
+    except:
+        return(settings['memory_length'])
 
 def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
          next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
@@ -293,6 +303,15 @@ def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
     # is_last_turn functions as an on-off switch for the next state Q values
     max_next_reward = is_last_turn * torch.max(next_Q_vals.detach()) #detach because we don't want gradients from the next state
     max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
-    discounted_next_reward_estimation = reward + (gamma * max_next_reward)
 
-    return discounted_next_reward_estimation
+    # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
+    # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the reward
+    # it will be able to acheive at the next turn. Q_vals describes the model's best prediction of the reward it should
+    # expect for the action it just took.
+    # All put together, what this means is that we add the reward to the predicted next reward, and subtract the predicted
+    # current reward to get the difference between the two states. This gives us our target Q value, which we can send off
+    # to the loss function, where the Q value will be compared to this target Q value from that we get a loss value.
+    
+    discounted_reward_estimate = reward + (gamma * max_next_reward)
+
+    return discounted_reward_estimate

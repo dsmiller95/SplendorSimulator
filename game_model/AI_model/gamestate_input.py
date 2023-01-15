@@ -104,7 +104,7 @@ class RowVector:
 class PlayerVector:
     def __init__(self):
         self.temp_resources = [None]*6
-        self.perm_resources = [None]*6
+        self.perm_resources = [None]*5
         self.points = [None]
         self.reserved_cards = [CardVector() for x in range(3)]
 
