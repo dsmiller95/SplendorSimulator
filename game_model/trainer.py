@@ -37,7 +37,7 @@ settings['n_hidden_layers'] = 3
 if exists('game_model/AI_model/train_settings.yaml'):
     settings = load(open('game_model/AI_model/train_settings.yaml','r'))
 
-def train(set_current_game : Callable[[Game], None], game_data_lock: threading.Lock):
+def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -56,8 +56,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
     if exists('AI_model/SplendidSplendor-model.pkl'):
         target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
-    target_model = target_model.to(device)
-
+    target_model = target_model.to(device) 
 
     def play(target_model) -> list[ReplayMemoryEntry]:
         # Instantiate memory
@@ -72,7 +71,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
         game_data_lock.acquire()
         try:
             game = Game(player_count=random.randint(2,4), game_config=game_config)
-            set_current_game(game)
+            on_game_changed(game, None)
             next_player_index = game.active_index
         finally:
             game_data_lock.release()
@@ -114,6 +113,7 @@ def train(set_current_game : Callable[[Game], None], game_data_lock: threading.L
 
                 # Play move
                 step_status = step_game(game, next_action)
+                on_game_changed(game, next_action)
                 next_player_index = game.active_index
                 if not (step_status is None):
                     raise Exception("invalid game step generated, " + step_status)

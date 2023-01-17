@@ -26,23 +26,22 @@ if __name__ == "__main__":
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=4, game_config=game_config)
 
-    
 
-
-def set_game(game: Game) -> None:
-    game_data.game = game
+def on_game_changed(game: Game, turn: Turn) -> None:
+    game_data.on_next_game_state(game, turn)
 
 if len(sys.argv) <= 1 or sys.argv[1] == "train":
-    train(set_game, game_data.lock_object)
+    train(on_game_changed, game_data.lock_object)
     exit(0)
 elif sys.argv[1] == "play" or sys.argv[1] == "playAI":
     print('test')
-    set_game(game)
     if sys.argv[1] == "playAI":
         input_shape_dict = GamestateInputVector.map_to_AI_input(game)
         output_shape_dict = ActionOutput().in_dict_form()
         model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 512, 32)
         model.load_state_dict(load('game_model/AI_model/SplendidSplendor-model.pkl',map_location='cpu'))
+        
+    on_game_changed(game, None)
     while True:
         random.seed(1337)
         print(game.describe_common_state())
@@ -56,14 +55,17 @@ elif sys.argv[1] == "play" or sys.argv[1] == "playAI":
                 exit(0)
         
         print(step_game(game, next_action))
+        on_game_changed(game, next_action)
 
         if sys.argv[1] == "playAI":
+            on_game_changed(game)
             print(game.describe_common_state())
             ai_input = GamestateInputVector.map_to_AI_input(game)
             with no_grad(): #no need for the extra gradient calculations/memory
                 Q = model.forward(ai_input)
             next_action,_ = ActionOutput.map_from_AI_output(Q, game, game.get_current_player())
             print(step_game(game,next_action))
+            on_game_changed(game, next_action)
 
 
 
