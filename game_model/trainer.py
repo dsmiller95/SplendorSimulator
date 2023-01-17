@@ -108,7 +108,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 # Pick the highest Q-valued action that works in the game
                 (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
 
-                player_mem.taken_action = chosen_Action
+                player_mem.taken_action = {key:value.detach() for key,value in chosen_Action.items()} #detach to not waste memory
                 player_mem.num_players = game.get_num_players()
 
                 # Play move
