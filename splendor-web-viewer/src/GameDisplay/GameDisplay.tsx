@@ -11,6 +11,8 @@ interface GameProps {
 
 function GameDisplay(props: GameProps) {
   var gameData = props.gameData;
+  let totalPlayers = gameData.players.length;
+  var lastPlayerTurn = (gameData.nextPlayer - 1 + totalPlayers) % totalPlayers;
   return (
     <div>
       <div
@@ -26,7 +28,7 @@ function GameDisplay(props: GameProps) {
         className='Players'
       >
         {
-          gameData.players.map((x, i) => <Player key={i} player={x} playerIndex={i} />)
+          gameData.players.map((x, i) => <Player key={i} player={x} playerIndex={i} isActive={lastPlayerTurn == i} />)
         }
       </div>
     </div>

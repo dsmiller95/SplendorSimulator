@@ -19,7 +19,7 @@ function OpenCards(props: OpenCardsProps) {
           className="Card-tier">
             <CardComponent imageOverride={`game_assets/Tier${tier + 1}.png`}/>
             {
-              props.cardsByTier[tier].map((card, i) => <CardComponent key={i} cardId={card.id}/>)
+              props.cardsByTier[tier].map((card, i) => <CardComponent key={i} cardId={card?.id}/>)
             }
           </div>)
       }

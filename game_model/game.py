@@ -142,7 +142,7 @@ class Game:
             "turn" : self.turn_n,
             "nobles" : [x.as_serializable_data() for x in self.active_nobles],
             "cards": [
-                [c.as_serializable_data() for c in cards]
+                [(c.as_serializable_data() if c != None else None) for c in cards]
                 for cards in self.open_cards
             ],
             "cardStacks": [len(x) for x in self.remaining_cards_by_level],

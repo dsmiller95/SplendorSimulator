@@ -7,12 +7,13 @@ import ResourceBank from '../ResourceBank/ResourceBank';
 interface PlayerProps{
   player: PlayerState;
   playerIndex: number;
+  isActive: boolean;
 }
 
 function Player(props: PlayerProps) {
   return (
     <div
-      className='Player-area'>
+      className={'Player-area ' + (props.isActive ? 'Player-active' : '')}>
         <h1>{`Player ${props.playerIndex}. Points: ${props.player.points}`}</h1>
         <div
           className='Noble-list'

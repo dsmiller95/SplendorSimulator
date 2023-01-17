@@ -8,6 +8,10 @@
   padding: 1em;
 }
 
+.Player-active {
+  background-color: greenyellow;
+}
+
 .Reserved-cards {
   display: flex;
   flex-direction: row;

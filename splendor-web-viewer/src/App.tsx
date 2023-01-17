@@ -20,15 +20,19 @@ function App() {
 
   useEffect(() => {
     async function getGameData(): Promise<void> {
-      var fetchResponse = await fetch('http://localhost:5000/history/game/' + gameIndex.toString());
-      if(!fetchResponse.ok){
+      try{
+        var fetchResponse = await fetch('http://localhost:5000/history/game/' + gameIndex.toString());
+        if(!fetchResponse.ok){
+          setGameData(null);
+          return;
+        }
+  
+        var gameData: GameState = await fetchResponse.json();
+        console.log(gameData);
+        setGameData(gameData);
+      }catch{
         setGameData(null);
-        return;
       }
-
-      var gameData: GameState = await fetchResponse.json();
-      console.log(gameData);
-      setGameData(gameData);
     }
 
     getGameData();
