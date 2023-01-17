@@ -25,11 +25,9 @@ if __name__ == "__main__":
 
 game_config = GameConfigData.read_file("./game_data/cards.csv")
 game = Game(player_count=2, game_config=game_config)
-if sys.argv[1] == "playAI":
-    input_shape_dict = GamestateInputVector.map_to_AI_input(game)
-    output_shape_dict = ActionOutput().in_dict_form()
-    model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 512, 32)
-    model.load_state_dict(load('game_model/AI_model/SplendidSplendor-model.pkl',map_location='cpu'))
+
+    
+
 
 def set_game(game: Game) -> None:
     game_data.game = game
@@ -40,6 +38,11 @@ if len(sys.argv) <= 1 or sys.argv[1] == "train":
 elif sys.argv[1] == "play" or sys.argv[1] == "playAI":
     print('test')
     set_game(game)
+    if sys.argv[1] == "playAI":
+        input_shape_dict = GamestateInputVector.map_to_AI_input(game)
+        output_shape_dict = ActionOutput().in_dict_form()
+        model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 512, 32)
+        model.load_state_dict(load('game_model/AI_model/SplendidSplendor-model.pkl',map_location='cpu'))
     while True:
         random.seed(1337)
         print(game.describe_common_state())
