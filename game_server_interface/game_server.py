@@ -1,6 +1,7 @@
 import threading
 from game_model.game import Game
 from flask import Flask, Response, jsonify
+from flask_cors import CORS
 
 class BoundData:
     def __init__(self):
@@ -10,6 +11,7 @@ class BoundData:
 game_data: BoundData = BoundData()
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/")
 def index():

@@ -1,5 +1,6 @@
 pytest
 torch
 flask
+flask-cors
 pyyaml
 tensorboard
