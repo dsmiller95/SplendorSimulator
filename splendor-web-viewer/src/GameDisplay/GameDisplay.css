@@ -1,0 +1,13 @@
+
+.Players {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.Nobles {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}

@@ -4,4 +4,11 @@
   flex-direction: column;
   justify-content: center;
   border: dashed red;
+  margin: 1em;
+  padding: 1em;
+}
+
+.Reserved-cards {
+  display: flex;
+  flex-direction: row;
 }

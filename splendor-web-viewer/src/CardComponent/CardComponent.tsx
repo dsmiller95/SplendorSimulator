@@ -16,7 +16,7 @@ function CardComponent(props: CardProps) {
     if(props.cardId){
       return "game_assets/" + props.cardId.toString().padStart(3, "0") + ".png";
     }
-    return "logo192.png"
+    return "game_assets/Tier1.png"
   }
   return (
     <div className="Card">

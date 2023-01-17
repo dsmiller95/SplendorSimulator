@@ -24,7 +24,7 @@ if __name__ == "__main__":
     spawn_thread.start()
 
 game_config = GameConfigData.read_file("./game_data/cards.csv")
-game = Game(player_count=2, game_config=game_config)
+game = Game(player_count=4, game_config=game_config)
 
     
 

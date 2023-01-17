@@ -6,6 +6,7 @@ import { GetTokenFileName } from './models/resourceTokens';
 import ResourceBank from './ResourceBank/ResourceBank';
 import OpenCards from './OpenCards/OpenCards';
 import Player from './Player/Player';
+import GameDisplay from './GameDisplay/GameDisplay';
 
 function App() {
 
@@ -29,34 +30,11 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
         {
           gameData == null ?
            <span>No Data</span> :
-           <div>
-            <OpenCards cardsByTier={gameData.cards} remainingCardsPerTier={gameData.cardStacks}/>
-            <ResourceBank resources={gameData.bank}/>
-            <div 
-              className='Players'
-              >
-                {
-                  gameData.players.map((x, i) => <Player key={i} player={x} playerIndex={i} />)
-                }
-              </div>
-            <pre>{JSON.stringify(gameData)}</pre>
-           </div>
+           <GameDisplay gameData={gameData}/>
         }
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
       </header>
     </div>
   );
