@@ -8,34 +8,59 @@ import OpenCards from './OpenCards/OpenCards';
 import Player from './Player/Player';
 import GameDisplay from './GameDisplay/GameDisplay';
 
+interface AppState{
+  game: GameState;
+  gameIndex: number;
+}
+
 function App() {
 
-  const [gameData, setData] = useState<GameState | null>(null)
+  const [gameData, setGameData] = useState<GameState | null>(null)
+  const [gameIndex, setGameIndex] = useState(0)
 
   useEffect(() => {
     async function getGameData(): Promise<void> {
+      var fetchResponse = await fetch('http://localhost:5000/history/game/' + gameIndex.toString());
+      if(!fetchResponse.ok){
+        setGameData(null);
+        return;
+      }
 
-      var fetchResponse = await fetch('http://localhost:5000/game/json');
       var gameData: GameState = await fetchResponse.json();
       console.log(gameData);
-      setData(gameData);
+      setGameData(gameData);
     }
 
-    if(gameData == null){
-      getGameData();
-    }
-  })
+    getGameData();
+  }, [gameIndex])
 
+
+  function nextGameState(){
+    setGameIndex(gameIndex + 1);
+  }
+  function lastGameState(){
+    setGameIndex(gameIndex - 1);
+  }
+  function setGameIndexFromText(indexStr: React.FormEvent<HTMLInputElement>){
+    let index = parseInt(indexStr.currentTarget.value)
+    if(Number.isNaN(index)){
+      return;
+    }
+    setGameIndex(index);
+  }
 
   return (
     <div className="App">
       <header className="App-header">
+        <span className="Game-state-button" onClick={lastGameState}>Previous game state ({gameIndex - 1})</span>
+        <input onChange={setGameIndexFromText}/>
+        <span className="Game-state-button" onClick={nextGameState}>Next game state ({gameIndex + 1})</span>
+      </header>
         {
           gameData == null ?
            <span>No Data</span> :
            <GameDisplay gameData={gameData}/>
         }
-      </header>
     </div>
   );
 }

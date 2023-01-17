@@ -50,7 +50,7 @@ def get_history_length():
 @app.route("/history/game/<game_id>")
 def get_historical_game(game_id=0):
     game_id = int(game_id)
-    if game_id >= len(game_data.game_json_memory):
+    if game_id >= len(game_data.game_json_memory) or game_id < 0:
         abort(404)
     return app.response_class(
         response=game_data.game_json_memory[game_id],
