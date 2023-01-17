@@ -1,0 +1,7 @@
+
+.Player-area {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: dashed red;
+}

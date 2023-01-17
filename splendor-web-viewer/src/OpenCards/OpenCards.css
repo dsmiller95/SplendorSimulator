@@ -1,0 +1,12 @@
+
+.All-cards {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: center;
+}
+.Card-tier {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+}

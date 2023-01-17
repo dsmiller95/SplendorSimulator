@@ -12,16 +12,16 @@ function ResourceBank(props: BankProps) {
         {
         props.resources.map((n, index) => 
         <div
-            className="Resource-type">
-            <div  
-            key={index}>
-            {Array.from({length: n}, (_, next_index) => 
-            <div
-                key={index * 100 + next_index}
-                className="Resource-token">
-                <img 
-                src={`game_assets/${GetTokenFileName(index)}.png`}/>
-            </div>)}
+          key={index}
+          className="Resource-type">
+            <div>
+              {Array.from({length: n}, (_, next_index) => 
+              <div
+                  key={index * 100 + next_index}
+                  className="Resource-token">
+                  <img 
+                  src={`game_assets/${GetTokenFileName(index)}.png`}/>
+              </div>)}
             </div>
         </div>)
         }

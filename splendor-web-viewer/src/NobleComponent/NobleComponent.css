@@ -1,0 +1,8 @@
+
+.Noble {
+  height: 5em;
+}
+
+.Noble > img {
+  height: 5em;
+}

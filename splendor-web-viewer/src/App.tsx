@@ -4,6 +4,8 @@ import './App.css';
 import { GameState } from './models/gameState';
 import { GetTokenFileName } from './models/resourceTokens';
 import ResourceBank from './ResourceBank/ResourceBank';
+import OpenCards from './OpenCards/OpenCards';
+import Player from './Player/Player';
 
 function App() {
 
@@ -35,7 +37,15 @@ function App() {
           gameData == null ?
            <span>No Data</span> :
            <div>
+            <OpenCards cardsByTier={gameData.cards} remainingCardsPerTier={gameData.cardStacks}/>
             <ResourceBank resources={gameData.bank}/>
+            <div 
+              className='Players'
+              >
+                {
+                  gameData.players.map((x, i) => <Player key={i} player={x} playerIndex={i} />)
+                }
+              </div>
             <pre>{JSON.stringify(gameData)}</pre>
            </div>
         }
