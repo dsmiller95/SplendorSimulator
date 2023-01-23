@@ -1,0 +1,26 @@
+
+.Player-deck {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  margin-bottom: 1.8em;
+}
+
+
+.Card-type {
+  display: inline-block;
+}
+
+.Card-type > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.Card-img {
+  height: 0.25em;
+}
+.Card-img > img {
+  height: 2em;
+}
