@@ -1,5 +1,7 @@
+import React, { useEffect, useState } from 'react';
 import { Card } from '../models/gameState';
 import { GetTokenFileName } from '../models/resourceTokens';
+import './PersistentPlayerDeck.css';
 
 interface DeckProps{
     deck: Card[]
