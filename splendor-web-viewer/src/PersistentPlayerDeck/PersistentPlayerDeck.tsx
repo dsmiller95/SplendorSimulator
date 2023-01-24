@@ -4,35 +4,33 @@ import { GetTokenFileName } from '../models/resourceTokens';
 import './PersistentPlayerDeck.css';
 
 interface DeckProps{
-    deck: Card[]
+  deck: Card[]
 }
 
-// "Most efficient method to groupby on an array of objects"; https://stackoverflow.com/a/34890276 by https://stackoverflow.com/users/577199/ceasar
-// groupBy(['one', 'two', 'three'], 'length') => {"3": ["one", "two"], "5": ["three"]}
-// var GroupBy = function(array: Card[], key: Number) {
-//   return array.reduce(function(new_arr: {}, elem: Card[]) {
-//       (new_arr[elem[key]] = new_arr[elem[key]] || []).push(elem);
-//       return new_arr;},{});
-// };
-var CardsByResource = function(deck: Card[]){
-  var cardsByResource: Card[][] = [[], [], [], [], []];
-  for(var card of deck){
-    var cardReturnType = card.returns;
-    if(cardReturnType < 0){
-      console.error("card with no valid return type found. returns: " + card.returns);
-      continue;
+function GroupBy<ItemType, KeyType extends keyof ItemType>(items: ItemType[], filterKey: KeyType): Map<ItemType[KeyType], ItemType[]> {
+  let seed = new Map<ItemType[KeyType], ItemType[]>();
+  for(var item of items){
+    let targetKey = item[filterKey];
+
+    if(!seed.has(targetKey)){
+      seed.set(targetKey, [])
     }
-    cardsByResource[cardReturnType].push(card);
+
+    seed.get(targetKey)?.push(item);
   }
-  return cardsByResource
+  return seed;
 }
+
 function PlayerDeck(props: DeckProps) {
+
+  let groupedCardsByReturns = GroupBy(props.deck, "returns");
+
   return (
     <div className="Player-deck">
         {
-        CardsByResource(props.deck).map((cardstack,index) =>
+        Array.from(groupedCardsByReturns.entries()).map(([number, cardstack]) =>
           <div
-          key={GetTokenFileName(index)}
+          key={GetTokenFileName(number)}
           className="Card-type">
             <div>
               {

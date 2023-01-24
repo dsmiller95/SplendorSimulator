@@ -22,6 +22,9 @@ export interface Card{
   returns: number;
   tier: number;
 
+  // TODO: delete below this line
+  name: string;
+
 }
 
 export interface PlayerState{
