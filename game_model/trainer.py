@@ -53,8 +53,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
     
     target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, settings['hidden_layer_width'], settings['n_hidden_layers'])
-    if exists('AI_model/SplendidSplendor-model.pkl'):
-        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
+    if exists('AI_model/SplendidSplendor-model\(512x32\).pkl'):
+        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model\(512x32\).pkl',
                                          map_location='cpu'))
     target_model = target_model.to(device) 
 

@@ -3,6 +3,7 @@ import { Card, PlayerState } from '../models/gameState';
 import CardComponent from '../CardComponent/CardComponent';
 import NobleComponent from '../NobleComponent/NobleComponent';
 import ResourceBank from '../ResourceBank/ResourceBank';
+import PlayerDeck from '../PersistentPlayerDeck/PersistentPlayerDeck';
 
 interface PlayerProps{
   player: PlayerState;
@@ -28,9 +29,9 @@ function Player(props: PlayerProps) {
           <ResourceBank resources={props.player.tokens}/>
         </div>
         <div
-          className='Persistent-resources'
-        >
-          <ResourceBank resources={props.player.card_resources}/>
+          className='Persistent-deck'
+        > 
+          <PlayerDeck deck={props.player.cards}/> 
         </div>
         <div
           className='Reserved-cards'

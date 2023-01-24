@@ -19,7 +19,7 @@ export interface Card{
   costs: number[];
   points: number;
   
-  returns: number[];
+  returns: number;
   tier: number;
 
 }
@@ -28,6 +28,7 @@ export interface PlayerState{
   points: number;
   nobles: Noble[];
   tokens: number[];
+  cards: Card[];
   card_resources: number[];
   reserved_cards: Card[];
 }

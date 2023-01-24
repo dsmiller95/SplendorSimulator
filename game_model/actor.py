@@ -80,6 +80,7 @@ class Actor:
             "points": self.sum_points,
             "nobles": [x.as_serializable_data() for x in self.claimed_nobles],
             "tokens": self.resource_tokens,
+            "cards": [(x.as_serializable_data() if x != None else None)  for x in self.purchased_cards],
             "card_resources": self.resource_persistent,
             "reserved_cards": [(x.as_serializable_data() if x != None else None)  for x in self.reserved_cards]
         }

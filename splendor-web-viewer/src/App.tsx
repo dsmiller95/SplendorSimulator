@@ -7,6 +7,7 @@ import ResourceBank from './ResourceBank/ResourceBank';
 import OpenCards from './OpenCards/OpenCards';
 import Player from './Player/Player';
 import GameDisplay from './GameDisplay/GameDisplay';
+import PlayerDeck from './PersistentPlayerDeck/PersistentPlayerDeck';
 
 interface AppState{
   game: GameState;

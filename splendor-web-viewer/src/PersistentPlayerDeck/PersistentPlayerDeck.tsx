@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
 import { Card } from '../models/gameState';
-import CardComponent from '../CardComponent/CardComponent';
+import { GetTokenFileName } from '../models/resourceTokens';
 
 interface DeckProps{
     deck: Card[]
@@ -8,33 +7,46 @@ interface DeckProps{
 
 // "Most efficient method to groupby on an array of objects"; https://stackoverflow.com/a/34890276 by https://stackoverflow.com/users/577199/ceasar
 // groupBy(['one', 'two', 'three'], 'length') => {"3": ["one", "two"], "5": ["three"]}
-var GroupBy = function(array: Card[], key: Number) {
-  return array.reduce(function(new_arr: {}, elem: Card[]) {
-      (new_arr[elem[key]] = new_arr[elem[key]] || []).push(elem);
-      return new_arr;},{});
-};
-
+// var GroupBy = function(array: Card[], key: Number) {
+//   return array.reduce(function(new_arr: {}, elem: Card[]) {
+//       (new_arr[elem[key]] = new_arr[elem[key]] || []).push(elem);
+//       return new_arr;},{});
+// };
+var CardsByResource = function(deck: Card[]){
+  var cardsByResource: Card[][] = [[], [], [], [], []];
+  for(var card of deck){
+    var cardReturnType = card.returns;
+    if(cardReturnType < 0){
+      console.error("card with no valid return type found. returns: " + card.returns);
+      continue;
+    }
+    cardsByResource[cardReturnType].push(card);
+  }
+  return cardsByResource
+}
 function PlayerDeck(props: DeckProps) {
   return (
     <div className="Player-deck">
         {
-        props.deck.map(GroupBy(DeckProps.deck, DeckProps.deck.returns.indexOf(1))) => 
-        <div
-          key={props.} //find the index of the returned token type number eg. [0,0,1,0,0,0] -> 2
+        CardsByResource(props.deck).map((cardstack,index) =>
+          <div
+          key={GetTokenFileName(index)}
           className="Card-type">
             <div>
-              {Array.from({length: card}, (_, next_index) => 
+              {
+              cardstack.map((card) => 
               <div
-                  key={index * 100 + next_index}
+                  key={card.id}
                   className="Card-img">
                   <img 
-                  src={`game_assets/${"put card filename here"}.png`}/>
-              </div>)}
+                  src={`game_assets/${card.id.toString().padStart(3, "0")}.png`} alt='game_assets/Card-placeholder.png'/>
+              </div>)
+              }
             </div>
-        </div>)
+          </div>)
         }
     </div>
   );
 }
-
+  
 export default PlayerDeck;

@@ -19,8 +19,8 @@
 }
 
 .Card-img {
-  height: 0.25em;
+  height: 1em;
 }
 .Card-img > img {
-  height: 2em;
+  height: 5em;
 }
