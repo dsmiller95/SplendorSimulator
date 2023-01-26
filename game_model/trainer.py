@@ -53,8 +53,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
     
     target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, settings['hidden_layer_width'], settings['n_hidden_layers'])
-    if exists('AI_model/SplendidSplendor-model\(512x32\).pkl'):
-        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model\(512x32\).pkl',
+    if exists('AI_model/SplendidSplendor-model.pkl'):
+        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
     target_model = target_model.to(device) 
 
@@ -210,8 +210,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],settings['gamma'],is_last_turns)
                 loss = loss_fn(target,Q_dicts[key])
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                avg_loss += loss.cpu().item()/batch_len
-                writer.add_scalar('Loss (iter)/'+key,loss.cpu().item()/batch_len,step_tracker["total_learn_iters"])
+                avg_loss += loss.detach().item()/batch_len
+                writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
             
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
             scheduler.step(step_tracker['total_learn_iters']) #update the weights
