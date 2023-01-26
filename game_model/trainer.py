@@ -211,12 +211,12 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             next_Q_dicts = target_model(batch[1])
             rewards = batch[2]
             is_last_turns = batch[3]
+            target = target_Q(next_Q_dicts,rewards,settings['gamma'],is_last_turns)
             optimizer.zero_grad()
             avg_loss: float = 0.0
             batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
             for key in Q_dicts:
-                target = target_Q(Q_dicts[key],next_Q_dicts[key],rewards[key],settings['gamma'],is_last_turns)
-                loss = loss_fn(target,Q_dicts[key])
+                loss = loss_fn(target[key],Q_dicts[key])
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.detach().item()/batch_len
                 writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
@@ -228,12 +228,6 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             n_keys = len(Q_dicts)
             writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
-            #main network is updated every step, its weights directly updated by the backwards pass
-            #target network is updated less often, its weights copied directly from the main net
-            
-            # if (iteration+1) % ceil(target_network_update_rate / batch_size) == 0:
-            #     print("updating target model")
-            #     target_model = model
             target_model = model #changed this to just run the batch size as the average win period
             step_tracker["learn_loop_iters"] += 1
             step_tracker["total_learn_iters"] += 1
@@ -297,28 +291,29 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     except:
         return(settings['memory_length'])
 
-def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
-         next_Q_vals:torch.Tensor, #[batch_size, action_space_len]
-         reward:torch.Tensor, #[batch_size, action_space_len]
+def target_Q(next_Q_dicts:dict[torch.Tensor],
+         reward_dicts:dict[torch.Tensor], 
          gamma:float,
-         is_last_turn:torch.Tensor) -> torch.Tensor:
+         is_last_turn:torch.Tensor) -> dict[torch.Tensor]:
     '''This function operates on a single action-space (key) in the
     Q dictionary'''
-    assert reward.size() == Q_vals.size()
 
     #flip the 1's and 0's so the last_turn designator becomes a 0
     is_last_turn = (~is_last_turn.bool()).int() 
-    # is_last_turn functions as an on-off switch for the next state Q values
-    max_next_reward = is_last_turn * torch.max(next_Q_vals.detach()) #detach because we don't want gradients from the next state
-    max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
 
-    # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
-    # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the total reward
-    # it will be able to acheive over the converging series of SUM[now -> infinity/end](discount*(action->reward)).
-    # All put together, what this means is that we add this action's reward to the predicted total reward. This gives us
-    # our target Q value, which we can send off to the loss function, where the Q value will be compared to this target 
-    # Q value from which we get a loss value.
-    
-    discounted_reward_estimate = reward + (gamma * max_next_reward)
+    target:dict[torch.Tensor] = {}
+    for key in next_Q_dicts:
 
-    return discounted_reward_estimate
+        # is_last_turn functions as an on-off switch for the next state Q values
+        max_next_reward = is_last_turn * torch.max(next_Q_dicts[key].detach()) #detach because we don't want gradients from the next state
+        max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
+
+        # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
+        # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the total reward
+        # it will be able to acheive through the whole converging series of SUM[i: now->endgame]( (discount^i) * (reward[i]) ).
+        # All put together, what this means is that we add this action's reward to the predicted total reward. This gives us
+        # our target estimated Q value, which we can send off to the loss function, where the Q value will be compared to this target 
+        # Q value from which we get a loss value.
+        target[key] = reward_dicts[key] + (gamma * max_next_reward)
+
+    return target
