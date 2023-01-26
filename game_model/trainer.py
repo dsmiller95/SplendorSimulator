@@ -33,6 +33,14 @@ settings['epochs']: int = 1 #how many play->learn cycles to run
 settings['hidden_layer_width'] = 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
 settings['n_hidden_layers'] = 3
 
+# Rewards: [use this reward?, value of this reward]
+settings['tokens_held'] = [False,1.0]
+settings['cards_held'] = [False,1.0]
+settings['points'] = [True,5.0]
+settings['win_lose'] = [True,200]
+settings['length_of_game'] = [True,-0.1]
+
+
 # Overwrite with user-defined parameters if they exist
 if exists('game_model/AI_model/train_settings.yaml'):
     settings = load(open('game_model/AI_model/train_settings.yaml','r'))
@@ -119,7 +127,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                     raise Exception("invalid game step generated, " + step_status)
 
                 # Get reward from state transition, and convert to dict form 
-                reward = Reward(game,game.get_current_player_index()).all_rewards()# - original_fitness.base_reward
+                reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
                 reward_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
 
                 # Store reward in memory
@@ -150,7 +158,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 last_turn_player.next_turn_game_state = ending_state
             if won == True: #if a game overruns the replay length, this will eval false
                 last_turn_player.is_last_turn = torch.as_tensor(int(1))
-                reward = Reward(game,player_index).all_rewards()
+                reward = Reward(game,player_index,settings).all_rewards()
                 reward_dict = {choice:(reward * last_turn_player.taken_action[choice]) for choice in last_turn_player.taken_action}
                 last_turn_player.reward_new = reward_dict
         
@@ -305,12 +313,11 @@ def target_Q(Q_vals:torch.Tensor, #[batch_size, action_space_len]
     max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
 
     # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
-    # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the reward
-    # it will be able to acheive at the next turn. Q_vals describes the model's best prediction of the reward it should
-    # expect for the action it just took.
-    # All put together, what this means is that we add the reward to the predicted next reward, and subtract the predicted
-    # current reward to get the difference between the two states. This gives us our target Q value, which we can send off
-    # to the loss function, where the Q value will be compared to this target Q value from that we get a loss value.
+    # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the total reward
+    # it will be able to acheive over the converging series of SUM[now -> infinity/end](discount*(action->reward)).
+    # All put together, what this means is that we add this action's reward to the predicted total reward. This gives us
+    # our target Q value, which we can send off to the loss function, where the Q value will be compared to this target 
+    # Q value from which we get a loss value.
     
     discounted_reward_estimate = reward + (gamma * max_next_reward)
 

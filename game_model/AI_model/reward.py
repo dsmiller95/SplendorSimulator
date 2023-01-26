@@ -1,12 +1,10 @@
-
 from game_model.game import Game
 
-
 class Reward:
-    def __init__(self, game_state: Game, player_index: int):
+    def __init__(self, game_state: Game, player_index: int, settings: dict):
         self.current_player = game_state.get_player(player_index)
         self.game_state = game_state
-
+        self.settings = settings
         
     def all_rewards(self) -> float:
         reward: float = 0.0
@@ -18,7 +16,7 @@ class Reward:
         return reward
 
     def tokens_held_reward(self) -> float:
-        reward: float = 0.0
+        reward = self._get_reward_from_setting(self.settings['tokens_held'])
         for i in range(5):
             reward += self.current_player.resource_tokens[i]        
         ## gold token is worth 1.5 regular resource tokens
@@ -26,24 +24,28 @@ class Reward:
         return reward
 
     def cards_held_reward(self) -> float:
-        reward: float = 0.0
+        reward = self._get_reward_from_setting(self.settings['cards_held'])
         for i in range(5):
             reward += self.current_player.resource_persistent[i] * 1
         return reward
     
     def points_reward(self) -> float:
-        reward: float = 0.0
+        reward = self._get_reward_from_setting(self.settings['points'])
         reward = self.current_player.sum_points * 10
         return reward
 
     def win_lose_reward(self) -> float:
         # Determine win/lose reward/punishment
         if self.current_player.qualifies_to_win() and not any([player for player in self.game_state.players if player.sum_points > self.current_player.sum_points]):
-            return 200.0
+            return self._get_reward_from_setting(self.settings['win_lose'])
         elif any([player.qualifies_to_win() for player in self.game_state.players if player is not self.current_player]):
-            return -200.0
+            return -1.0 * self._get_reward_from_setting(self.settings['win_lose'])
         else:
             return 0.0
 
     def length_of_game_reward(self) -> float:
-        return -1.0 * float(self.game_state.turn_n)
+        reward = self._get_reward_from_setting(self.settings['length_of_game'])
+        return reward * float(self.game_state.turn_n)
+
+    def _get_reward_from_setting(self,setting: list) -> float:
+        return (setting[1] if setting[0] else 0.0)

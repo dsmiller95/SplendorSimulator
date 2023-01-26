@@ -8,3 +8,10 @@ max_batch_size: 1000 #so that we don't run out of memory accidentally
 epochs: 100000 #how many play->learn cycles to run
 hidden_layer_width: 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
 n_hidden_layers: 3
+
+# Rewards: [use this reward?, value of this reward]
+tokens_held: [False,1.0]
+cards_held: [False,1.0]
+points: [True,5.0]
+win_lose: [True,200]
+length_of_game: [True,-0.1]
