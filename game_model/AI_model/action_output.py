@@ -89,22 +89,15 @@ class ActionOutput:
             action_type = Action_Type(best_action_index)
             chosen_action_indexes['action_choice'] = best_action_index
             turn = Turn(action_type)
-            # Diagnosis printout
-            # print(action_type,'\n',
-            #       'pick_three_choice',[f'{val:.2f}' for val in action_output.pick_three_choice.tolist()],'\n',
-            #       'pick_two_choice',[f'{val:.2f}' for val in action_output.pick_two_choice.tolist()],'\n',
-            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_pref.tolist()],'\n',
-            #       'reserve_choice',[f'{val:.2f}' for val in action_output.reserve_buy.tolist()],'\n',
-            #       'available_resources',game.available_resources,'\n\n')
             if action_type==Action_Type.TAKE_THREE_UNIQUE:
-                best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources)
+                best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources[:5],allow_fewer_than_three=False)
                 if not (best_pick is None):
                     chosen_action_indexes['pick_three_choice'] = best_pick
                     turn.resources_desired = pick_three_choices.map_from_index(best_pick)
                     fit_check = True
 
             elif action_type==Action_Type.TAKE_TWO:
-                best_pick = _find_best_pick_two_from_tensor(action_output.pick_two_choice, game.available_resources)
+                best_pick = _find_best_pick_two_from_tensor(action_output.pick_two_choice, game.available_resources[:5])
                 if not (best_pick is None):
                     chosen_action_indexes['pick_two_choice'] = best_pick
                     pick = [0] * 5
@@ -124,6 +117,30 @@ class ActionOutput:
                     turn.card_index = best_pick
                     fit_check = True
 
+            action_attempts+=1
+            
+            #as a last resort, try picking up whatever tokens we can, even if there are fewer than three bank slots filled
+            if action_attempts >= 4:
+                best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources[:5],allow_fewer_than_three=True)
+                if not (best_pick is None):
+                    chosen_action_indexes['pick_three_choice'] = best_pick
+                    desired_picks = pick_three_choices.map_from_index(best_pick)
+                    turn.resources_desired = [min(pair) for pair in zip(desired_picks,game.available_resources[:5])] #in case some of the slots are empty
+                    fit_check = True
+                else:
+                    action_attempts += 1
+            
+            #Diagnosis printout
+            # print(action_type,'\n',
+            #       'attempt #',action_attempts,'\n',
+            #       'pick_three_choice',[f'{val:.2f}' for val in action_output.pick_three_choice.tolist()],'\n',
+            #       'pick_two_choice',[f'{val:.2f}' for val in action_output.pick_two_choice.tolist()],'\n',
+            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_pref.tolist()],'\n',
+            #       'reserve_choice',[f'{val:.2f}' for val in action_output.reserve_buy.tolist()],'\n',
+            #       'player_perm_resources',game.get_current_player().resource_persistent,'\n',
+            #       'player_resources',game.get_current_player().resource_tokens,'\n',
+            #       'bank_resources',game.available_resources,'\n\n')
+
             if fit_check == True and turn.card_index != None:
                 total_cards = game.config.total_available_card_indexes()
                 if turn.card_index >= total_cards:
@@ -132,8 +149,6 @@ class ActionOutput:
                     chosen_action_indexes['card_buy'] = turn.card_index - total_cards
                 pass
 
-            action_attempts+=1
-        
         #taking noble goes here
         # TODO: is hack. but kinda mostly will work.
         # TODO: should we only set the "taken action" tensor value iff the noble is actually rewarded after selection?
@@ -146,12 +161,12 @@ class ActionOutput:
             chosen_action_indexes['discard_combination_choice'] = discard_choice
             turn.set_discard_preferences(discard_choices.map_from_index(discard_choice))
 
-        if action_attempts >= 4:
+        if action_attempts >= 4: #4 actions tested in a loop, and then a fallback permissive pick3 action must also fail
             ## for training, may be best to provide a noop when the game state prohibits any other actions
             return (Turn(Action_Type.NOOP),None)
         validate_msg = turn.validate(game,player)
         if validate_msg != None:
-            return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts) + " times. " + validate_msg
+            return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts+1) + " times. " + validate_msg
         
         return (turn, chosen_action_indexes)
 
@@ -169,17 +184,23 @@ def _find_valid_discard_options(q_vector_discard_pref: torch.Tensor, available_r
             return index
     return None
 
-def _find_best_pick_three_from_tensor(q_vector_choice_pref: torch.Tensor, available_resources: list[int] ) -> int:
+def _find_best_pick_three_from_tensor(q_vector_choice_pref: torch.Tensor,
+                                      available_resources: list[int],
+                                      allow_fewer_than_three: bool = False)-> int:
     '''
     finds a valid pick three action with the highest q-value and returns the index of that value
     '''
+
     if sum([1 if x > 0 else 0 for x in available_resources]) < 3:
-        return None
+        if not allow_fewer_than_three:
+            return None
     sorted, indices = q_vector_choice_pref.sort(descending=True)
     for next_pref in range(len(q_vector_choice_pref)):
         index = indices[next_pref]
         pick_choice = pick_three_choices.map_from_index(index)
-        if not any([available_resources[i] < x for i, x in enumerate(pick_choice)]):
+        if allow_fewer_than_three and any([available_resources[i] >= x for i, x in enumerate(pick_choice)]):
+            return index
+        elif not any([available_resources[i] < x for i, x in enumerate(pick_choice)]):
             return index
     return None
 
@@ -187,12 +208,12 @@ def _find_best_pick_two_from_tensor(q_vector_choice_pref: torch.Tensor, availabl
     '''
     finds a valid pick two action with the highest q-value and returns the index of that value
     '''
-    if not any([x > 4 for x in available_resources]):
+    if not any([x >= 4 for x in available_resources]):
         return None
     sorted, indices = q_vector_choice_pref.sort(descending=True)
     for next_pref in range(len(q_vector_choice_pref)):
         index = indices[next_pref] ## index here happens to be the literal resource index, because we only need to pick 1
-        if available_resources[index] > 4:
+        if available_resources[index] >= 4:
             return index
     return None
 
