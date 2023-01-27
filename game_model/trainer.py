@@ -1,5 +1,6 @@
 import random
 from math import ceil
+from copy import deepcopy
 from os.path import exists
 import threading
 from typing import Callable
@@ -166,7 +167,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
     def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = target_model
+        model = deepcopy(target_model)
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
@@ -200,7 +201,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         model = model.to(device)
         target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
-        batch_size: float = min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
+        batch_size: float = settings['max_batch_size'] # = min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
         dataloader = DataLoader(dataset,
                                 batch_size=batch_size,
                                 shuffle=True,
@@ -220,18 +221,17 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.detach().item()/batch_len
                 writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
-            
-            #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem
-            scheduler.step(step_tracker['total_learn_iters']) #update the weights
+            optimizer.step() #update the weights
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem 
             writer.add_scalar('Learning rate (iter)', scheduler._last_lr[0], step_tracker['total_learn_iters'])
 
             n_keys = len(Q_dicts)
             writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
-            target_model = model #changed this to just run the batch size as the average win period
+            target_model = deepcopy(model)
             step_tracker["learn_loop_iters"] += 1
             step_tracker["total_learn_iters"] += 1
-
+        scheduler.step(step_tracker["learn_loop_iters"])
         step_tracker["learn_loop_iters"] = 0
         return target_model
 
@@ -258,15 +258,15 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
 
 def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
-    action with a probability of epsilon. Otherwise, it will randomly choose
-    another possible action. We're going to do this by either allowing the
+    action with a probability of 1-epsilon. Otherwise, it will randomly choose
+    another possible action with probability epsilon. We're going to do this by either allowing the
     Q values to go undisturbed to the action mapper, or by swapping the max
     Q value for a particular action to another position, so that the action
     mapper will pick that action instead.'''
     
     for choice_type in Q:
         choices = Q[choice_type]
-        if random.uniform(0,1) > epsilon and len(choices) > 1:
+        if random.uniform(0,1) < epsilon and len(choices) > 1:
             maxIndex = choices.argmax()
 
             index_clash = True

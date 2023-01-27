@@ -54,15 +54,15 @@ class SplendidSplendorModel(nn.Module):
 '''
 Structure works like this:
 
-      in1  in2  in3  [these are vectors with their own individual lengths]
+      in1  in2  in3  [dictionary of vectors with their own individual lengths]
          \  |  /
           \ | /
-         hidden1     [The hidden layer input size is the ]
+         hidden1
             |
          hidden2
             |
          hidden3
            /\
           /  \
-       out1  out2
+       out1  out2 [dictionary of vectors with their own individual lengths]
 '''

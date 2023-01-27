@@ -8,8 +8,8 @@ class Reward:
         
     def all_rewards(self) -> float:
         reward: float = 0.0
-        #reward += self.tokens_held_reward()
-        #reward += self.cards_held_reward()
+        reward += self.tokens_held_reward()
+        reward += self.cards_held_reward()
         reward += self.points_reward()
         reward += self.win_lose_reward()
         reward += self.length_of_game_reward()
