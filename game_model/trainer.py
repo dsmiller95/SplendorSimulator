@@ -176,7 +176,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         model.train()
 
         # Define loss function and optimizer
-        loss_fn = torch.nn.MSELoss()
+        loss_fn = torch.nn.HuberLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=settings['learning_rate'])
         scheduler = CosineAnnealingWarmRestarts(optimizer,
                                                 T_0=2,
@@ -184,6 +184,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                                                 eta_min=1e-12,
                                                 last_epoch=-1,
                                                 verbose=False)
+        scheduler.step(step_tracker["epoch"]) #updates the scheduler to the current epoch "step"
             
         # Transfer all the data to the GPU for blazing fast train speed
         if device == torch.device("cuda"):
@@ -201,7 +202,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         model = model.to(device)
         target_model = target_model.to(device)
         dataset = BellmanEquationDataSet(replay_memory,device)
-        batch_size: float = settings['max_batch_size'] # = min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
+        batch_size: float = settings['max_batch_size'] #= min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
         dataloader = DataLoader(dataset,
                                 batch_size=batch_size,
                                 shuffle=True,
@@ -223,7 +224,6 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
             optimizer.step() #update the weights
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1000.0) #clip the gradients to avoid exploding gradient problem 
-            writer.add_scalar('Learning rate (iter)', scheduler._last_lr[0], step_tracker['total_learn_iters'])
 
             n_keys = len(Q_dicts)
             writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
@@ -231,7 +231,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             target_model = deepcopy(model)
             step_tracker["learn_loop_iters"] += 1
             step_tracker["total_learn_iters"] += 1
-        scheduler.step(step_tracker["learn_loop_iters"])
+            
+        writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
         step_tracker["learn_loop_iters"] = 0
         return target_model
 
