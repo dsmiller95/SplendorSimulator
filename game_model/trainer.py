@@ -164,7 +164,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 running_game_samples.clear()
                 avg = sum(game_average_samples, SimpleProfile()) / len(game_average_samples)
                 if len(game_average_samples) > max_running_samples:
-                    game_average_samples = game_average_samples[-max_running_samples/4:]
+                    del game_average_samples[0:max_running_samples/4]
                 print("turn generation time analysis:\n" + avg.describe_samples())
 
 
