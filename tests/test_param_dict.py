@@ -28,3 +28,13 @@ def test_param_dict_builds():
     assert [22, 55] == param_dict["another key"]
     assert [] == param_dict["empty key"]
     assert [3, 33, 333] == param_dict["another key 2"]
+
+def test_param_dict_iterates_keys():
+    param_dict : BetterParamDict[list[float]] = BetterParamDict([])
+    param_dict["key 1"] = [1, 100, 0.1]
+    param_dict["another key"] = [22, 2]
+    param_dict["another key"] = [22, 55]
+    param_dict["empty key"] = []
+    param_dict["another key 2"] = [3, 33, 333]
+
+    assert ["key 1", "another key", "empty key", "another key 2"] == [x for x in param_dict]

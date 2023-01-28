@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, Iterator, TypeVar
 
 T = TypeVar('T')
 J = TypeVar('J')
@@ -22,13 +22,23 @@ class BetterParamDict(Generic[T]):
         return output
 
     @staticmethod
-    def reindex_over_new_data(original_dict : BetterParamDict[T], remapped_data: J ) -> BetterParamDict[J]:
+    def reindex_over_new_data(original_dict : BetterParamDict[T], remapped_data: J) -> BetterParamDict[J]:
         if len(remapped_data) != len(original_dict.aggregate_list):
             raise IndexError("length of remapped data does not match original dictionary length")
         output : BetterParamDict[J] = BetterParamDict(None)
         output.aggregate_list = remapped_data
         output.index_dict = original_dict.index_dict
         return output
+    
+    def map_to_dict(self) -> dict[str, T]:
+        return {key:self[key] for key in self}
+
+    def remap(self, mapper: Callable[[T], J]) -> BetterParamDict[J]:
+        remappedData = mapper(self.aggregate_list)
+        output = BetterParamDict(remappedData)
+        output.index_dict = {key:val for key, val in self.index_dict.items()}
+        return output
+
 
     def _append_item(self, key: str, value: T) -> None:
         origin_index = len(self.aggregate_list)
@@ -44,7 +54,7 @@ class BetterParamDict(Generic[T]):
 
     def __getitem__(self, key: str) -> T:
         data_range = self.index_dict[key]
-        return self.aggregate_data[data_range[0]:data_range[1]]
+        return self.aggregate_list[data_range[0]:data_range[1]]
     
     def __setitem__(self, key: str, value: T) -> None:
         if not (key in self.index_dict):
@@ -57,6 +67,8 @@ class BetterParamDict(Generic[T]):
             raise IndexError("length of new data does not match original data length at key, original: " + str(orig_len) + " at " + key + ", new len: " + str(len(value)))
         self.aggregate_list[placement[0]:placement[1]] = value
 
+    def __iter__(self) -> Iterator[str]:
+        return self.index_dict.__iter__()
     
     def get_backing_packed_data(self) -> T:
         return self.aggregate_list

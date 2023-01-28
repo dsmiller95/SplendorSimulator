@@ -15,15 +15,19 @@ discard_choices = CombinatorialIndexMapping(6, 3, allow_pick_multiple=True, allo
 from utilities.better_param_dict import BetterParamDict
 class ActionOutput:
     def __init__(self):
-        self.mapped_properties : BetterParamDict[torch.Tensor] = BetterParamDict([])
-        self.mapped_properties['action_choice'] = torch.Tensor([0] * 4)
-        self.mapped_properties['card_pref'] = torch.Tensor([0] * 15) #this will be used for both card buying and reserving
-        self.mapped_properties['reserve_buy'] = torch.Tensor([0] * 3) #this is specifically for buying cards from reserve
-        self.mapped_properties['noble_choice'] = torch.Tensor([0] * 5)
+        # use a regular list param dict to build the shape
+        shape_builder : BetterParamDict[list[int]] = BetterParamDict([])
+        shape_builder['action_choice'] = [0] * 4
+        shape_builder['card_buy'] = [0] * 15 #this will be used for both card buying and reserving
+        shape_builder['reserve_buy'] = [0] * 3 #this is specifically for buying cards from reserve
+        shape_builder['noble_choice'] = [0] * 5
         
-        self.mapped_properties['pick_three_choice'] = torch.Tensor([0] * pick_three_choices.total_possible_options())
-        self.mapped_properties['pick_two_choice'] = torch.Tensor([0] * 5)
-        self.mapped_properties['discard_combination_choice'] = torch.Tensor([0] * discard_choices.total_possible_options())
+        shape_builder['pick_three_choice'] = [0] * pick_three_choices.total_possible_options()
+        shape_builder['pick_two_choice'] = [0] * 5
+        shape_builder['discard_combination_choice'] = [0] * discard_choices.total_possible_options()
+
+        # remap the list into a fixed-length tensor after building
+        self.mapped_properties : BetterParamDict[list[int]] = shape_builder.remap(lambda x: torch.Tensor(x))
     
     def in_dict_form(self):
         return self.mapped_properties
@@ -55,20 +59,21 @@ class ActionOutput:
         return len(self.mapped_properties.get_backing_packed_data())
 
     def map_tensor_into_self(self, into_tensor: torch.Tensor):
-        mapped_list = into_tensor.tolist()
-        self.mapped_properties = BetterParamDict.reindex_over_new_data(self.mapped_properties, mapped_list)
+        self.mapped_properties = BetterParamDict.reindex_over_new_data(self.mapped_properties, into_tensor)
         
     @staticmethod
-    def map_from_AI_output(forward_result: torch.Tensor,game:Game,player:Actor) -> tuple[Turn | str, dict[str, torch.Tensor]]:
+    def map_from_AI_output(forward_result: BetterParamDict[torch.Tensor],game:Game,player:Actor) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
         '''
         TODO: map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
         '''
 
         action_output = ActionOutput()
         ## TODO: map in using backing dictionary remap
-        action_output.map_tensor_into_self(forward_result)
+        action_output.map_tensor_into_self(forward_result.aggregate_list)
         turn_index_tuple = ActionOutput._map_internal(action_output, game, player)
-        if turn_index_tuple[1] == None: # This happens when _map_internal fails to find a valid action and returns NOOP
+        if turn_index_tuple[1] == None:
+            # This happens when _map_internal fails to find a valid action and returns NOOP
+            # TODO: ^^ no it doesn't. this section will never get hit. should we fix?
             turn,_ = turn_index_tuple
             zero_dict = ActionOutput().in_dict_form() #return an ActionOutput with all 0's because no action was taken
         else:
@@ -91,7 +96,7 @@ class ActionOutput:
         action_attempts: int = 0
 
         prioritized_card_indexes : Lazy[list[ResourceType]] = Lazy(
-            lambda: [i for i, x in sorted(enumerate(action_output.card_pref.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
+            lambda: [i for i, x in sorted(enumerate(action_output.card_buy.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
         )
         
         chosen_action_indexes: dict[str, int] = {}
@@ -148,7 +153,7 @@ class ActionOutput:
             #       'attempt #',action_attempts,'\n',
             #       'pick_three_choice',[f'{val:.2f}' for val in action_output.pick_three_choice.tolist()],'\n',
             #       'pick_two_choice',[f'{val:.2f}' for val in action_output.pick_two_choice.tolist()],'\n',
-            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_pref.tolist()],'\n',
+            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_buy.tolist()],'\n',
             #       'reserve_choice',[f'{val:.2f}' for val in action_output.reserve_buy.tolist()],'\n',
             #       'player_perm_resources',game.get_current_player().resource_persistent,'\n',
             #       'player_resources',game.get_current_player().resource_tokens,'\n',

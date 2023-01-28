@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utilities.better_param_dict import BetterParamDict
 
 from utilities.simple_profile import SimpleProfile
 
 class SplendidSplendorModel(nn.Module):
-    def __init__(self, input_shape_dict, output_shape_dict: dict[str, list[float]], hidden_layers_width, hidden_layers_num):
+    def __init__(self, input_shape_dict: BetterParamDict[torch.Tensor], output_shape_dict: BetterParamDict[torch.Tensor], hidden_layers_width, hidden_layers_num):
         '''Takes input and output objects in a dict form, with the keys being the input/output
         names and the values being 1: length of vectors needed and 2: clamp bounds (output dict only).
         Takes hidden layer parameters to construct an arbitrary multi-layer perceptron'''
@@ -32,7 +33,38 @@ class SplendidSplendorModel(nn.Module):
             nn.init.orthogonal_(m.weight, val)
             torch.nn.utils.weight_norm(m)
     
-    def forward(self,input_dict: dict[str, torch.Tensor], profiler: SimpleProfile = None) -> dict[str, torch.Tensor]:
+    def forward(self,input_dict: BetterParamDict[torch.Tensor], profiler: SimpleProfile = None) -> BetterParamDict[torch.Tensor]:
+        '''input_dict is layed out the same way as the input_shape_dict, except the values are the
+        actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
+        
+        output:torch.Tensor = None
+        for key in self.input_lanes:
+            if output is None:
+                output = self.input_lanes[key](input_dict[key])
+            else:
+                output += self.input_lanes[key](input_dict[key])
+        if profiler is not None:
+            profiler.sample_next("input lane concatenation")
+
+        output = self.in_activation(output)
+        for layer in self.hidden_layers:
+            output = layer(output)
+        
+        if profiler is not None:
+            profiler.sample_next("model forward")
+        
+        ## ensure that the output dict has the correct shape, imported from the original shape dictionary
+        ## because a tensor-based BetterParamDict does not support resizing
+        out_dict = self.output_shape_dict.remap(lambda x: torch.Tensor([0] * len(x)))
+        for key in self.output_lanes:
+            out_dict[key] = self.output_lanes[key](output)
+        
+        if profiler is not None:
+            profiler.sample_next("output lane evaluation")
+
+        return out_dict
+
+    def forward_from_dictionary(self,input_dict: dict[str, torch.Tensor], profiler: SimpleProfile = None) -> dict[str, torch.Tensor]:
         '''input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
         

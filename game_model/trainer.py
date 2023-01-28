@@ -19,6 +19,7 @@ from game_model.AI_model.dataloader import BellmanEquationDataSet
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
+from utilities.better_param_dict import BetterParamDict
 
 from utilities.simple_profile import SimpleProfile
 
@@ -112,14 +113,14 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
             sampler.sample_next("input mapping")
             # Get model's predicted action
-            ai_input = {key:ai_input[key].to(device) for key in ai_input}
+            ai_input = ai_input.remap(lambda x: x.to(device))
             sampler.sample_next("device mapping in")
 
             target_model.eval()
             sampler.sample_next("model eval")
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
                 Q = target_model.forward(ai_input, sampler) #Q values == expected reward for an action taken
-                Q = {key:Q[key].to(torch.device('cpu')) for key in Q}
+                Q = Q.remap(lambda x: x.to(torch.device('cpu')))
             sampler.sample_next("device mapping out")
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
@@ -130,7 +131,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 # Pick the highest Q-valued action that works in the game
                 (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
 
-                player_mem.taken_action = {key:value.detach() for key,value in chosen_Action.items()} #detach to not waste memory
+                player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
                 player_mem.num_players = game.get_num_players()
                 sampler.sample_next("output mapping to action")
 
@@ -143,7 +144,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
                 # Get reward from state transition, and convert to dict form 
                 reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
-                reward_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
+                reward_dict = player_mem.taken_action.remap(lambda x: reward * x)
 
                 # Store reward in memory
                 player_mem.reward_new = reward_dict
@@ -185,7 +186,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             if won == True: #if a game overruns the replay length, this will eval false
                 last_turn_player.is_last_turn = torch.as_tensor(int(1))
                 reward = Reward(game,player_index,settings).all_rewards()
-                reward_dict = {choice:(reward * last_turn_player.taken_action[choice]) for choice in last_turn_player.taken_action}
+                reward_dict = last_turn_player.taken_action.remap(lambda x: reward * x)
                 last_turn_player.reward_new = reward_dict
         
         return replay_memory
@@ -214,14 +215,10 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         # Transfer all the data to the GPU for blazing fast train speed
         if device == torch.device("cuda"):
             for turn in replay_memory:
-                for key in turn.game_state:
-                    turn.game_state[key] = turn.game_state[key].to(device)
-                for key in turn.taken_action:
-                    turn.taken_action[key] = turn.taken_action[key].to(device)
-                for key in turn.next_turn_game_state:
-                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device)
-                for key in turn.reward_new:
-                    turn.reward_new[key] = turn.reward_new[key].to(device)
+                turn.game_state = turn.game_state.remap(lambda x: x.to(device))
+                turn.taken_action = turn.taken_action.remap(lambda x: x.to(device))
+                turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(device))
+                turn.reward_new = turn.reward_new.remap(lambda x: x.to(device))
                 turn.is_last_turn = turn.is_last_turn.to(device)
 
         model = model.to(device)
@@ -234,10 +231,12 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                                 num_workers=0)
 
         for iteration,batch in enumerate(dataloader):
-            Q_dicts = model(batch[0]) ## dict of tensors of size batch x orig size
-            next_Q_dicts = target_model(batch[1])
-            rewards = batch[2]
-            is_last_turns = batch[3]
+            current_game_states : dict[str, torch.Tensor] = batch[0] ## dict of tensors of size batch x orig size
+            Q_dicts = model.forward_from_dictionary(current_game_states)
+            next_game_states : dict[str, torch.Tensor] = batch[1]
+            next_Q_dicts = target_model.forward_from_dictionary(next_game_states)
+            rewards : dict[str, torch.Tensor] = batch[2]
+            is_last_turns: torch.Tensor = batch[3]
             target = target_Q(next_Q_dicts,rewards,settings['gamma'],is_last_turns)
             optimizer.zero_grad()
             avg_loss: float = 0.0
@@ -267,7 +266,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         step_tracker['epoch'] += 1
         torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
 
-def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> tuple[Turn | str, dict[str, torch.Tensor]]:
+def _get_next_action_from_forward_result(forward: BetterParamDict[torch.Tensor], game: Game) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
     """Get the next action from the model's forward pass result."""
     return ActionOutput.map_from_AI_output(forward, game, game.get_current_player())
 
@@ -282,7 +281,7 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
 
-def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
+def _epsilon_greedy(Q: BetterParamDict[torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
     action with a probability of 1-epsilon. Otherwise, it will randomly choose
     another possible action with probability epsilon. We're going to do this by either allowing the
@@ -317,10 +316,10 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     except:
         return(settings['memory_length'])
 
-def target_Q(next_Q_dicts:dict[torch.Tensor],
-         reward_dicts:dict[torch.Tensor], 
+def target_Q(next_Q_dicts:dict[str, torch.Tensor],
+         reward_dicts:dict[str, torch.Tensor], 
          gamma:float,
-         is_last_turn:torch.Tensor) -> dict[torch.Tensor]:
+         is_last_turn:torch.Tensor) -> dict[str, torch.Tensor]:
     '''This function operates on a single action-space (key) in the
     Q dictionary'''
 
