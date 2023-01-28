@@ -50,6 +50,7 @@ if exists('game_model/AI_model/train_settings.yaml'):
 game_average_samples: list[SimpleProfile] = []
 gen_time_average_batch_size = 1000
 running_game_samples: list[SimpleProfile] = []
+max_running_samples = 100
 
 def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
     # Load game configuration data
@@ -162,6 +163,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 game_average_samples.append( sum(running_game_samples, SimpleProfile()) / len(running_game_samples))
                 running_game_samples.clear()
                 avg = sum(game_average_samples, SimpleProfile()) / len(game_average_samples)
+                if len(game_average_samples) > max_running_samples:
+                    game_average_samples = game_average_samples[-max_running_samples/4:]
                 print("turn generation time analysis:\n" + avg.describe_samples())
 
 
