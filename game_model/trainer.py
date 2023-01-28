@@ -116,9 +116,9 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             sampler.sample_next("device mapping in")
 
             target_model.eval()
+            sampler.sample_next("model eval")
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
-                Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
-                sampler.sample_next("model evaluation")
+                Q = target_model.forward(ai_input, sampler) #Q values == expected reward for an action taken
                 Q = {key:Q[key].to(torch.device('cpu')) for key in Q}
             sampler.sample_next("device mapping out")
 
