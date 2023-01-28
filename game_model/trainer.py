@@ -19,7 +19,8 @@ from game_model.AI_model.dataloader import BellmanEquationDataSet
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
-        
+
+from utilities.simple_profile import SimpleProfile
 
 # Default hyperparameters
 settings: dict[str,float|int] = {}
@@ -46,6 +47,10 @@ settings['length_of_game'] = [True,-0.1]
 if exists('game_model/AI_model/train_settings.yaml'):
     settings = load(open('game_model/AI_model/train_settings.yaml','r'))
 
+game_average_samples: list[SimpleProfile] = []
+gen_time_average_batch_size = 1000
+running_game_samples: list[SimpleProfile] = []
+
 def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
@@ -67,7 +72,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                                          map_location='cpu'))
     target_model = target_model.to(device) 
 
-    def play(target_model) -> list[ReplayMemoryEntry]:
+    def play(target_model: SplendidSplendorModel) -> list[ReplayMemoryEntry]:
         # Instantiate memory
         replay_memory: list[ReplayMemoryEntry] = []
         while len(replay_memory) < settings['memory_length']:
@@ -75,7 +80,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             replay_memory += play_single_game(target_model,len_left_in_replay)
         return replay_memory
     
-    def play_single_game(target_model,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
+    def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
         game_data_lock.acquire()
         try:
@@ -87,7 +92,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         won = False
         while not (won and next_player_index == 0):
             ''' Use target network to play the games'''
-
+            sampler = SimpleProfile()
             # Map game state to AI input
             game_data_lock.acquire()
             try:
@@ -101,13 +106,18 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             #save this game to the last turn of this player's memory
             if len(replay_memory) >= turns_since_last:
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
-            
+
+            sampler.sample_next("input mapping")
             # Get model's predicted action
             ai_input = {key:ai_input[key].to(device) for key in ai_input}
+            sampler.sample_next("device mapping in")
+
             target_model.eval()
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
                 Q = target_model.forward(ai_input) #Q values == expected reward for an action taken
+                sampler.sample_next("model evaluation")
                 Q = {key:Q[key].to(torch.device('cpu')) for key in Q}
+            sampler.sample_next("device mapping out")
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,settings['epsilon'])
@@ -119,6 +129,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
                 player_mem.taken_action = {key:value.detach() for key,value in chosen_Action.items()} #detach to not waste memory
                 player_mem.num_players = game.get_num_players()
+                sampler.sample_next("output mapping to action")
 
                 # Play move
                 step_status = step_game(game, next_action)
@@ -133,6 +144,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
                 # Store reward in memory
                 player_mem.reward_new = reward_dict
+                sampler.sample_next("updating game")
 
 
                 if game.get_current_player().qualifies_to_win():
@@ -142,6 +154,14 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
             #Store turn in replay memory
             replay_memory.append(player_mem)
+
+            running_game_samples.append(sampler)
+            if len(running_game_samples) >= gen_time_average_batch_size:
+                game_average_samples.append( sum(running_game_samples, SimpleProfile()) / len(running_game_samples))
+                running_game_samples.clear()
+                avg = sum(game_average_samples, SimpleProfile()) / len(game_average_samples)
+                print("turn generation time analysis:\n" + avg.describe_samples())
+
 
             if (len(replay_memory) == len_left_in_replay) or (len(replay_memory) >= 1000): #games shouldn't last longer than 1000 turns
                 break
@@ -165,7 +185,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         
         return replay_memory
 
-    def learn(target_model,replay_memory: list[ReplayMemoryEntry]):
+    def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = deepcopy(target_model)
 
