@@ -77,6 +77,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         replay_memory: list[ReplayMemoryEntry] = []
         while len(replay_memory) < settings['memory_length']:
             len_left_in_replay: int = settings['memory_length'] - len(replay_memory)
+            ## at least 16 turns. there was an edge case in our end-game code, making the assumption that at least one full loop of play had completed
+            len_left_in_replay = max(len_left_in_replay, 16)  
             replay_memory += play_single_game(target_model,len_left_in_replay)
         return replay_memory
     
