@@ -27,7 +27,7 @@ class GamestateInputVector:
         return into_dict
     
     @staticmethod
-    def map_to_AI_input(game_state: Game) -> BetterParamDict[torch.Tensor]:
+    def map_to_AI_input(game_state: Game, shape: BetterParamDict = None) -> BetterParamDict[torch.Tensor]:
         '''
         Maps the game state into a dictionary of tensors, for use by the AI model
         '''
@@ -74,7 +74,7 @@ class GamestateInputVector:
         
         SimpleProfileAggregator.sample_static("input mapping, populating vector")
 
-        flat_mapped_values = input_vect_model.flat_map()
+        flat_mapped_values = input_vect_model.flat_map(into_dict = shape.remap(lambda x: [0] * len(x)) if shape else None)
         ##return flat_mapped_values
         result = map_all_to_tensors(flat_mapped_values)
         SimpleProfileAggregator.sample_static("input mapping, to dict")

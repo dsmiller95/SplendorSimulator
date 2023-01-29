@@ -34,9 +34,9 @@ class SimpleProfile():
         total = 0
         max_width = max([len(x) for x in self.samples.keys()])
         for key, time in self.samples.items():
-            res +=  key.rjust(max_width) + ": " + str(round(time * 1000, 2)) + "ms\n"
+            res +=  key.ljust(max_width) + " : " + '{:,}'.format(round(time * 1000000)).rjust(10) + "ns\n"
             total += time
-        res += "total".rjust(max_width) + ": " + str(round(total * 1000, 2)) + "ms\n"
+        res += "total".ljust(max_width) + " : " + '{:,}'.format(round(total * 1000000)).rjust(10) + "ns\n"
         return res
         
 class SimpleProfileAggregator():

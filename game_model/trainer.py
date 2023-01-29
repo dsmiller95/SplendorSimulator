@@ -112,7 +112,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             # Map game state to AI input
             game_data_lock.acquire()
             try:
-                ai_input = GamestateInputVector.map_to_AI_input(game)
+                ai_input = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
                 turns_since_last = game.get_player_num() - 1
             finally:
                 game_data_lock.release()
@@ -184,7 +184,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         
         game_data_lock.acquire()
         try:
-            ending_state = GamestateInputVector.map_to_AI_input(game)
+            ending_state = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
             total_players = game.get_num_players()
         finally:
             game_data_lock.release()
