@@ -198,11 +198,13 @@ class Turn:
 
     def _discard_down(self, game_state: Game, player: Actor):
         ## first discard outright if values round to >1
+        self.last_discarded_actual = 0
         for discard_command in self._discard_commands:
             true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
             if true_amount <= 0:
                 continue
             game_state.give_tokens_to_player(player, discard_command[0].value, -true_amount)
+            self.last_discarded_actual += true_amount
 
         total_tokens = sum(player.resource_tokens)
         if total_tokens <= 10:
@@ -213,6 +215,7 @@ class Turn:
                 if player.resource_tokens[next_discard[0].value] > 0:
                     total_tokens -= 1
                     game_state.give_tokens_to_player(player, next_discard[0].value, -1)
+                    self.last_discarded_actual += 1
                     if total_tokens <= 10:
                         return
 

@@ -76,7 +76,13 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
     #                                     map_location='cpu'))
     target_model = target_model.to(device) 
 
+    play_stats: dict[str, float | list[float]] = {}
+
     def play(target_model: SplendidSplendorModel) -> list[ReplayMemoryEntry]:
+        play_stats['discarded tokens'] = []
+        play_stats['hand tokens'] = []
+        play_stats['reserved cards'] = []
+
         # Instantiate memory
         target_model = target_model.to(device) 
         replay_memory: list[ReplayMemoryEntry] = []
@@ -85,6 +91,9 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             ## at least 16 turns. there was an edge case in our end-game code, making the assumption that at least one full loop of play had completed
             len_left_in_replay = max(len_left_in_replay, 16)  
             replay_memory += play_single_game(target_model,len_left_in_replay)
+        
+        for key in play_stats:
+            play_stats[key] = sum(play_stats[key]) / len(play_stats[key])
         return replay_memory
     
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
@@ -142,6 +151,12 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 # Play move
                 step_status = step_game(game, next_action)
                 on_game_changed(game, next_action)
+
+                current_player = game.get_current_player()
+                play_stats['discarded tokens'].append(next_action.last_discarded_actual)
+                play_stats['hand tokens'].append(current_player.total_tokens())
+                play_stats['reserved cards'].append(sum([0 if x is None else 1 for x in current_player.reserved_cards]))
+
                 next_player_index = game.active_index
                 if not (step_status is None):
                     raise Exception("invalid game step generated, " + step_status)
@@ -192,6 +207,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
         writer.add_scalar('Avg turns to win (epoch)',target_network_update_rate,step_tracker['epoch'])
+        for key in play_stats:
+            writer.add_scalar('Gameplay (epoch)/' + key,play_stats[key],step_tracker['epoch'])
 
         model.train()
 
