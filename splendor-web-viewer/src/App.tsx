@@ -8,10 +8,16 @@ import OpenCards from './OpenCards/OpenCards';
 import Player from './Player/Player';
 import GameDisplay from './GameDisplay/GameDisplay';
 import PlayerDeck from './PersistentPlayerDeck/PersistentPlayerDeck';
+import { Turn } from './models/turn';
 
 interface AppState{
   game: GameState;
   gameIndex: number;
+}
+
+interface GameTurnResponse {
+  game_state: GameState;
+  turn_taken: Turn;
 }
 
 function App() {
@@ -28,9 +34,9 @@ function App() {
           return;
         }
   
-        var gameData: GameState = await fetchResponse.json();
+        var gameData: GameTurnResponse = await fetchResponse.json();
         console.log(gameData);
-        setGameData(gameData);
+        setGameData(gameData.game_state);
       }catch{
         setGameData(null);
       }
