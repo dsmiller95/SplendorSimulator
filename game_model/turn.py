@@ -220,3 +220,13 @@ class Turn:
                         return
 
         raise RuntimeError("could not discard down enough. error in discard down algorithm")
+    
+    def as_serializable_data(self) -> dict:
+        return {
+            "type" : self.action_type.name,
+            "discarded": self.last_discarded_actual,
+            "resource_desired": self.resources_desired,
+            "card_index": self.card_index,
+            "noble_preference": self.noble_preference,
+            "discard_preference": self._discard_commands
+        }
