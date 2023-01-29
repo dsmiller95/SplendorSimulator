@@ -79,3 +79,5 @@ class BetterParamDict(Generic[T]):
     
     def get_backing_packed_data(self) -> T:
         return self.aggregate_list
+    def get_backing_len(self) -> int:
+        return len(self.aggregate_list)

@@ -70,7 +70,11 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     output_shape_dict = ActionOutput().in_dict_form()
 
     
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, settings['hidden_layer_width'], settings['n_hidden_layers'])
+    target_model = SplendidSplendorModel(
+        input_shape_dict.get_backing_len(),
+        output_shape_dict.get_backing_len(), 
+        settings['hidden_layer_width'], 
+        settings['n_hidden_layers'])
     #if exists('AI_model/SplendidSplendor-model.pkl'):
     #    target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
     #                                     map_location='cpu'))
@@ -126,7 +130,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             target_model.eval()
             turn_profiler.sample("model eval")
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
-                Q = target_model.forward(ai_input, turn_profiler) #Q values == expected reward for an action taken
+                unshaped_Q = target_model.forward(ai_input.get_backing_packed_data(), turn_profiler) #Q values == expected reward for an action taken
+                Q = BetterParamDict.reindex_over_new_data(output_shape_dict, unshaped_Q)
                 Q = Q.remap(lambda x: x.to(torch.device('cpu')))
             turn_profiler.sample("device mapping out")
 
@@ -229,32 +234,31 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                                 shuffle=True,
                                 num_workers=0)
 
+
         for iteration,batch in enumerate(dataloader):
-            current_game_states : dict[str, torch.Tensor] = batch[0] ## dict of tensors of size batch x orig size
-            next_game_states : dict[str, torch.Tensor] = batch[1]
-            rewards : dict[str, torch.Tensor] = batch[2]
+            current_game_states : torch.Tensor = batch[0] ## dict of tensors of size batch x orig size
+            next_game_states : torch.Tensor = batch[1]
+            rewards : torch.Tensor = batch[2]
             is_last_turns: torch.Tensor = batch[3]
 
             learn_profiler.begin_sample_run()
-            Q_dicts = model.forward_from_dictionary(current_game_states, learn_profiler)
-            next_Q_dicts = target_model.forward_from_dictionary(next_game_states, learn_profiler)
-            target = target_Q(next_Q_dicts,rewards,settings['gamma'],is_last_turns)
+            Q_batch = model.forward(current_game_states, learn_profiler)
+            next_Q_batch = target_model.forward(next_game_states, learn_profiler)
+            # Warning: this modifies next_Q_dicts in-place. next_Q_dicts is equal to target
+            target_batch = target_Q(next_Q_batch,rewards,settings['gamma'],is_last_turns, output_shape_dict.index_dict)
             optimizer.zero_grad()
             learn_profiler.sample("target Q eval")
-            avg_loss: float = 0.0
-            batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
-            for key in Q_dicts:
-                loss = loss_fn(Q_dicts[key],target[key])
-                loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                avg_loss += loss.detach().item()/batch_len
-                writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
+            batch_len: int = int(current_game_states.size()[0])
+
+            loss: torch.Tensor = loss_fn(Q_batch,target_batch)
+            loss.backward() #propagate the loss through the net
+            loss_amount = loss.detach().item()/batch_len
+            writer.add_scalar('net loss (iter)', loss_amount,step_tracker["total_learn_iters"])
+
             learn_profiler.sample("loss function")
             optimizer.step() #update the weights
             learn_profiler.sample("optimizer step")
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0) #clip the gradients to avoid exploding gradient problem 
-
-            n_keys = len(Q_dicts)
-            writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
             target_model = deepcopy(model)
             learn_profiler.sample("copy model")
@@ -323,29 +327,38 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     except:
         return(settings['memory_length'])
 
-def target_Q(next_Q_dicts:dict[str, torch.Tensor],
-         reward_dicts:dict[str, torch.Tensor], 
+def target_Q(next_Q_batch: torch.Tensor, ## a 2D tensor, <batch dim> x <output size>
+         reward_batch: torch.Tensor,     ## a 2D tensor, <batch dim> x <output size>
          gamma:float,
-         is_last_turn:torch.Tensor) -> dict[str, torch.Tensor]:
+         is_last_turn:torch.Tensor,
+         action_output_shape: dict[str, tuple[int, int]]) -> torch.Tensor:
     '''This function operates on a single action-space (key) in the
     Q dictionary'''
-
+    
     #flip the 1's and 0's so the last_turn designator becomes a 0
     is_last_turn = (~is_last_turn.bool()).int() 
 
-    target:dict[torch.Tensor] = {}
-    for key in next_Q_dicts:
+    for key in action_output_shape:
+        action_range = action_output_shape[key]
 
+        ## <batch size> x <action_range>
+        next_Q_slice = next_Q_batch[:,action_range[0]:action_range[1]]
         # is_last_turn functions as an on-off switch for the next state Q values
-        max_next_reward = is_last_turn * torch.max(next_Q_dicts[key].detach()) #detach because we don't want gradients from the next state
+        max_next_reward = is_last_turn * torch.max(next_Q_slice.detach()) #detach because we don't want gradients from the next state
+        ## <batch size> x 1
         max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
 
         # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
         # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the total reward
-        # it will be able to acheive through the whole converging series of SUM[i: now->endgame]( (discount^i) * (reward[i]) ).
+        # it will be able to achieve through the whole converging series of SUM[i: now->endgame]( (discount^i) * (reward[i]) ).
         # All put together, what this means is that we add this action's reward to the predicted total reward. This gives us
         # our target estimated Q value, which we can send off to the loss function, where the Q value will be compared to this target 
         # Q value from which we get a loss value.
-        target[key] = reward_dicts[key] + (gamma * max_next_reward)
 
-    return target
+        ## <batch size> x <action_range>
+        reward_slice = reward_batch[:,action_range[0]:action_range[1]]
+        ## <batch size> x <action_range>
+        target_result = reward_slice + (gamma * max_next_reward)
+        next_Q_batch[:,action_range[0]:action_range[1]] = target_result
+
+    return next_Q_batch

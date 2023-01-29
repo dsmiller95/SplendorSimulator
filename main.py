@@ -38,7 +38,7 @@ elif sys.argv[1] == "play" or sys.argv[1] == "playAI":
     if sys.argv[1] == "playAI":
         input_shape_dict = GamestateInputVector.map_to_AI_input(game)
         output_shape_dict = ActionOutput().in_dict_form()
-        model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 512, 32)
+        model = SplendidSplendorModel(input_shape_dict.get_backing_len(), output_shape_dict.get_backing_len(), 512, 32)
         model.load_state_dict(load('game_model/AI_model/SplendidSplendor-model.pkl',map_location='cpu'))
         
     on_game_changed(game, None)
