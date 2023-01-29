@@ -15,17 +15,19 @@ class SplendidSplendorModel(nn.Module):
         self.output_shape_dict = output_shape_dict
         self.hidden_num = hidden_layers_num
         self.hidden_width = hidden_layers_width
-        self.input_lanes = nn.ModuleDict()
-        for input_key in self.input_shape_dict:
-            self.input_lanes[input_key] = nn.Linear(in_features = len(self.input_shape_dict[input_key]), out_features = self.hidden_width)
+        self.input_lane = nn.Linear(in_features = len(self.input_shape_dict.get_backing_packed_data()), out_features = self.hidden_width)
+        # self.input_lanes = nn.ModuleDict()
+        # for input_key in self.input_shape_dict:
+        #     self.input_lanes[input_key] = nn.Linear(in_features = len(self.input_shape_dict[input_key]), out_features = self.hidden_width)
         self.in_activation = nn.ReLU()
         
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())
         self.hidden_layers = nn.ModuleList([hidden_layer for i in range(self.hidden_num)])
 
-        self.output_lanes = nn.ModuleDict()
-        for output_key in self.output_shape_dict:
-            self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = len(output_shape_dict[output_key]))
+        self.output_lane = nn.Linear(in_features = self.hidden_width, out_features = len(self.output_shape_dict.get_backing_packed_data()))
+        # self.output_lanes = nn.ModuleDict()
+        # for output_key in self.output_shape_dict:
+        #     self.output_lanes[output_key] = nn.Linear(in_features = self.hidden_width, out_features = len(output_shape_dict[output_key]))
 
     def init_weights(self):
         #initialize with random noise
@@ -34,15 +36,12 @@ class SplendidSplendorModel(nn.Module):
             torch.nn.utils.weight_norm(m)
     
     def forward(self,input_dict: BetterParamDict[torch.Tensor], profiler: SimpleProfile = None) -> BetterParamDict[torch.Tensor]:
-        '''input_dict is layed out the same way as the input_shape_dict, except the values are the
-        actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
+        '''
+        input_dict is layed out the same way as the input_shape_dict, except the values are the
+        actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} 
+        '''
         
-        output:torch.Tensor = None
-        for key in self.input_lanes:
-            if output is None:
-                output = self.input_lanes[key](input_dict[key])
-            else:
-                output += self.input_lanes[key](input_dict[key])
+        output:torch.Tensor = self.input_lane.forward(input_dict.get_backing_packed_data())
         if profiler is not None:
             profiler.sample_next("input lane concatenation")
 
@@ -53,11 +52,10 @@ class SplendidSplendorModel(nn.Module):
         if profiler is not None:
             profiler.sample_next("model forward")
         
+        output = self.output_lane(output)
         ## ensure that the output dict has the correct shape, imported from the original shape dictionary
         ## because a tensor-based BetterParamDict does not support resizing
-        out_dict = self.output_shape_dict.remap(lambda x: torch.Tensor([0] * len(x)))
-        for key in self.output_lanes:
-            out_dict[key] = self.output_lanes[key](output)
+        out_dict = BetterParamDict.reindex_over_new_data(self.output_shape_dict, output)
         
         if profiler is not None:
             profiler.sample_next("output lane evaluation")
@@ -68,13 +66,24 @@ class SplendidSplendorModel(nn.Module):
         '''input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
         
-        
-        output:torch.Tensor = None
-        for key in self.input_lanes:
-            if output is None:
-                output = self.input_lanes[key](input_dict[key])
+        # create a single tensor-backed list from the dictionary, by using tensor.cat
+        input_hunk: torch.Tensor = None
+        for input_shape in sorted(self.input_shape_dict.index_dict.items(), key=lambda x: x[1][0]):
+            if input_shape[0] not in input_dict:
+                raise Exception("input dict must be in same shape as original shape dict")
+            expected_len = input_shape[1][1] - input_shape[1][0] 
+            input_slice = input_dict[input_shape[0]]
+
+            if input_slice.size(-1) != expected_len:
+                raise Exception("input dict must be in same shape as original shape dict. found a tensor of size " + str(input_slice.size(-1)) + ", expected " + str(expected_len))
+            
+            if input_hunk is None:
+                input_hunk = input_slice
             else:
-                output += self.input_lanes[key](input_dict[key])
+                input_hunk = torch.cat((input_hunk, input_slice), -1)
+
+        output:torch.Tensor = self.input_lane.forward(input_hunk)
+
         if profiler is not None:
             profiler.sample_next("input lane concatenation")
 
@@ -85,9 +94,13 @@ class SplendidSplendorModel(nn.Module):
         if profiler is not None:
             profiler.sample_next("model forward")
         
+        output = self.output_lane(output)
+
         out_dict = {}
-        for key in self.output_lanes:
-            out_dict[key] = self.output_lanes[key](output)
+        for out_key, (start, end) in self.output_shape_dict.index_dict.items():
+            indexes = range(start, end)
+            select_indexes = torch.Tensor(indexes).int().to(output.get_device())
+            out_dict[out_key] = output.index_select(-1, select_indexes)
         
         if profiler is not None:
             profiler.sample_next("output lane evaluation")
