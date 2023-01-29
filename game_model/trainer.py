@@ -43,6 +43,9 @@ settings['points'] = [True,5.0]
 settings['win_lose'] = [True,200]
 settings['length_of_game'] = [True,-0.1]
 
+settings['force_cpu_turns'] = False
+settings['force_cpu_learning'] = False
+
 
 # Overwrite with user-defined parameters if they exist
 if exists('game_model/AI_model/train_settings.yaml'):
@@ -54,8 +57,8 @@ learn_profiler = SimpleProfileAggregator("learning time analysis", 10)
 def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    learning_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_turns'] else "cpu")
+    learning_device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_learning'] else "cpu")
     writer = SummaryWriter(flush_secs=15) #tensorboard writer
     # Keeps track of the training steps for tensorboard
     step_tracker: dict[str,int] = {'epoch':0,'play_loop_iters':0,'learn_loop_iters':0,'total_learn_iters':0}
