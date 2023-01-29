@@ -21,7 +21,7 @@ from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
 from utilities.better_param_dict import BetterParamDict
 
-from utilities.simple_profile import SimpleProfile
+from utilities.simple_profile import SimpleProfileAggregator
 
 # Default hyperparameters
 settings: dict[str,float|int] = {}
@@ -48,10 +48,8 @@ settings['length_of_game'] = [True,-0.1]
 if exists('game_model/AI_model/train_settings.yaml'):
     settings = load(open('game_model/AI_model/train_settings.yaml','r'))
 
-game_average_samples: list[SimpleProfile] = []
-gen_time_average_batch_size = 1000
-running_game_samples: list[SimpleProfile] = []
-max_running_samples = 100
+turn_profiler = SimpleProfileAggregator("turn generation time analysis", 1000)
+learn_profiler = SimpleProfileAggregator("learning time analysis", 10)
 
 def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
     # Load game configuration data
@@ -96,7 +94,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         won = False
         while not (won and next_player_index == 0):
             ''' Use target network to play the games'''
-            sampler = SimpleProfile()
+            turn_profiler.begin_sample_run()
             # Map game state to AI input
             game_data_lock.acquire()
             try:
@@ -111,17 +109,17 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             if len(replay_memory) >= turns_since_last:
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
 
-            sampler.sample_next("input mapping")
+            turn_profiler.sample("input mapping")
             # Get model's predicted action
             ai_input = ai_input.remap(lambda x: x.to(device))
-            sampler.sample_next("device mapping in")
+            turn_profiler.sample("device mapping in")
 
             target_model.eval()
-            sampler.sample_next("model eval")
+            turn_profiler.sample("model eval")
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
-                Q = target_model.forward(ai_input, sampler) #Q values == expected reward for an action taken
+                Q = target_model.forward(ai_input, turn_profiler) #Q values == expected reward for an action taken
                 Q = Q.remap(lambda x: x.to(torch.device('cpu')))
-            sampler.sample_next("device mapping out")
+            turn_profiler.sample("device mapping out")
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,settings['epsilon'])
@@ -133,7 +131,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
                 player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
                 player_mem.num_players = game.get_num_players()
-                sampler.sample_next("output mapping to action")
+                turn_profiler.sample("output mapping to action")
 
                 # Play move
                 step_status = step_game(game, next_action)
@@ -148,7 +146,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
                 # Store reward in memory
                 player_mem.reward_new = reward_dict
-                sampler.sample_next("updating game")
+                turn_profiler.sample("updating game")
 
 
                 if game.get_current_player().qualifies_to_win():
@@ -158,16 +156,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
             #Store turn in replay memory
             replay_memory.append(player_mem)
-
-            running_game_samples.append(sampler)
-            if len(running_game_samples) >= gen_time_average_batch_size:
-                game_average_samples.append( sum(running_game_samples, SimpleProfile()) / len(running_game_samples))
-                running_game_samples.clear()
-                avg = sum(game_average_samples, SimpleProfile()) / len(game_average_samples)
-                if len(game_average_samples) > max_running_samples:
-                    del game_average_samples[0:max_running_samples/4]
-                print("turn generation time analysis:\n" + avg.describe_samples())
-
+            turn_profiler.end_sample_run()
 
             if (len(replay_memory) == len_left_in_replay) or (len(replay_memory) >= 1000): #games shouldn't last longer than 1000 turns
                 break
@@ -232,13 +221,16 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
         for iteration,batch in enumerate(dataloader):
             current_game_states : dict[str, torch.Tensor] = batch[0] ## dict of tensors of size batch x orig size
-            Q_dicts = model.forward_from_dictionary(current_game_states)
             next_game_states : dict[str, torch.Tensor] = batch[1]
-            next_Q_dicts = target_model.forward_from_dictionary(next_game_states)
             rewards : dict[str, torch.Tensor] = batch[2]
             is_last_turns: torch.Tensor = batch[3]
+
+            learn_profiler.begin_sample_run()
+            Q_dicts = model.forward_from_dictionary(current_game_states, learn_profiler)
+            next_Q_dicts = target_model.forward_from_dictionary(next_game_states, learn_profiler)
             target = target_Q(next_Q_dicts,rewards,settings['gamma'],is_last_turns)
             optimizer.zero_grad()
+            learn_profiler.sample("target Q eval")
             avg_loss: float = 0.0
             batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
             for key in Q_dicts:
@@ -246,15 +238,20 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
                 loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
                 avg_loss += loss.detach().item()/batch_len
                 writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
+            learn_profiler.sample("loss function")
             optimizer.step() #update the weights
+            learn_profiler.sample("optimizer step")
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0) #clip the gradients to avoid exploding gradient problem 
 
             n_keys = len(Q_dicts)
             writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
             
             target_model = deepcopy(model)
+            learn_profiler.sample("copy model")
+
             step_tracker["learn_loop_iters"] += 1
             step_tracker["total_learn_iters"] += 1
+            learn_profiler.end_sample_run()
             
         writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
         step_tracker["learn_loop_iters"] = 0

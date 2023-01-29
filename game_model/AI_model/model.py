@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utilities.better_param_dict import BetterParamDict
 
-from utilities.simple_profile import SimpleProfile
+from utilities.simple_profile import SimpleProfileAggregator
 
 class SplendidSplendorModel(nn.Module):
     def __init__(self, input_shape_dict: BetterParamDict[torch.Tensor], output_shape_dict: BetterParamDict[torch.Tensor], hidden_layers_width, hidden_layers_num):
@@ -35,7 +35,7 @@ class SplendidSplendorModel(nn.Module):
             nn.init.orthogonal_(m.weight, val)
             torch.nn.utils.weight_norm(m)
     
-    def forward(self,input_dict: BetterParamDict[torch.Tensor], profiler: SimpleProfile = None) -> BetterParamDict[torch.Tensor]:
+    def forward(self,input_dict: BetterParamDict[torch.Tensor], profiler: SimpleProfileAggregator = None) -> BetterParamDict[torch.Tensor]:
         '''
         input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} 
@@ -43,14 +43,14 @@ class SplendidSplendorModel(nn.Module):
         
         output:torch.Tensor = self.input_lane.forward(input_dict.get_backing_packed_data())
         if profiler is not None:
-            profiler.sample_next("input lane concatenation")
+            profiler.sample("input lane concatenation")
 
         output = self.in_activation(output)
         for layer in self.hidden_layers:
             output = layer(output)
         
         if profiler is not None:
-            profiler.sample_next("model forward")
+            profiler.sample("model forward")
         
         output = self.output_lane(output)
         ## ensure that the output dict has the correct shape, imported from the original shape dictionary
@@ -58,11 +58,11 @@ class SplendidSplendorModel(nn.Module):
         out_dict = BetterParamDict.reindex_over_new_data(self.output_shape_dict, output)
         
         if profiler is not None:
-            profiler.sample_next("output lane evaluation")
+            profiler.sample("output lane evaluation")
 
         return out_dict
 
-    def forward_from_dictionary(self,input_dict: dict[str, torch.Tensor], profiler: SimpleProfile = None) -> dict[str, torch.Tensor]:
+    def forward_from_dictionary(self,input_dict: dict[str, torch.Tensor], profiler: SimpleProfileAggregator = None) -> dict[str, torch.Tensor]:
         '''input_dict is layed out the same way as the input_shape_dict, except the values are the
         actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} '''
         
@@ -85,14 +85,14 @@ class SplendidSplendorModel(nn.Module):
         output:torch.Tensor = self.input_lane.forward(input_hunk)
 
         if profiler is not None:
-            profiler.sample_next("input lane concatenation")
+            profiler.sample("input lane concatenation")
 
         output = self.in_activation(output)
         for layer in self.hidden_layers:
             output = layer(output)
         
         if profiler is not None:
-            profiler.sample_next("model forward")
+            profiler.sample("model forward")
         
         output = self.output_lane(output)
 
@@ -103,7 +103,7 @@ class SplendidSplendorModel(nn.Module):
             out_dict[out_key] = output.index_select(-1, select_indexes)
         
         if profiler is not None:
-            profiler.sample_next("output lane evaluation")
+            profiler.sample("output lane evaluation")
 
         return out_dict
 
