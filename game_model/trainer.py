@@ -30,8 +30,8 @@ settings['gamma']: float = 0.99 #discount factor, how much it cares about future
             #(0: only current, 1: current and all future states)
 settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
 settings['memory_length']: int = 10000      #number of rounds to play of the game
-settings['batch_size_multiplier']: float = 1.0 #batch size is set to the average number of turns per game multiplied by this factor
-settings['max_batch_size']: int = 1000 #so that we don't run out of memory accidentally
+settings['batch_size']: int = 1000 #so that we don't run out of memory accidentally
+settings['reps_per_play_sess']: int = 10 #how many times to train over the same replay memory buffer
 settings['epochs']: int = 1 #how many play->learn cycles to run
 settings['hidden_layer_width'] = 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
 settings['n_hidden_layers'] = 3
@@ -232,46 +232,46 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         model = model.to(learning_device)
         target_model = target_model.to(learning_device)
         dataset = BellmanEquationDataSet(replay_memory,learning_device)
-        batch_size: float = settings['max_batch_size'] #= min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
-        dataloader = DataLoader(dataset,
-                                batch_size=batch_size,
-                                shuffle=True,
-                                num_workers=0)
+        batch_size: float = settings['batch_size'] #= min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
+        
+        for i in range(settings['reps_per_play_sess']):
+            dataloader = DataLoader(dataset,
+                                    batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=0)
+            for iteration,batch in enumerate(dataloader):
+                current_game_states : torch.Tensor = batch[0] ## dict of tensors of size batch x orig size
+                next_game_states : torch.Tensor = batch[1]
+                rewards : torch.Tensor = batch[2]
+                is_last_turns: torch.Tensor = batch[3]
 
+                learn_profiler.begin_sample_run()
+                Q_batch = model.forward(current_game_states, learn_profiler)
+                next_Q_batch = target_model.forward(next_game_states, learn_profiler)
+                # Warning: this modifies next_Q_dicts in-place. next_Q_dicts is equal to target
+                target_batch = target_Q(next_Q_batch,rewards,settings['gamma'],is_last_turns, output_shape_dict.index_dict)
+                optimizer.zero_grad()
+                learn_profiler.sample("target Q eval")
+                batch_len: int = int(current_game_states.size()[0])
 
-        for iteration,batch in enumerate(dataloader):
-            current_game_states : torch.Tensor = batch[0] ## dict of tensors of size batch x orig size
-            next_game_states : torch.Tensor = batch[1]
-            rewards : torch.Tensor = batch[2]
-            is_last_turns: torch.Tensor = batch[3]
+                loss: torch.Tensor = loss_fn(Q_batch,target_batch)
+                loss.backward() #propagate the loss through the net
+                loss_amount = loss.detach().item()/batch_len
+                writer.add_scalar('net loss (iter)', loss_amount,step_tracker["total_learn_iters"])
 
-            learn_profiler.begin_sample_run()
-            Q_batch = model.forward(current_game_states, learn_profiler)
-            next_Q_batch = target_model.forward(next_game_states, learn_profiler)
-            # Warning: this modifies next_Q_dicts in-place. next_Q_dicts is equal to target
-            target_batch = target_Q(next_Q_batch,rewards,settings['gamma'],is_last_turns, output_shape_dict.index_dict)
-            optimizer.zero_grad()
-            learn_profiler.sample("target Q eval")
-            batch_len: int = int(current_game_states.size()[0])
+                learn_profiler.sample("loss function")
+                optimizer.step() #update the weights
+                learn_profiler.sample("optimizer step")
+                #torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0) #clip the gradients to avoid exploding gradient problem 
+                
+                target_model = deepcopy(model)
+                learn_profiler.sample("copy model")
 
-            loss: torch.Tensor = loss_fn(Q_batch,target_batch)
-            loss.backward() #propagate the loss through the net
-            loss_amount = loss.detach().item()/batch_len
-            writer.add_scalar('net loss (iter)', loss_amount,step_tracker["total_learn_iters"])
-
-            learn_profiler.sample("loss function")
-            optimizer.step() #update the weights
-            learn_profiler.sample("optimizer step")
-            #torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0) #clip the gradients to avoid exploding gradient problem 
-            
-            target_model = deepcopy(model)
-            learn_profiler.sample("copy model")
-
-            step_tracker["learn_loop_iters"] += 1
-            step_tracker["total_learn_iters"] += 1
-            learn_profiler.end_sample_run()
-            
-        writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
+                step_tracker["learn_loop_iters"] += 1
+                step_tracker["total_learn_iters"] += 1
+                learn_profiler.end_sample_run()
+                
+            writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
         step_tracker["learn_loop_iters"] = 0
         return target_model
 
