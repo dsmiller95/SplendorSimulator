@@ -139,6 +139,9 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             Q = _epsilon_greedy(Q,settings['epsilon'])
             turn_profiler.sample("q greedy")
 
+            # Get the reward at initial state
+            init_reward = Reward(game,game.get_current_player_index(),settings).all_rewards()
+
             # Pick the highest Q-valued action that works in the game
             (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
             play_stats['noop actions'].append(1 if next_action.action_type == Action_Type.NOOP else 0)
@@ -161,8 +164,9 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                 raise Exception("invalid game step generated, " + step_status)
 
             # Get reward from state transition, and convert to dict form 
-            reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
-            reward_dict = player_mem.taken_action.remap(lambda x: reward * x)
+            next_reward = Reward(game,game.get_current_player_index(),settings).all_rewards()
+            transition_reward = next_reward - init_reward
+            reward_dict = player_mem.taken_action.remap(lambda x: transition_reward * x)
 
             # Store reward in memory
             player_mem.reward_new = reward_dict

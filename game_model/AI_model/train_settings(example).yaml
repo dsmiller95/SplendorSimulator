@@ -6,6 +6,8 @@ memory_length: 10000      #number of rounds to play of the game
 batch_size_multiplier: 1.0 #batch size is set to the average number of turns per game multiplied by this factor
 max_batch_size: 1000 #so that we don't run out of memory accidentally
 epochs: 100000 #how many play->learn cycles to run
+
+# Model definition (WARNING! If you change this, it will be incompatible with/overwrite the previous saved model)
 hidden_layer_width: 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
 n_hidden_layers: 3
 
