@@ -128,6 +128,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,settings['epsilon'])
+            turn_profiler.sample("q greedy")
 
             game_data_lock.acquire()
             try:

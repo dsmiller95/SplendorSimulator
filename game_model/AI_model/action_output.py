@@ -6,6 +6,7 @@ from game_model.game import Game
 from game_model.card import Card
 from game_model.resource_types import ResourceType
 from game_model.turn import Turn,Action_Type
+from utilities.simple_profile import SimpleProfileAggregator
 from utilities.utils import Lazy
 from utilities.subsamples import clone_shallow, pad_list
 
@@ -64,8 +65,9 @@ class ActionOutput:
     @staticmethod
     def map_from_AI_output(forward_result: BetterParamDict[torch.Tensor],game:Game,player:Actor) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
         '''
-        TODO: map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
+        map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
         '''
+        SimpleProfileAggregator.sample_static("unknown")
 
         action_output = ActionOutput()
         ## TODO: map in using backing dictionary remap
@@ -82,12 +84,11 @@ class ActionOutput:
             for key in taken_action_indexes:
                 chosen_index = taken_action_indexes[key]
                 zero_dict[key][chosen_index] = 1 #put a 1 at the location of the action that was taken
-            
+        SimpleProfileAggregator.sample_static("action output, selected Q dict")
         
         return (turn, zero_dict)
     @staticmethod
     def _map_internal(action_output: ActionOutput,game:Game,player:Actor) -> tuple[Turn | str, dict[str, int]]:
-
         #Fit the AI output to valid game states
         fit_check: bool = False
         turn: Turn = None
@@ -101,6 +102,7 @@ class ActionOutput:
         
         chosen_action_indexes: dict[str, int] = {}
         action = clone_shallow(action_output.action_choice.tolist())
+        SimpleProfileAggregator.sample_static("action output, prepare")
         while fit_check == False and action_attempts < 4:
             best_action_index = action.index(max(action))
             action[best_action_index] = -10000000 #means it won't select this action again
@@ -166,18 +168,21 @@ class ActionOutput:
                 else:
                     chosen_action_indexes['card_buy'] = turn.card_index - total_cards
                 pass
+        SimpleProfileAggregator.sample_static("action output, fit turn")
 
         #taking noble goes here
         # TODO: is hack. but kinda mostly will work.
         # TODO: should we only set the "taken action" tensor value iff the noble is actually rewarded after selection?
         turn.noble_preference = max(enumerate(action_output.noble_choice.tolist()))[0]
         chosen_action_indexes['noble_choice'] = turn.noble_preference 
+        SimpleProfileAggregator.sample_static("action output, pick nobles")
         
         # discarding tokens goes here
         discard_choice = _find_valid_discard_options(action_output.discard_combination_choice, player.resource_tokens, turn)
         if discard_choice is not None:
             chosen_action_indexes['discard_combination_choice'] = discard_choice
             turn.set_discard_preferences(discard_choices.map_from_index(discard_choice))
+        SimpleProfileAggregator.sample_static("action output, pick discard")
 
         if action_attempts >= 4: #4 actions tested in a loop, and then a fallback permissive pick3 action must also fail
             ## for training, may be best to provide a noop when the game state prohibits any other actions
@@ -186,6 +191,7 @@ class ActionOutput:
         if validate_msg != None:
             return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts+1) + " times. " + validate_msg
         
+        SimpleProfileAggregator.sample_static("action output, validate turn")
         return (turn, chosen_action_indexes)
 
 def _find_valid_discard_options(q_vector_discard_pref: torch.Tensor, available_resources_to_player: list[int], current_turn: Turn) -> int:

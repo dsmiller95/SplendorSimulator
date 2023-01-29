@@ -40,6 +40,7 @@ class SimpleProfile():
         return res
         
 class SimpleProfileAggregator():
+    active : SimpleProfileAggregator = None
     def __init__(self, description:str, initial_average_size: int):
         self.average_samples: list[SimpleProfile] = []
         self.sample_batch_size = initial_average_size
@@ -48,12 +49,20 @@ class SimpleProfileAggregator():
         self.current_sampler: SimpleProfile = None
         self.description = description
 
+    @staticmethod
+    def sample_static(sample_description: str):
+        if SimpleProfileAggregator.active is None:
+            return
+        SimpleProfileAggregator.active.sample(sample_description)
+
     def begin_sample_run(self):
         self.current_sampler = SimpleProfile()
+        SimpleProfileAggregator.active = self
     
     def end_sample_run(self):
         self.average_samples.append(self.current_sampler)
         self.current_sampler = None
+        SimpleProfileAggregator.active = None
         
         if len(self.average_samples) >= self.sample_batch_size:
             self.all_averaged_samples.append( sum(self.average_samples, SimpleProfile()) / len(self.average_samples))

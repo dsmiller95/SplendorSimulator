@@ -4,6 +4,7 @@ from game_model.AI_model.maps import map_all_to_tensors, to_hot_from_scalar
 from game_model.game import Game
 
 from utilities.better_param_dict import BetterParamDict
+from utilities.simple_profile import SimpleProfileAggregator
 
 def flat_map_group(map_list: list, prefix: str, into_dict: BetterParamDict[list[float]]):
     for i, item in enumerate(map_list):
@@ -71,10 +72,13 @@ class GamestateInputVector:
                 card_vect.returns = to_hot_from_scalar(card.returns.value, 5)
                 card_vect.points = [card.points]
         
+        SimpleProfileAggregator.sample_static("input mapping, populating vector")
 
         flat_mapped_values = input_vect_model.flat_map()
         ##return flat_mapped_values
-        return map_all_to_tensors(flat_mapped_values)
+        result = map_all_to_tensors(flat_mapped_values)
+        SimpleProfileAggregator.sample_static("input mapping, to dict")
+        return result
 
         
 
