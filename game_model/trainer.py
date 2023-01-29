@@ -19,8 +19,9 @@ from game_model.AI_model.dataloader import BellmanEquationDataSet
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
+from utilities.better_param_dict import BetterParamDict
 
-from utilities.simple_profile import SimpleProfile
+from utilities.simple_profile import SimpleProfileAggregator
 
 # Default hyperparameters
 settings: dict[str,float|int] = {}
@@ -42,20 +43,22 @@ settings['points'] = [True,5.0]
 settings['win_lose'] = [True,200]
 settings['length_of_game'] = [True,-0.1]
 
+settings['force_cpu_turns'] = False
+settings['force_cpu_learning'] = False
+
 
 # Overwrite with user-defined parameters if they exist
 if exists('game_model/AI_model/train_settings.yaml'):
     settings = load(open('game_model/AI_model/train_settings.yaml','r'))
 
-game_average_samples: list[SimpleProfile] = []
-gen_time_average_batch_size = 1000
-running_game_samples: list[SimpleProfile] = []
-max_running_samples = 100
+turn_profiler = SimpleProfileAggregator("turn generation time analysis", 1000)
+learn_profiler = SimpleProfileAggregator("learning time analysis", 10)
 
-def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
+def train(on_game_changed : Callable[[Game, Turn], None]):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_turns'] else "cpu")
+    learning_device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_learning'] else "cpu")
     writer = SummaryWriter(flush_secs=15) #tensorboard writer
     # Keeps track of the training steps for tensorboard
     step_tracker: dict[str,int] = {'epoch':0,'play_loop_iters':0,'learn_loop_iters':0,'total_learn_iters':0}
@@ -67,42 +70,51 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
     output_shape_dict = ActionOutput().in_dict_form()
 
     
-    target_model = SplendidSplendorModel(input_shape_dict, output_shape_dict, settings['hidden_layer_width'], settings['n_hidden_layers'])
+    target_model = SplendidSplendorModel(
+        input_shape_dict.get_backing_len(),
+        output_shape_dict.get_backing_len(), 
+        settings['hidden_layer_width'], 
+        settings['n_hidden_layers'])
     #if exists('AI_model/SplendidSplendor-model.pkl'):
     #    target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
     #                                     map_location='cpu'))
     target_model = target_model.to(device) 
 
+    play_stats: dict[str, float | list[float]] = {}
+
     def play(target_model: SplendidSplendorModel) -> list[ReplayMemoryEntry]:
+        play_stats['discarded tokens'] = []
+        play_stats['hand tokens'] = []
+        play_stats['reserved cards'] = []
+        play_stats['noop actions'] = []
+
         # Instantiate memory
+        target_model = target_model.to(device) 
         replay_memory: list[ReplayMemoryEntry] = []
         while len(replay_memory) < settings['memory_length']:
             len_left_in_replay: int = settings['memory_length'] - len(replay_memory)
             ## at least 16 turns. there was an edge case in our end-game code, making the assumption that at least one full loop of play had completed
             len_left_in_replay = max(len_left_in_replay, 16)  
             replay_memory += play_single_game(target_model,len_left_in_replay)
+        
+        for key in play_stats:
+            play_stats[key] = sum(play_stats[key]) / len(play_stats[key])
         return replay_memory
     
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
-        game_data_lock.acquire()
-        try:
-            game = Game(player_count=random.randint(2,4), game_config=game_config)
-            on_game_changed(game, None)
-            next_player_index = game.active_index
-        finally:
-            game_data_lock.release()
+        
+        game = Game(player_count=random.randint(2,4), game_config=game_config)
+        on_game_changed(game, None)
+        next_player_index = game.active_index
+            
         won = False
         while not (won and next_player_index == 0):
             ''' Use target network to play the games'''
-            sampler = SimpleProfile()
+            turn_profiler.begin_sample_run()
             # Map game state to AI input
-            game_data_lock.acquire()
-            try:
-                ai_input = GamestateInputVector.map_to_AI_input(game)
-                turns_since_last = game.get_player_num() - 1
-            finally:
-                game_data_lock.release()
+            ai_input = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
+            turns_since_last = game.get_player_num() - 1
             
             # Store game state in memory
             player_mem = ReplayMemoryEntry(ai_input)
@@ -110,73 +122,65 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             if len(replay_memory) >= turns_since_last:
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
 
-            sampler.sample_next("input mapping")
+            turn_profiler.sample("input mapping")
             # Get model's predicted action
-            ai_input = {key:ai_input[key].to(device) for key in ai_input}
-            sampler.sample_next("device mapping in")
+            ai_input = ai_input.remap(lambda x: x.to(device))
+            turn_profiler.sample("device mapping in")
 
             target_model.eval()
-            sampler.sample_next("model eval")
+            turn_profiler.sample("model eval")
             with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
-                Q = target_model.forward(ai_input, sampler) #Q values == expected reward for an action taken
-                Q = {key:Q[key].to(torch.device('cpu')) for key in Q}
-            sampler.sample_next("device mapping out")
+                unshaped_Q = target_model.forward(ai_input.get_backing_packed_data(), turn_profiler) #Q values == expected reward for an action taken
+                Q = BetterParamDict.reindex_over_new_data(output_shape_dict, unshaped_Q)
+                Q = Q.remap(lambda x: x.to(torch.device('cpu')))
+            turn_profiler.sample("device mapping out")
 
             # Apply epsilon greedy function to somewhat randomize the action picks for exploration
             Q = _epsilon_greedy(Q,settings['epsilon'])
+            turn_profiler.sample("q greedy")
 
-            game_data_lock.acquire()
-            try:
-                # Pick the highest Q-valued action that works in the game
-                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
+            # Pick the highest Q-valued action that works in the game
+            (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
+            play_stats['noop actions'].append(1 if next_action.action_type == Action_Type.NOOP else 0)
 
-                player_mem.taken_action = {key:value.detach() for key,value in chosen_Action.items()} #detach to not waste memory
-                player_mem.num_players = game.get_num_players()
-                sampler.sample_next("output mapping to action")
+            player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
+            player_mem.num_players = game.get_num_players()
+            turn_profiler.sample("output mapping to action")
 
-                # Play move
-                step_status = step_game(game, next_action)
-                on_game_changed(game, next_action)
-                next_player_index = game.active_index
-                if not (step_status is None):
-                    raise Exception("invalid game step generated, " + step_status)
+            # Play move
+            step_status = step_game(game, next_action)
+            on_game_changed(game, next_action)
 
-                # Get reward from state transition, and convert to dict form 
-                reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
-                reward_dict = {choice:(reward * player_mem.taken_action[choice]) for choice in player_mem.taken_action}
+            current_player = game.get_current_player()
+            play_stats['discarded tokens'].append(next_action.last_discarded_actual)
+            play_stats['hand tokens'].append(current_player.total_tokens())
+            play_stats['reserved cards'].append(sum([0 if x is None else 1 for x in current_player.reserved_cards]))
 
-                # Store reward in memory
-                player_mem.reward_new = reward_dict
-                sampler.sample_next("updating game")
+            next_player_index = game.active_index
+            if not (step_status is None):
+                raise Exception("invalid game step generated, " + step_status)
+
+            # Get reward from state transition, and convert to dict form 
+            reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
+            reward_dict = player_mem.taken_action.remap(lambda x: reward * x)
+
+            # Store reward in memory
+            player_mem.reward_new = reward_dict
+            turn_profiler.sample("updating game")
 
 
-                if game.get_current_player().qualifies_to_win():
-                    won = True
-            finally:
-                game_data_lock.release()
+            if game.get_current_player().qualifies_to_win():
+                won = True
 
             #Store turn in replay memory
             replay_memory.append(player_mem)
-
-            running_game_samples.append(sampler)
-            if len(running_game_samples) >= gen_time_average_batch_size:
-                game_average_samples.append( sum(running_game_samples, SimpleProfile()) / len(running_game_samples))
-                running_game_samples.clear()
-                avg = sum(game_average_samples, SimpleProfile()) / len(game_average_samples)
-                if len(game_average_samples) > max_running_samples:
-                    del game_average_samples[0:int(max_running_samples/4)]
-                print("turn generation time analysis:\n" + avg.describe_samples())
-
+            turn_profiler.end_sample_run()
 
             if (len(replay_memory) == len_left_in_replay) or (len(replay_memory) >= 1000): #games shouldn't last longer than 1000 turns
                 break
         
-        game_data_lock.acquire()
-        try:
-            ending_state = GamestateInputVector.map_to_AI_input(game)
-            total_players = game.get_num_players()
-        finally:
-            game_data_lock.release()
+        ending_state = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
+        total_players = game.get_num_players()
         
         for player_index in range(total_players):
             last_turn_player = replay_memory[-player_index]
@@ -185,18 +189,19 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             if won == True: #if a game overruns the replay length, this will eval false
                 last_turn_player.is_last_turn = torch.as_tensor(int(1))
                 reward = Reward(game,player_index,settings).all_rewards()
-                reward_dict = {choice:(reward * last_turn_player.taken_action[choice]) for choice in last_turn_player.taken_action}
+                reward_dict = last_turn_player.taken_action.remap(lambda x: reward * x)
                 last_turn_player.reward_new = reward_dict
         
         return replay_memory
 
     def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = deepcopy(target_model)
 
         # Base the target model update rate on how many turns it takes to win
         target_network_update_rate: int = _avg_turns_to_win(replay_memory)
         writer.add_scalar('Avg turns to win (epoch)',target_network_update_rate,step_tracker['epoch'])
+        for key in play_stats:
+            writer.add_scalar('Gameplay (epoch)/' + key,play_stats[key],step_tracker['epoch'])
 
         model.train()
 
@@ -212,50 +217,55 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         scheduler.step(step_tracker["epoch"]) #updates the scheduler to the current epoch "step"
             
         # Transfer all the data to the GPU for blazing fast train speed
-        if device == torch.device("cuda"):
+        if learning_device == torch.device("cuda"):
             for turn in replay_memory:
-                for key in turn.game_state:
-                    turn.game_state[key] = turn.game_state[key].to(device)
-                for key in turn.taken_action:
-                    turn.taken_action[key] = turn.taken_action[key].to(device)
-                for key in turn.next_turn_game_state:
-                    turn.next_turn_game_state[key] = turn.next_turn_game_state[key].to(device)
-                for key in turn.reward_new:
-                    turn.reward_new[key] = turn.reward_new[key].to(device)
-                turn.is_last_turn = turn.is_last_turn.to(device)
+                turn.game_state = turn.game_state.remap(lambda x: x.to(learning_device))
+                turn.taken_action = turn.taken_action.remap(lambda x: x.to(learning_device))
+                turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(learning_device))
+                turn.reward_new = turn.reward_new.remap(lambda x: x.to(learning_device))
+                turn.is_last_turn = turn.is_last_turn.to(learning_device)
 
-        model = model.to(device)
-        target_model = target_model.to(device)
-        dataset = BellmanEquationDataSet(replay_memory,device)
+        model = model.to(learning_device)
+        target_model = target_model.to(learning_device)
+        dataset = BellmanEquationDataSet(replay_memory,learning_device)
         batch_size: float = settings['max_batch_size'] #= min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
         dataloader = DataLoader(dataset,
                                 batch_size=batch_size,
                                 shuffle=True,
                                 num_workers=0)
 
-        for iteration,batch in enumerate(dataloader):
-            Q_dicts = model(batch[0]) ## dict of tensors of size batch x orig size
-            next_Q_dicts = target_model(batch[1])
-            rewards = batch[2]
-            is_last_turns = batch[3]
-            target = target_Q(next_Q_dicts,rewards,settings['gamma'],is_last_turns)
-            optimizer.zero_grad()
-            avg_loss: float = 0.0
-            batch_len: int = int(batch[0]['player_0_temp_resources'].size()[0]) #this is also the batch size, so we always get the loss divided by the number of samples
-            for key in Q_dicts:
-                loss = loss_fn(Q_dicts[key],target[key])
-                loss.backward(retain_graph=True) #propagate the loss through the net, saving the graph because we do this for every key
-                avg_loss += loss.detach().item()/batch_len
-                writer.add_scalar('Loss (iter)/'+key,loss.detach().item()/batch_len,step_tracker["total_learn_iters"])
-            optimizer.step() #update the weights
-            #torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0) #clip the gradients to avoid exploding gradient problem 
 
-            n_keys = len(Q_dicts)
-            writer.add_scalar('Key-averaged loss (iter)', avg_loss/n_keys,step_tracker["total_learn_iters"])
+        for iteration,batch in enumerate(dataloader):
+            current_game_states : torch.Tensor = batch[0] ## dict of tensors of size batch x orig size
+            next_game_states : torch.Tensor = batch[1]
+            rewards : torch.Tensor = batch[2]
+            is_last_turns: torch.Tensor = batch[3]
+
+            learn_profiler.begin_sample_run()
+            Q_batch = model.forward(current_game_states, learn_profiler)
+            next_Q_batch = target_model.forward(next_game_states, learn_profiler)
+            # Warning: this modifies next_Q_dicts in-place. next_Q_dicts is equal to target
+            target_batch = target_Q(next_Q_batch,rewards,settings['gamma'],is_last_turns, output_shape_dict.index_dict)
+            optimizer.zero_grad()
+            learn_profiler.sample("target Q eval")
+            batch_len: int = int(current_game_states.size()[0])
+
+            loss: torch.Tensor = loss_fn(Q_batch,target_batch)
+            loss.backward() #propagate the loss through the net
+            loss_amount = loss.detach().item()/batch_len
+            writer.add_scalar('net loss (iter)', loss_amount,step_tracker["total_learn_iters"])
+
+            learn_profiler.sample("loss function")
+            optimizer.step() #update the weights
+            learn_profiler.sample("optimizer step")
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0) #clip the gradients to avoid exploding gradient problem 
             
             target_model = deepcopy(model)
+            learn_profiler.sample("copy model")
+
             step_tracker["learn_loop_iters"] += 1
             step_tracker["total_learn_iters"] += 1
+            learn_profiler.end_sample_run()
             
         writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
         step_tracker["learn_loop_iters"] = 0
@@ -267,7 +277,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         step_tracker['epoch'] += 1
         torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
 
-def _get_next_action_from_forward_result(forward: dict[str, torch.Tensor], game: Game) -> tuple[Turn | str, dict[str, torch.Tensor]]:
+def _get_next_action_from_forward_result(forward: BetterParamDict[torch.Tensor], game: Game) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
     """Get the next action from the model's forward pass result."""
     return ActionOutput.map_from_AI_output(forward, game, game.get_current_player())
 
@@ -282,7 +292,7 @@ def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
     # Otherwise, return a small positive reward for making progress based on fitness
     return fitness_delta
 
-def _epsilon_greedy(Q: dict[str, torch.Tensor], epsilon: float):
+def _epsilon_greedy(Q: BetterParamDict[torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
     action with a probability of 1-epsilon. Otherwise, it will randomly choose
     another possible action with probability epsilon. We're going to do this by either allowing the
@@ -317,29 +327,38 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     except:
         return(settings['memory_length'])
 
-def target_Q(next_Q_dicts:dict[torch.Tensor],
-         reward_dicts:dict[torch.Tensor], 
+def target_Q(next_Q_batch: torch.Tensor, ## a 2D tensor, <batch dim> x <output size>
+         reward_batch: torch.Tensor,     ## a 2D tensor, <batch dim> x <output size>
          gamma:float,
-         is_last_turn:torch.Tensor) -> dict[torch.Tensor]:
+         is_last_turn:torch.Tensor,
+         action_output_shape: dict[str, tuple[int, int]]) -> torch.Tensor:
     '''This function operates on a single action-space (key) in the
     Q dictionary'''
-
+    
     #flip the 1's and 0's so the last_turn designator becomes a 0
     is_last_turn = (~is_last_turn.bool()).int() 
 
-    target:dict[torch.Tensor] = {}
-    for key in next_Q_dicts:
+    for key in action_output_shape:
+        action_range = action_output_shape[key]
 
+        ## <batch size> x <action_range>
+        next_Q_slice = next_Q_batch[:,action_range[0]:action_range[1]]
         # is_last_turn functions as an on-off switch for the next state Q values
-        max_next_reward = is_last_turn * torch.max(next_Q_dicts[key].detach()) #detach because we don't want gradients from the next state
+        max_next_reward = is_last_turn * torch.max(next_Q_slice.detach()) #detach because we don't want gradients from the next state
+        ## <batch size> x 1
         max_next_reward = max_next_reward.unsqueeze(1) #add an outer batch dimension to the tensor (broadcasting requirements)
 
         # The central update function. Reward describes player reward at (state,action). Gamma describes the discount towards
         # future actions vs. current action reward. The max_next_reward describes the model's best prediction of the total reward
-        # it will be able to acheive through the whole converging series of SUM[i: now->endgame]( (discount^i) * (reward[i]) ).
+        # it will be able to achieve through the whole converging series of SUM[i: now->endgame]( (discount^i) * (reward[i]) ).
         # All put together, what this means is that we add this action's reward to the predicted total reward. This gives us
         # our target estimated Q value, which we can send off to the loss function, where the Q value will be compared to this target 
         # Q value from which we get a loss value.
-        target[key] = reward_dicts[key] + (gamma * max_next_reward)
 
-    return target
+        ## <batch size> x <action_range>
+        reward_slice = reward_batch[:,action_range[0]:action_range[1]]
+        ## <batch size> x <action_range>
+        target_result = reward_slice + (gamma * max_next_reward)
+        next_Q_batch[:,action_range[0]:action_range[1]] = target_result
+
+    return next_Q_batch

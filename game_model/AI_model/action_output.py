@@ -6,56 +6,76 @@ from game_model.game import Game
 from game_model.card import Card
 from game_model.resource_types import ResourceType
 from game_model.turn import Turn,Action_Type
+from utilities.simple_profile import SimpleProfileAggregator
 from utilities.utils import Lazy
 from utilities.subsamples import clone_shallow, pad_list
 
 pick_three_choices = CombinatorialIndexMapping(5, 3, allow_pick_multiple=False, allow_pick_less=False)
 discard_choices = CombinatorialIndexMapping(6, 3, allow_pick_multiple=True, allow_pick_less=True)
 
+from utilities.better_param_dict import BetterParamDict
 class ActionOutput:
     def __init__(self):
-        self.action_choice: torch.Tensor = torch.Tensor([0] * 4)
-        self.card_pref: torch.Tensor = torch.Tensor([0] * 15) #this will be used for both card buying and reserving
-        self.reserve_buy: torch.Tensor= torch.Tensor([0] * 3) #this is specifically for buying cards from reserve
-        self.noble_choice: torch.Tensor = torch.Tensor([0] * 5)
+        # use a regular list param dict to build the shape
+        shape_builder : BetterParamDict[list[int]] = BetterParamDict([])
+        shape_builder['action_choice'] = [0] * 4
+        shape_builder['card_buy'] = [0] * 15 #this will be used for both card buying and reserving
+        shape_builder['reserve_buy'] = [0] * 3 #this is specifically for buying cards from reserve
+        shape_builder['noble_choice'] = [0] * 5
         
-        self.pick_three_choice: torch.Tensor = torch.Tensor([0] * pick_three_choices.total_possible_options())
-        self.pick_two_choice: torch.Tensor = torch.Tensor([0] * 5)
-        self.discard_combination_choice: torch.Tensor = torch.Tensor([0] * discard_choices.total_possible_options())
+        shape_builder['pick_three_choice'] = [0] * pick_three_choices.total_possible_options()
+        shape_builder['pick_two_choice'] = [0] * 5
+        shape_builder['discard_combination_choice'] = [0] * discard_choices.total_possible_options()
+
+        # remap the list into a fixed-length tensor after building
+        self.mapped_properties : BetterParamDict[list[int]] = shape_builder.remap(lambda x: torch.Tensor(x))
     
     def in_dict_form(self):
-        action_output_dict : dict[str, torch.Tensor] = {}
-        action_output_dict['action_choice'] = torch.Tensor(self.action_choice)
-        action_output_dict['card_buy'] = torch.Tensor(self.card_pref)
-        action_output_dict['reserve_buy'] = torch.Tensor(self.reserve_buy)
-        action_output_dict['noble_choice'] = torch.Tensor(self.noble_choice)
-
-        action_output_dict['pick_three_choice'] = torch.Tensor(self.pick_three_choice)
-        action_output_dict['pick_two_choice'] = torch.Tensor(self.pick_two_choice)
-        action_output_dict['discard_combination_choice'] = torch.Tensor(self.discard_combination_choice)
-
-        return action_output_dict
-
-    def map_dict_into_self(self, into_dict: dict[str, torch.Tensor]):
-        self.action_choice = into_dict['action_choice']
-        self.card_pref = into_dict['card_buy']
-        self.reserve_buy = into_dict['reserve_buy']
-        self.noble_choice = into_dict['noble_choice']
-
-        self.pick_three_choice = into_dict['pick_three_choice']
-        self.pick_two_choice = into_dict['pick_two_choice']
-        self.discard_combination_choice = into_dict['discard_combination_choice']
+        return self.mapped_properties
+        
+    def __setattr__(self, name: str, value):
+        '''Try to set the attribute in the mapped_properties ParamDict first, then default to normal implementation'''
+        try:
+            my_props = object.__getattribute__(self, "mapped_properties")
+            if name in my_props:
+                my_props[name] = value
+                return
+        except AttributeError:
+            pass
+        
+        object.__setattr__(self, name, value)
     
+    def __getattribute__(self, name: str):
+        '''Try to get the attribute from the mapped_properties ParamDict first, then default to normal implementation'''
+        try:
+            my_props = object.__getattribute__(self, "mapped_properties")
+            if name in my_props:
+                return my_props[name]
+        except AttributeError:
+            pass
+        
+        return object.__getattribute__(self, name)
+
+    def get_data_length(self) -> int:
+        return len(self.mapped_properties.get_backing_packed_data())
+
+    def map_tensor_into_self(self, into_tensor: torch.Tensor):
+        self.mapped_properties = BetterParamDict.reindex_over_new_data(self.mapped_properties, into_tensor)
+        
     @staticmethod
-    def map_from_AI_output(forward_result: dict[str, torch.Tensor],game:Game,player:Actor) -> tuple[Turn | str, dict[str, torch.Tensor]]:
+    def map_from_AI_output(forward_result: BetterParamDict[torch.Tensor],game:Game,player:Actor) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
         '''
-        TODO: map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
+        map to a action tensor dictionary. should also return a tensor dictionary which represents the chosen action
         '''
+        SimpleProfileAggregator.sample_static("unknown")
 
         action_output = ActionOutput()
-        action_output.map_dict_into_self(forward_result)
+        ## TODO: map in using backing dictionary remap
+        action_output.map_tensor_into_self(forward_result.aggregate_list)
         turn_index_tuple = ActionOutput._map_internal(action_output, game, player)
-        if turn_index_tuple[1] == None: # This happens when _map_internal fails to find a valid action and returns NOOP
+        if turn_index_tuple[1] == None:
+            # This happens when _map_internal fails to find a valid action and returns NOOP
+            # TODO: ^^ no it doesn't. this section will never get hit. should we fix?
             turn,_ = turn_index_tuple
             zero_dict = ActionOutput().in_dict_form() #return an ActionOutput with all 0's because no action was taken
         else:
@@ -64,12 +84,11 @@ class ActionOutput:
             for key in taken_action_indexes:
                 chosen_index = taken_action_indexes[key]
                 zero_dict[key][chosen_index] = 1 #put a 1 at the location of the action that was taken
-            
+        SimpleProfileAggregator.sample_static("action output, selected Q dict")
         
         return (turn, zero_dict)
     @staticmethod
     def _map_internal(action_output: ActionOutput,game:Game,player:Actor) -> tuple[Turn | str, dict[str, int]]:
-
         #Fit the AI output to valid game states
         fit_check: bool = False
         turn: Turn = None
@@ -78,11 +97,12 @@ class ActionOutput:
         action_attempts: int = 0
 
         prioritized_card_indexes : Lazy[list[ResourceType]] = Lazy(
-            lambda: [i for i, x in sorted(enumerate(action_output.card_pref.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
+            lambda: [i for i, x in sorted(enumerate(action_output.card_buy.tolist() + action_output.reserve_buy.tolist()), key = lambda tup: tup[1], reverse=True)]
         )
         
         chosen_action_indexes: dict[str, int] = {}
         action = clone_shallow(action_output.action_choice.tolist())
+        SimpleProfileAggregator.sample_static("action output, prepare")
         while fit_check == False and action_attempts < 4:
             best_action_index = action.index(max(action))
             action[best_action_index] = -10000000 #means it won't select this action again
@@ -135,7 +155,7 @@ class ActionOutput:
             #       'attempt #',action_attempts,'\n',
             #       'pick_three_choice',[f'{val:.2f}' for val in action_output.pick_three_choice.tolist()],'\n',
             #       'pick_two_choice',[f'{val:.2f}' for val in action_output.pick_two_choice.tolist()],'\n',
-            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_pref.tolist()],'\n',
+            #       'card_buy_choice',[f'{val:.2f}' for val in action_output.card_buy.tolist()],'\n',
             #       'reserve_choice',[f'{val:.2f}' for val in action_output.reserve_buy.tolist()],'\n',
             #       'player_perm_resources',game.get_current_player().resource_persistent,'\n',
             #       'player_resources',game.get_current_player().resource_tokens,'\n',
@@ -148,18 +168,21 @@ class ActionOutput:
                 else:
                     chosen_action_indexes['card_buy'] = turn.card_index - total_cards
                 pass
+        SimpleProfileAggregator.sample_static("action output, fit turn")
 
         #taking noble goes here
         # TODO: is hack. but kinda mostly will work.
         # TODO: should we only set the "taken action" tensor value iff the noble is actually rewarded after selection?
         turn.noble_preference = max(enumerate(action_output.noble_choice.tolist()))[0]
         chosen_action_indexes['noble_choice'] = turn.noble_preference 
+        SimpleProfileAggregator.sample_static("action output, pick nobles")
         
         # discarding tokens goes here
         discard_choice = _find_valid_discard_options(action_output.discard_combination_choice, player.resource_tokens, turn)
         if discard_choice is not None:
             chosen_action_indexes['discard_combination_choice'] = discard_choice
             turn.set_discard_preferences(discard_choices.map_from_index(discard_choice))
+        SimpleProfileAggregator.sample_static("action output, pick discard")
 
         if action_attempts >= 4: #4 actions tested in a loop, and then a fallback permissive pick3 action must also fail
             ## for training, may be best to provide a noop when the game state prohibits any other actions
@@ -168,6 +191,7 @@ class ActionOutput:
         if validate_msg != None:
             return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts+1) + " times. " + validate_msg
         
+        SimpleProfileAggregator.sample_static("action output, validate turn")
         return (turn, chosen_action_indexes)
 
 def _find_valid_discard_options(q_vector_discard_pref: torch.Tensor, available_resources_to_player: list[int], current_turn: Turn) -> int:

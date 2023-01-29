@@ -31,14 +31,14 @@ def on_game_changed(game: Game, turn: Turn) -> None:
     game_data.on_next_game_state(game, turn)
 
 if len(sys.argv) <= 1 or sys.argv[1] == "train":
-    train(on_game_changed, game_data.lock_object)
+    train(on_game_changed)
     exit(0)
 elif sys.argv[1] == "play" or sys.argv[1] == "playAI":
     print('test')
     if sys.argv[1] == "playAI":
         input_shape_dict = GamestateInputVector.map_to_AI_input(game)
         output_shape_dict = ActionOutput().in_dict_form()
-        model = SplendidSplendorModel(input_shape_dict, output_shape_dict, 512, 32)
+        model = SplendidSplendorModel(input_shape_dict.get_backing_len(), output_shape_dict.get_backing_len(), 512, 32)
         model.load_state_dict(load('game_model/AI_model/SplendidSplendor-model.pkl',map_location='cpu'))
         
     on_game_changed(game, None)
