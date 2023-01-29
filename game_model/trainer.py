@@ -55,6 +55,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    learning_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     writer = SummaryWriter(flush_secs=15) #tensorboard writer
     # Keeps track of the training steps for tensorboard
     step_tracker: dict[str,int] = {'epoch':0,'play_loop_iters':0,'learn_loop_iters':0,'total_learn_iters':0}
@@ -74,6 +75,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
 
     def play(target_model: SplendidSplendorModel) -> list[ReplayMemoryEntry]:
         # Instantiate memory
+        target_model = target_model.to(device) 
         replay_memory: list[ReplayMemoryEntry] = []
         while len(replay_memory) < settings['memory_length']:
             len_left_in_replay: int = settings['memory_length'] - len(replay_memory)
@@ -181,7 +183,6 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         return replay_memory
 
     def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = deepcopy(target_model)
 
         # Base the target model update rate on how many turns it takes to win
@@ -202,17 +203,17 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         scheduler.step(step_tracker["epoch"]) #updates the scheduler to the current epoch "step"
             
         # Transfer all the data to the GPU for blazing fast train speed
-        if device == torch.device("cuda"):
+        if learning_device == torch.device("cuda"):
             for turn in replay_memory:
-                turn.game_state = turn.game_state.remap(lambda x: x.to(device))
-                turn.taken_action = turn.taken_action.remap(lambda x: x.to(device))
-                turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(device))
-                turn.reward_new = turn.reward_new.remap(lambda x: x.to(device))
-                turn.is_last_turn = turn.is_last_turn.to(device)
+                turn.game_state = turn.game_state.remap(lambda x: x.to(learning_device))
+                turn.taken_action = turn.taken_action.remap(lambda x: x.to(learning_device))
+                turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(learning_device))
+                turn.reward_new = turn.reward_new.remap(lambda x: x.to(learning_device))
+                turn.is_last_turn = turn.is_last_turn.to(learning_device)
 
-        model = model.to(device)
-        target_model = target_model.to(device)
-        dataset = BellmanEquationDataSet(replay_memory,device)
+        model = model.to(learning_device)
+        target_model = target_model.to(learning_device)
+        dataset = BellmanEquationDataSet(replay_memory,learning_device)
         batch_size: float = settings['max_batch_size'] #= min(ceil(target_network_update_rate*settings['batch_size_multiplier']),settings['max_batch_size'])
         dataloader = DataLoader(dataset,
                                 batch_size=batch_size,

@@ -99,7 +99,7 @@ class SplendidSplendorModel(nn.Module):
         out_dict = {}
         for out_key, (start, end) in self.output_shape_dict.index_dict.items():
             indexes = range(start, end)
-            select_indexes = torch.Tensor(indexes).int().to(output.get_device())
+            select_indexes = torch.Tensor(indexes).int().to(output.device)
             out_dict[out_key] = output.index_select(-1, select_indexes)
         
         if profiler is not None:
