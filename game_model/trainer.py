@@ -82,6 +82,7 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
         play_stats['discarded tokens'] = []
         play_stats['hand tokens'] = []
         play_stats['reserved cards'] = []
+        play_stats['noop actions'] = []
 
         # Instantiate memory
         target_model = target_model.to(device) 
@@ -142,7 +143,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             game_data_lock.acquire()
             try:
                 # Pick the highest Q-valued action that works in the game
-                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game) 
+                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
+                play_stats['noop actions'].append(1 if next_action.action_type == Action_Type.NOOP else 0)
 
                 player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
                 player_mem.num_players = game.get_num_players()
