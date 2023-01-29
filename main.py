@@ -31,7 +31,7 @@ def on_game_changed(game: Game, turn: Turn) -> None:
     game_data.on_next_game_state(game, turn)
 
 if len(sys.argv) <= 1 or sys.argv[1] == "train":
-    train(on_game_changed, game_data.lock_object)
+    train(on_game_changed)
     exit(0)
 elif sys.argv[1] == "play" or sys.argv[1] == "playAI":
     print('test')

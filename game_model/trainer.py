@@ -54,7 +54,7 @@ if exists('game_model/AI_model/train_settings.yaml'):
 turn_profiler = SimpleProfileAggregator("turn generation time analysis", 1000)
 learn_profiler = SimpleProfileAggregator("learning time analysis", 10)
 
-def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: threading.Lock):
+def train(on_game_changed : Callable[[Game, Turn], None]):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_turns'] else "cpu")
@@ -99,24 +99,18 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
     
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
-        game_data_lock.acquire()
-        try:
-            game = Game(player_count=random.randint(2,4), game_config=game_config)
-            on_game_changed(game, None)
-            next_player_index = game.active_index
-        finally:
-            game_data_lock.release()
+        
+        game = Game(player_count=random.randint(2,4), game_config=game_config)
+        on_game_changed(game, None)
+        next_player_index = game.active_index
+            
         won = False
         while not (won and next_player_index == 0):
             ''' Use target network to play the games'''
             turn_profiler.begin_sample_run()
             # Map game state to AI input
-            game_data_lock.acquire()
-            try:
-                ai_input = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
-                turns_since_last = game.get_player_num() - 1
-            finally:
-                game_data_lock.release()
+            ai_input = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
+            turns_since_last = game.get_player_num() - 1
             
             # Store game state in memory
             player_mem = ReplayMemoryEntry(ai_input)
@@ -140,42 +134,38 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             Q = _epsilon_greedy(Q,settings['epsilon'])
             turn_profiler.sample("q greedy")
 
-            game_data_lock.acquire()
-            try:
-                # Pick the highest Q-valued action that works in the game
-                (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
-                play_stats['noop actions'].append(1 if next_action.action_type == Action_Type.NOOP else 0)
+            # Pick the highest Q-valued action that works in the game
+            (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
+            play_stats['noop actions'].append(1 if next_action.action_type == Action_Type.NOOP else 0)
 
-                player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
-                player_mem.num_players = game.get_num_players()
-                turn_profiler.sample("output mapping to action")
+            player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
+            player_mem.num_players = game.get_num_players()
+            turn_profiler.sample("output mapping to action")
 
-                # Play move
-                step_status = step_game(game, next_action)
-                on_game_changed(game, next_action)
+            # Play move
+            step_status = step_game(game, next_action)
+            on_game_changed(game, next_action)
 
-                current_player = game.get_current_player()
-                play_stats['discarded tokens'].append(next_action.last_discarded_actual)
-                play_stats['hand tokens'].append(current_player.total_tokens())
-                play_stats['reserved cards'].append(sum([0 if x is None else 1 for x in current_player.reserved_cards]))
+            current_player = game.get_current_player()
+            play_stats['discarded tokens'].append(next_action.last_discarded_actual)
+            play_stats['hand tokens'].append(current_player.total_tokens())
+            play_stats['reserved cards'].append(sum([0 if x is None else 1 for x in current_player.reserved_cards]))
 
-                next_player_index = game.active_index
-                if not (step_status is None):
-                    raise Exception("invalid game step generated, " + step_status)
+            next_player_index = game.active_index
+            if not (step_status is None):
+                raise Exception("invalid game step generated, " + step_status)
 
-                # Get reward from state transition, and convert to dict form 
-                reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
-                reward_dict = player_mem.taken_action.remap(lambda x: reward * x)
+            # Get reward from state transition, and convert to dict form 
+            reward = Reward(game,game.get_current_player_index(),settings).all_rewards()# - original_fitness.base_reward
+            reward_dict = player_mem.taken_action.remap(lambda x: reward * x)
 
-                # Store reward in memory
-                player_mem.reward_new = reward_dict
-                turn_profiler.sample("updating game")
+            # Store reward in memory
+            player_mem.reward_new = reward_dict
+            turn_profiler.sample("updating game")
 
 
-                if game.get_current_player().qualifies_to_win():
-                    won = True
-            finally:
-                game_data_lock.release()
+            if game.get_current_player().qualifies_to_win():
+                won = True
 
             #Store turn in replay memory
             replay_memory.append(player_mem)
@@ -184,12 +174,8 @@ def train(on_game_changed : Callable[[Game, Turn], None], game_data_lock: thread
             if (len(replay_memory) == len_left_in_replay) or (len(replay_memory) >= 1000): #games shouldn't last longer than 1000 turns
                 break
         
-        game_data_lock.acquire()
-        try:
-            ending_state = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
-            total_players = game.get_num_players()
-        finally:
-            game_data_lock.release()
+        ending_state = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
+        total_players = game.get_num_players()
         
         for player_index in range(total_players):
             last_turn_player = replay_memory[-player_index]

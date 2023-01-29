@@ -16,7 +16,6 @@ class BoundData:
     def __init__(self):
         self.game : Game
         self.game_json_memory: list[str] = []
-        self.lock_object: threading.Lock = threading.Lock()
     
     def on_next_game_state(self, game: Game, turn: Turn):
         self.game = game
@@ -37,15 +36,7 @@ def index():
 
 @app.route("/game/json")
 def get_game_json():
-    acquired = game_data.lock_object.acquire(timeout=5)
-    if not acquired:
-        return {
-            "Error": "could not get lock on game object after 5 seconds"
-        }
-    try:
-        json_data = jsonify(game_data.game.as_serializable_data())
-    finally:
-        game_data.lock_object.release()
+    json_data = jsonify(game_data.game.as_serializable_data())
 
     return json_data
 
