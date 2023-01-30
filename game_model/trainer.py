@@ -1,12 +1,9 @@
 import random
 from math import ceil
-from copy import deepcopy
 from os.path import exists
 import threading
 from typing import Callable
 import torch
-from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from yaml import safe_load as load
 from torch.utils.tensorboard import SummaryWriter
 from game_data.game_config_data import GameConfigData
@@ -15,13 +12,17 @@ from game_model.game import Game
 from game_model.AI_model.model import SplendidSplendorModel
 from game_model.AI_model.gamestate_input import GamestateInputVector
 from game_model.AI_model.action_output import ActionOutput
-from game_model.AI_model.dataloader import BellmanEquationDataSet
+from game_model.AI_model.learn import Learner
 from game_model.game_runner import step_game
 from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
 from utilities.better_param_dict import BetterParamDict
-
 from utilities.simple_profile import SimpleProfileAggregator
+
+from copy import deepcopy
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch.utils.data import DataLoader
+from game_model.AI_model.dataloader import BellmanEquationDataSet
 
 # Default hyperparameters
 settings: dict[str,float|int] = {}
@@ -29,7 +30,7 @@ settings['learning_rate']: float = 0.0001
 settings['gamma']: float = 0.99 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
 settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
-settings['memory_length']: int = 10000      #number of rounds to play of the game
+settings['memory_length']: int = 1000      #number of rounds to play of the game
 settings['batch_size']: int = 1000 #so that we don't run out of memory accidentally
 settings['reps_per_play_sess']: int = 10 #how many times to train over the same replay memory buffer
 settings['epochs']: int = 1 #how many play->learn cycles to run
@@ -60,7 +61,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     game_config = GameConfigData.read_file("./game_data/cards.csv")
     play_device = torch.device("cuda" if torch.cuda.is_available() and settings['play_device'] == "cuda" else "cpu")
     learn_device = torch.device("cuda" if torch.cuda.is_available() and settings['learn_device'] == "cuda" else "cpu")
-    writer = SummaryWriter(flush_secs=15) #tensorboard writer
+    writer: SummaryWriter = SummaryWriter(flush_secs=15) #tensorboard writer
     # Keeps track of the training steps for tensorboard
     step_tracker: dict[str,int] = {'epoch':0,'play_loop_iters':0,'learn_loop_iters':0,'total_learn_iters':0}
     
@@ -160,7 +161,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             init_reward = Reward(game,game.get_current_player_index(),settings).all_rewards()
 
             # Pick the highest Q-valued action that works in the game
-            (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
+            (next_action, chosen_Action) = ActionOutput.map_from_AI_output(Q, game, game.get_current_player())
             statistic_tracker['actions'][next_action.action_type] += 1
             statistic_tracker['total_play_rounds'] += 1
 
@@ -217,6 +218,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                 last_turn_player.reward_new = reward_dict
         
         return replay_memory
+    
     
     def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
         # Transfer params of target model to a learner model and set training mode
@@ -308,27 +310,19 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
         step_tracker["learn_loop_iters"] = 0
         return target_model
+    
 
     for epoch in range(settings['epochs']):
         replay_memory = play(target_model)
-        target_model = learn(target_model,replay_memory)
+        #target_model = learn(target_model,replay_memory)
+        learner = Learner(target_model,replay_memory,settings,writer)
+        target_model = learner.learn()
         step_tracker['epoch'] += 1
         torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
 
 def _get_next_action_from_forward_result(forward: BetterParamDict[torch.Tensor], game: Game) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
     """Get the next action from the model's forward pass result."""
     return ActionOutput.map_from_AI_output(forward, game, game.get_current_player())
-
-def _get_reward(game: Game, step_status: str, fitness_delta: float) -> float:
-    """Determine the reward for the current game state."""
-    # If the game ended, return a large negative or positive reward
-    if step_status == "game_over":
-        return -100.0
-    if step_status == "victory":
-        return 100.0
-
-    # Otherwise, return a small positive reward for making progress based on fitness
-    return fitness_delta
 
 def _epsilon_greedy(Q: BetterParamDict[torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
@@ -366,13 +360,13 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
         return(settings['memory_length'])
 
 def target_Q(next_Q_batch: torch.Tensor, ## a 2D tensor, <batch dim> x <output size>
-         reward_batch: torch.Tensor,     ## a 2D tensor, <batch dim> x <output size>
-         gamma:float,
-         is_last_turn:torch.Tensor,
-         action_output_shape: dict[str, tuple[int, int]]) -> torch.Tensor:
+        reward_batch: torch.Tensor,     ## a 2D tensor, <batch dim> x <output size>
+        gamma:float,
+        is_last_turn:torch.Tensor,
+        action_output_shape: dict[str, tuple[int, int]]) -> torch.Tensor:
     '''This function operates on a single action-space (key) in the
     Q dictionary'''
-    
+        
     #flip the 1's and 0's so the last_turn designator becomes a 0
     is_last_turn = (~is_last_turn.bool()).int() 
 
