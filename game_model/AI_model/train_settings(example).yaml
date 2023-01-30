@@ -3,8 +3,8 @@ gamma: 0.99 #discount factor, how much it cares about future reward vs current r
             #(0: only current, 1: current and all future states)
 epsilon: 0.5 #how often to pick the maximum-Q-valued action
 memory_length: 10000      #number of rounds to play of the game
-batch_size_multiplier: 1.0 #batch size is set to the average number of turns per game multiplied by this factor
-max_batch_size: 1000 #so that we don't run out of memory accidentally
+reps_per_play_sess: 10 #how many times to train over the same replay memory buffer
+batch_size: 1000 #so that we don't run out of memory accidentally
 epochs: 100000 #how many play->learn cycles to run
 
 # Model definition (WARNING! If you change this, it will be incompatible with/overwrite the previous saved model)
