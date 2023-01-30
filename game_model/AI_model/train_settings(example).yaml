@@ -19,7 +19,7 @@ points: [True,5.0]
 win_lose: [True,200]
 length_of_game: [True,-0.1]
 
-force_cpu_turns: False
-force_cpu_learning: False
+play_device: "cuda"
+learn_device: "cuda"
 
 randomize_player_num: True

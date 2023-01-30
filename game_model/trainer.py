@@ -43,8 +43,8 @@ settings['points'] = [True,5.0]
 settings['win_lose'] = [True,200]
 settings['length_of_game'] = [True,-0.1]
 
-settings['force_cpu_turns'] = False
-settings['force_cpu_learning'] = False
+settings['play_device'] = "cuda"
+settings['learn_device'] = "cuda"
 settings['randomize_player_num'] = True
 
 
@@ -58,8 +58,8 @@ learn_profiler = SimpleProfileAggregator("learning time analysis", 10)
 def train(on_game_changed : Callable[[Game, Turn], None]):
     # Load game configuration data
     game_config = GameConfigData.read_file("./game_data/cards.csv")
-    device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_turns'] else "cpu")
-    learning_device = torch.device("cuda" if torch.cuda.is_available() and not settings['force_cpu_learning'] else "cpu")
+    play_device = torch.device("cuda" if torch.cuda.is_available() and settings['play_device'] == "cuda" else "cpu")
+    learn_device = torch.device("cuda" if torch.cuda.is_available() and settings['learn_device'] == "cuda" else "cpu")
     writer = SummaryWriter(flush_secs=15) #tensorboard writer
     # Keeps track of the training steps for tensorboard
     step_tracker: dict[str,int] = {'epoch':0,'play_loop_iters':0,'learn_loop_iters':0,'total_learn_iters':0}
@@ -79,7 +79,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     #if exists('AI_model/SplendidSplendor-model.pkl'):
     #    target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
     #                                     map_location='cpu'))
-    target_model = target_model.to(device) 
+    target_model = target_model.to(play_device) 
 
     play_stats: dict[str, float | list[float]] = {}
 
@@ -99,7 +99,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         stats_tracker['total_play_rounds'] = 0
 
         # Instantiate memory
-        target_model = target_model.to(device) 
+        target_model = target_model.to(play_device) 
         replay_memory: list[ReplayMemoryEntry] = []
         while len(replay_memory) < settings['memory_length']:
             len_left_in_replay: int = settings['memory_length'] - len(replay_memory)
@@ -141,7 +141,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
             turn_profiler.sample("input mapping")
             # Get model's predicted action
-            ai_input = ai_input.remap(lambda x: x.to(device))
+            ai_input = ai_input.remap(lambda x: x.to(play_device))
             turn_profiler.sample("device mapping in")
 
             target_model.eval()
@@ -217,15 +217,15 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                 last_turn_player.reward_new = reward_dict
         
         return replay_memory
-
+    
     def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
         # Transfer params of target model to a learner model and set training mode
         model = deepcopy(target_model)
         model.train()
 
         #Put both models on desired training device
-        target_model = target_model.to(learning_device)
-        model = model.to(learning_device)
+        target_model = target_model.to(learn_device)
+        model = model.to(learn_device)
         
 
         writer.add_scalar('Avg turns to win (epoch)',_avg_turns_to_win(replay_memory),step_tracker['epoch'])
@@ -243,17 +243,18 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                                                 verbose=False)
         scheduler.step(step_tracker["epoch"]) #updates the scheduler to the current epoch "step"
             
-        # Transfer all the data to the GPU for blazing fast train speed
-        if learning_device == torch.device("cuda"):
-            for turn in replay_memory:
-                turn.game_state = turn.game_state.remap(lambda x: x.to(learning_device))
-                turn.taken_action = turn.taken_action.remap(lambda x: x.to(learning_device))
-                turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(learning_device))
-                turn.reward_new = turn.reward_new.remap(lambda x: x.to(learning_device))
-                turn.is_last_turn = turn.is_last_turn.to(learning_device)
+
+        # Make sure replay memory ends up where it's needed
+        
+        for turn in replay_memory:
+            turn.game_state = turn.game_state.remap(lambda x: x.to(learn_device))
+            turn.taken_action = turn.taken_action.remap(lambda x: x.to(learn_device))
+            turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(learn_device))
+            turn.reward_new = turn.reward_new.remap(lambda x: x.to(learn_device))
+            turn.is_last_turn = turn.is_last_turn.to(learn_device)
 
         # Set up dataset
-        dataset = BellmanEquationDataSet(replay_memory,learning_device)
+        dataset = BellmanEquationDataSet(replay_memory,learn_device)
         
         for i in range(settings['reps_per_play_sess']):
             # Instantiate dataloader for each epoch
