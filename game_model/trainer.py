@@ -45,6 +45,7 @@ settings['length_of_game'] = [True,-0.1]
 
 settings['force_cpu_turns'] = False
 settings['force_cpu_learning'] = False
+settings['randomize_player_num'] = True
 
 
 # Overwrite with user-defined parameters if they exist
@@ -105,7 +106,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
         
-        game = Game(player_count=random.randint(2,4), game_config=game_config)
+        player_count = random.randint(2,4) if settings['randomize_player_num'] else 4
+        game = Game(player_count=player_count, game_config=game_config)
         on_game_changed(game, None)
         next_player_index = game.active_index
             

@@ -22,3 +22,4 @@ length_of_game: [True,-0.1]
 force_cpu_turns: False
 force_cpu_learning: False
 
+randomize_player_num: True
