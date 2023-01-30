@@ -101,13 +101,15 @@ class ActionOutput:
         )
         
         chosen_action_indexes: dict[str, int] = {}
-        action = clone_shallow(action_output.action_choice.tolist())
+        action : list[float] = clone_shallow(action_output.action_choice.tolist())
+        ## every action we can take, ordered from most desired to least
+        actions_prioritized = [Action_Type(x[0]) for x in sorted(enumerate(action), key=lambda tup: tup[1], reverse=True)]
+
         SimpleProfileAggregator.sample_static("action output, prepare")
-        while fit_check == False and action_attempts < 4:
-            best_action_index = action.index(max(action))
-            action[best_action_index] = -10000000 #means it won't select this action again
-            action_type = Action_Type(best_action_index)
-            chosen_action_indexes['action_choice'] = best_action_index
+        for action_type in actions_prioritized:
+            action_attempts+=1
+
+            chosen_action_indexes['action_choice'] = action_type.value
             turn = Turn(action_type)
             if action_type==Action_Type.TAKE_THREE_UNIQUE:
                 best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources[:5],allow_fewer_than_three=False)
@@ -115,6 +117,7 @@ class ActionOutput:
                     chosen_action_indexes['pick_three_choice'] = best_pick
                     turn.resources_desired = pick_three_choices.map_from_index(best_pick)
                     fit_check = True
+                    break
 
             elif action_type==Action_Type.TAKE_TWO:
                 best_pick = _find_best_pick_two_from_tensor(action_output.pick_two_choice, game.available_resources[:5])
@@ -124,32 +127,22 @@ class ActionOutput:
                     pick[best_pick] = 2
                     turn.resources_desired = pick
                     fit_check = True
+                    break
 
             elif action_type==Action_Type.BUY_CARD:
                 best_pick = _find_best_card_buy(prioritized_card_indexes.val(), player, game)
                 if not (best_pick is None):
                     turn.card_index = best_pick
                     fit_check = True
+                    break
 
             elif action_type==Action_Type.RESERVE_CARD:
                 best_pick = _find_best_card_to_reserve(prioritized_card_indexes.val(), player, game)
                 if not (best_pick is None):
                     turn.card_index = best_pick
                     fit_check = True
+                    break
 
-            action_attempts+=1
-            
-            #as a last resort, try picking up whatever tokens we can, even if there are fewer than three bank slots filled
-            if action_attempts >= 4:
-                best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources[:5],allow_fewer_than_three=True)
-                if not (best_pick is None):
-                    chosen_action_indexes['pick_three_choice'] = best_pick
-                    desired_picks = pick_three_choices.map_from_index(best_pick)
-                    turn.resources_desired = [min(pair) for pair in zip(desired_picks,game.available_resources[:5])] #in case some of the slots are empty
-                    fit_check = True
-                else:
-                    action_attempts += 1
-            
             #Diagnosis printout
             # print(action_type,'\n',
             #       'attempt #',action_attempts,'\n',
@@ -161,13 +154,27 @@ class ActionOutput:
             #       'player_resources',game.get_current_player().resource_tokens,'\n',
             #       'bank_resources',game.available_resources,'\n\n')
 
-            if fit_check == True and turn.card_index != None:
-                total_cards = game.config.total_available_card_indexes()
-                if turn.card_index >= total_cards:
-                    chosen_action_indexes['reserve_buy'] = turn.card_index - total_cards
-                else:
-                    chosen_action_indexes['card_buy'] = turn.card_index - total_cards
-                pass
+        if fit_check == False:
+            best_pick = _find_best_pick_three_from_tensor(action_output.pick_three_choice, game.available_resources[:5],allow_fewer_than_three=True)
+            if not (best_pick is None):
+                turn = Turn(Action_Type.TAKE_THREE_UNIQUE)
+                chosen_action_indexes['action_choice'] = Action_Type.TAKE_THREE_UNIQUE.value
+                chosen_action_indexes['pick_three_choice'] = best_pick
+                turn.resources_desired = [min(x, game.available_resources[i]) for i, x in enumerate(pick_three_choices.map_from_index(best_pick))]
+                fit_check = True
+
+        if fit_check == False:
+            # no fit found! just abort and return NOOP at this point.
+            return (Turn(Action_Type.NOOP),None)
+
+        ## map the chosen card index back into the chosen action indexes
+        if turn.card_index != None:
+            total_cards = game.config.total_available_card_indexes()
+            if turn.card_index >= total_cards:
+                chosen_action_indexes['reserve_buy'] = turn.card_index - total_cards
+            else:
+                chosen_action_indexes['card_buy'] = turn.card_index - total_cards
+            pass
         SimpleProfileAggregator.sample_static("action output, fit turn")
 
         #taking noble goes here
@@ -184,12 +191,9 @@ class ActionOutput:
             turn.set_discard_preferences(discard_choices.map_from_index(discard_choice))
         SimpleProfileAggregator.sample_static("action output, pick discard")
 
-        if action_attempts >= 4: #4 actions tested in a loop, and then a fallback permissive pick3 action must also fail
-            ## for training, may be best to provide a noop when the game state prohibits any other actions
-            return (Turn(Action_Type.NOOP),None)
         validate_msg = turn.validate(game,player)
         if validate_msg != None:
-            return "Something went wrong and the AI->game mapper couldn't coerce a valid state. tried " + str(action_attempts+1) + " times. " + validate_msg
+            return "AI->game mapper action was invalid: " + validate_msg
         
         SimpleProfileAggregator.sample_static("action output, validate turn")
         return (turn, chosen_action_indexes)
@@ -213,11 +217,11 @@ def _find_best_pick_three_from_tensor(q_vector_choice_pref: torch.Tensor,
                                       allow_fewer_than_three: bool = False)-> int:
     '''
     finds a valid pick three action with the highest q-value and returns the index of that value
+    if allow_fewer_than_three is true, then will return the first pick-three option which will net the player -at least one- token
     '''
 
-    if sum([1 if x > 0 else 0 for x in available_resources]) < 3:
-        if not allow_fewer_than_three:
-            return None
+    if sum([1 if x > 0 else 0 for x in available_resources]) < (1 if allow_fewer_than_three else 3):
+        return None
     sorted, indices = q_vector_choice_pref.sort(descending=True)
     for next_pref in range(len(q_vector_choice_pref)):
         index = indices[next_pref]

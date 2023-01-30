@@ -7,6 +7,7 @@ import json
 
 
 from game_model.turn import Action_Type, Turn
+from utilities.simple_profile import SimpleProfileAggregator
 
 ## ~ apprx 2500 bytes per game mem. this is 250 megabytes.
 ## only this # will be a valid range to query from the api.
@@ -16,16 +17,22 @@ max_game_memory_size = 100000
 class BoundData:
     def __init__(self):
         self.game : Game
+        self.replay_observability_enabled: bool = False
         self.game_json_memory: list[dict[str, dict]] = []
     
     def on_next_game_state(self, game: Game, turn: Turn):
+        SimpleProfileAggregator.sample_static("unknown")
         self.game = game
-        self.game_json_memory.append({
-            "game_state": copy.deepcopy(game_data.game.as_serializable_data()),
-            "turn_taken": copy.deepcopy(turn.as_serializable_data()) if turn else None
-            })
+        if self.replay_observability_enabled:
+            self.game_json_memory.append({
+                "game_state": copy.deepcopy(game_data.game.as_serializable_data()),
+                "turn_taken": copy.deepcopy(turn.as_serializable_data()) if turn else None
+                })
+        else:
+            self.game_json_memory.append(None)
         if len(self.game_json_memory) > 100000:
             self.game_json_memory[-max_game_memory_size] = None
+        SimpleProfileAggregator.sample_static("copying turn/game state")
 
 
 
@@ -37,6 +44,14 @@ CORS(app)
 @app.route("/")
 def index():
     return "Welcome to the index"
+@app.route("/enable")
+def enable_observability():
+    game_data.replay_observability_enabled = True
+    return "enabled replay recording"
+@app.route("/disable")
+def disable_observability():
+    game_data.replay_observability_enabled = False
+    return "disabled replay recording"
 
 @app.route("/game/json")
 def get_game_json():

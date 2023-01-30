@@ -23,11 +23,32 @@ interface GameTurnResponse {
 function App() {
 
   const [gameData, setGameData] = useState<GameState | null>(null)
-  const [gameIndex, setGameIndex] = useState(0)
+  const [gameIndex, setGameIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    async function getGameIndex(): Promise<void> {
+      if(gameIndex != null) return
+      try{
+        await fetch('http://localhost:5000/enable');
+        var resp = await fetch('http://localhost:5000/history/length')
+        if(!resp.ok){
+          setGameIndex(0);
+          return;
+        }
+        var len: number = (await resp.json()).length;
+        setGameIndex(len)
+      }catch{
+        setGameIndex(0);
+      }
+    }
+
+    getGameIndex();
+  }, [gameIndex])
 
   useEffect(() => {
     async function getGameData(): Promise<void> {
       try{
+        if(gameIndex == null) return;
         var fetchResponse = await fetch('http://localhost:5000/history/game/' + gameIndex.toString());
         if(!fetchResponse.ok){
           setGameData(null);
@@ -47,12 +68,15 @@ function App() {
 
 
   function nextGameState(){
+    if(gameIndex == null) return;
     setGameIndex(gameIndex + 1);
   }
   function lastGameState(){
+    if(gameIndex == null) return;
     setGameIndex(gameIndex - 1);
   }
   function setGameIndexFromText(indexStr: React.FormEvent<HTMLInputElement>){
+    if(gameIndex == null) return;
     let index = parseInt(indexStr.currentTarget.value)
     if(Number.isNaN(index)){
       return;
@@ -63,9 +87,9 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <span className="Game-state-button" onClick={lastGameState}>Previous game state ({gameIndex - 1})</span>
-        <input onChange={setGameIndexFromText}/>
-        <span className="Game-state-button" onClick={nextGameState}>Next game state ({gameIndex + 1})</span>
+        <span className="Game-state-button" onClick={lastGameState}>Previous game state ({gameIndex == null ? "?" : gameIndex - 1})</span>
+        <input onChange={setGameIndexFromText} value={gameIndex == null ? "" : gameIndex}/>
+        <span className="Game-state-button" onClick={nextGameState}>Next game state ({gameIndex == null ? "?" : gameIndex + 1})</span>
       </header>
         {
           gameData == null ?

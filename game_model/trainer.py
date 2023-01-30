@@ -152,6 +152,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
             # Play move
             step_status = step_game(game, next_action)
+            turn_profiler.sample("game step")
             on_game_changed(game, next_action)
 
             current_player = game.get_current_player()
@@ -170,7 +171,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
             # Store reward in memory
             player_mem.reward_new = reward_dict
-            turn_profiler.sample("updating game")
+            turn_profiler.sample("post-game stats/reward")
 
 
             if game.get_current_player().qualifies_to_win():
