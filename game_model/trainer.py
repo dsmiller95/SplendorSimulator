@@ -84,11 +84,19 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     play_stats: dict[str, float | list[float]] = {}
 
     def play(target_model: SplendidSplendorModel) -> list[ReplayMemoryEntry]:
-        play_stats['mandatory discarded tokens'] = []
-        play_stats['optional discarded tokens'] = []
-        play_stats['hand tokens'] = []
-        play_stats['reserved cards'] = []
-        play_stats['noop actions'] = []
+        stats_tracker = {}
+        stats_tracker['mandatory discarded tokens'] = 0
+        stats_tracker['optional discarded tokens'] = 0
+        stats_tracker['hand tokens'] = 0
+        stats_tracker['reserved cards'] = 0
+        stats_tracker['actions'] = {
+            Action_Type.BUY_CARD: 0,
+            Action_Type.RESERVE_CARD: 0,
+            Action_Type.TAKE_THREE_UNIQUE: 0,
+            Action_Type.TAKE_TWO: 0,
+            Action_Type.NOOP: 0,
+        }
+        stats_tracker['total_play_rounds'] = 0
 
         # Instantiate memory
         target_model = target_model.to(device) 
@@ -96,14 +104,20 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         while len(replay_memory) < settings['memory_length']:
             len_left_in_replay: int = settings['memory_length'] - len(replay_memory)
             ## at least 16 turns. there was an edge case in our end-game code, making the assumption that at least one full loop of play had completed
-            len_left_in_replay = max(len_left_in_replay, 16)  
-            replay_memory += play_single_game(target_model,len_left_in_replay)
+            len_left_in_replay = max(len_left_in_replay, 16)
+            replay_memory += play_single_game(target_model, len_left_in_replay, stats_tracker)
         
-        for key in play_stats:
-            play_stats[key] = sum(play_stats[key]) / len(play_stats[key])
+
+        for key in stats_tracker:
+            if key == 'actions' or key == 'total_play_rounds':
+                continue
+            play_stats[key] = stats_tracker[key] / stats_tracker['total_play_rounds']
+        for key in stats_tracker['actions']:
+            play_stats["action taken/" + key.name] = stats_tracker['actions'][key] / stats_tracker['total_play_rounds']
+        
         return replay_memory
     
-    def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int) -> list[ReplayMemoryEntry]:
+    def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int, statistic_tracker: dict) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
         
         player_count = random.randint(2,4) if settings['randomize_player_num'] else 4
@@ -147,7 +161,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
             # Pick the highest Q-valued action that works in the game
             (next_action, chosen_Action) = _get_next_action_from_forward_result(Q, game)
-            play_stats['noop actions'].append(1 if next_action.action_type == Action_Type.NOOP else 0)
+            statistic_tracker['actions'][next_action.action_type] += 1
+            statistic_tracker['total_play_rounds'] += 1
 
             player_mem.taken_action = chosen_Action.remap(lambda x: x.detach()) #detach to not waste memory
             player_mem.num_players = game.get_num_players()
@@ -159,10 +174,10 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             turn_profiler.sample("game step")
             on_game_changed(game, next_action)
 
-            play_stats['mandatory discarded tokens'].append(next_action.last_discarded_mandatory)
-            play_stats['optional discarded tokens'].append(next_action.last_discarded_optional)
-            play_stats['hand tokens'].append(current_player.total_tokens())
-            play_stats['reserved cards'].append(sum([0 if x is None else 1 for x in current_player.reserved_cards]))
+            statistic_tracker['mandatory discarded tokens'] += next_action.last_discarded_mandatory
+            statistic_tracker['optional discarded tokens'] += next_action.last_discarded_optional
+            statistic_tracker['hand tokens'] += current_player.total_tokens()
+            statistic_tracker['reserved cards'] += sum([0 if x is None else 1 for x in current_player.reserved_cards])
 
             next_player_index = game.active_index
             if not (step_status is None):
