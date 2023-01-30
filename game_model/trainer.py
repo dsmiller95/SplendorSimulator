@@ -314,9 +314,9 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
     for epoch in range(settings['epochs']):
         replay_memory = play(target_model)
-        #target_model = learn(target_model,replay_memory)
-        learner = Learner(target_model,replay_memory,settings,writer)
-        target_model = learner.learn()
+        target_model = learn(target_model,replay_memory)
+        #learner = Learner(target_model,replay_memory,settings,writer)
+        #target_model = learner.learn()
         step_tracker['epoch'] += 1
         torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
 
