@@ -1,6 +1,7 @@
 export interface Turn {
   type: TurnType;
-  discarded: number;
+  discarded_optional: number;
+  discarded_mandatory: number;
   resources_desired: number[];
   card_index: number;
   noble_preference: number;

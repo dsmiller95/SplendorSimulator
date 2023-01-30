@@ -1,7 +1,7 @@
 from game_model.game import Game
 
 class Reward:
-    def __init__(self, game_state: Game, player_index: int, settings: dict) -> float:
+    def __init__(self, game_state: Game, player_index: int, settings: dict):
         self.current_player = game_state.get_player(player_index)
         self.game_state = game_state
         self.settings = settings

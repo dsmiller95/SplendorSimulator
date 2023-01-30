@@ -83,7 +83,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     play_stats: dict[str, float | list[float]] = {}
 
     def play(target_model: SplendidSplendorModel) -> list[ReplayMemoryEntry]:
-        play_stats['discarded tokens'] = []
+        play_stats['mandatory discarded tokens'] = []
+        play_stats['optional discarded tokens'] = []
         play_stats['hand tokens'] = []
         play_stats['reserved cards'] = []
         play_stats['noop actions'] = []
@@ -151,12 +152,13 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             turn_profiler.sample("output mapping to action")
 
             # Play move
+            current_player = game.get_current_player()
             step_status = step_game(game, next_action)
             turn_profiler.sample("game step")
             on_game_changed(game, next_action)
 
-            current_player = game.get_current_player()
-            play_stats['discarded tokens'].append(next_action.last_discarded_actual)
+            play_stats['mandatory discarded tokens'].append(next_action.last_discarded_mandatory)
+            play_stats['optional discarded tokens'].append(next_action.last_discarded_optional)
             play_stats['hand tokens'].append(current_player.total_tokens())
             play_stats['reserved cards'].append(sum([0 if x is None else 1 for x in current_player.reserved_cards]))
 

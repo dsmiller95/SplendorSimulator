@@ -46,6 +46,9 @@ class Turn:
         self.noble_preference = noble_preference
 
         self.set_discard_preferences(discard_preference_levels)
+        
+        self.last_discarded_mandatory = 0
+        self.last_discarded_optional = 0
 
     def set_discard_preferences(self, new_preferences: list[int]):
         if len(new_preferences) < 6:
@@ -198,24 +201,25 @@ class Turn:
 
     def _discard_down(self, game_state: Game, player: Actor):
         ## first discard outright if values round to >1
-        self.last_discarded_actual = 0
+        self.last_discarded_optional = 0
         for discard_command in self._discard_commands:
             true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
             if true_amount <= 0:
                 continue
             game_state.give_tokens_to_player(player, discard_command[0].value, -true_amount)
-            self.last_discarded_actual += true_amount
+            self.last_discarded_optional += true_amount
 
         total_tokens = sum(player.resource_tokens)
         if total_tokens <= 10:
             return
 
+        self.last_discarded_mandatory = 0
         for try_num in range(0, 4):
             for next_discard in self._discard_commands:
                 if player.resource_tokens[next_discard[0].value] > 0:
                     total_tokens -= 1
                     game_state.give_tokens_to_player(player, next_discard[0].value, -1)
-                    self.last_discarded_actual += 1
+                    self.last_discarded_mandatory += 1
                     if total_tokens <= 10:
                         return
 
@@ -224,7 +228,8 @@ class Turn:
     def as_serializable_data(self) -> dict:
         return {
             "type" : self.action_type.name,
-            "discarded": self.last_discarded_actual,
+            "discarded_optional": self.last_discarded_optional,
+            "discarded_mandatory": self.last_discarded_mandatory,
             "resource_desired": self.resources_desired,
             "card_index": self.card_index,
             "noble_preference": self.noble_preference,
