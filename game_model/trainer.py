@@ -26,23 +26,23 @@ from game_model.AI_model.dataloader import BellmanEquationDataSet
 
 # Default hyperparameters
 settings: dict[str,float|int] = {}
-settings['learning_rate']: float = 0.0001 
-settings['gamma']: float = 0.99 #discount factor, how much it cares about future reward vs current reward
+settings['learning_rate']: float = 0.00001 
+settings['gamma']: float = 0.9975 #discount factor, how much it cares about future reward vs current reward
             #(0: only current, 1: current and all future states)
-settings['epsilon']: float = 0.5 #how often to pick the maximum-Q-valued action
+settings['epsilon']: float = 0.1 #how often to pick the maximum-Q-valued action
 settings['memory_length']: int = 1000      #number of rounds to play of the game
 settings['batch_size']: int = 1000 #so that we don't run out of memory accidentally
-settings['reps_per_play_sess']: int = 10 #how many times to train over the same replay memory buffer
-settings['epochs']: int = 1 #how many play->learn cycles to run
-settings['hidden_layer_width'] = 128 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
-settings['n_hidden_layers'] = 3
+settings['reps_per_play_sess']: int = 1 #how many times to train over the same replay memory buffer
+settings['epochs']: int = 100000 #how many play->learn cycles to run
+settings['hidden_layer_width'] = 1032 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
+settings['n_hidden_layers'] = 64
 
 # Rewards: [use this reward?, value of this reward]
 settings['tokens_held'] = [False,1.0]
-settings['cards_held'] = [False,1.0]
+settings['cards_held'] = [False,0.5]
 settings['points'] = [True,5.0]
 settings['win_lose'] = [True,200]
-settings['length_of_game'] = [True,-0.1]
+settings['length_of_game'] = [True,-0.5]
 
 settings['play_device'] = "cuda"
 settings['learn_device'] = "cuda"
@@ -119,7 +119,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         writer.add_scalar('Avg turns to win (epoch)',_avg_turns_to_win(replay_memory),step_tracker['epoch'])
         for key in play_stats:
             writer.add_scalar('Gameplay (epoch)/' + key,play_stats[key],step_tracker['epoch'])
-            
+
         return replay_memory
     
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int, statistic_tracker: dict) -> list[ReplayMemoryEntry]:
