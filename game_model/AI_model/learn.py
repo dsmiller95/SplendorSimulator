@@ -9,12 +9,6 @@ from game_model.AI_model.model import SplendidSplendorModel
 from game_model.AI_model.action_output import ActionOutput
 from game_model.replay_memory import ReplayMemoryEntry
 
-
-#TODO: abstract away the idea that a model must have a replay memory with certain properties (ref. lines )
-#TODO: implement an iteration/epoch tracker (should exist outside of this class)
-#TODO: put learning rate scheduling back in based off the epoch tracker
-#TODO:
-
 class Learner:
     '''Class for training the model'''
     def __init__(self, target_model: SplendidSplendorModel, replay_memory: list[ReplayMemoryEntry],settings: dict, writer: SummaryWriter):
@@ -37,7 +31,7 @@ class Learner:
             turn.game_state = turn.game_state.remap(lambda x: x.to(self.learn_device))
             turn.taken_action = turn.taken_action.remap(lambda x: x.to(self.learn_device))
             turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(self.learn_device))
-            turn.reward = turn.reward.remap(lambda x: x.to(self.learn_device))
+            turn.reward_new = turn.reward_new.remap(lambda x: x.to(self.learn_device))
             turn.is_last_turn = turn.is_last_turn.to(self.learn_device)
     
     def learn(self) -> SplendidSplendorModel:
@@ -51,6 +45,9 @@ class Learner:
                                                 eta_min=1e-12,
                                                 last_epoch=-1,
                                                 verbose=False)
+
+        #TODO: get a step tracker working
+        scheduler.step(0) #updates the scheduler to the current epoch "step"
 
         # Set up dataset
         dataset = BellmanEquationDataSet(self.replay_mem,self.learn_device)
@@ -128,7 +125,7 @@ class Learner:
 
         return next_Q_batch
 
-    def _avg_turns_to_win(self,replay_memory: list[ReplayMemoryEntry]) -> int:
+    def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
         total_len = len(replay_memory)
         last_round_count: float = sum([(1.0/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
 

@@ -190,7 +190,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             reward_dict = player_mem.taken_action.remap(lambda x: transition_reward * x)
 
             # Store reward in memory
-            player_mem.reward_new = reward_dict
+            player_mem.reward = reward_dict
             turn_profiler.sample("post-game stats/reward")
 
 
@@ -215,7 +215,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                 last_turn_player.is_last_turn = torch.as_tensor(int(1))
                 reward = Reward(game,player_index,settings).all_rewards()
                 reward_dict = last_turn_player.taken_action.remap(lambda x: reward * x)
-                last_turn_player.reward_new = reward_dict
+                last_turn_player.reward = reward_dict
         
         return replay_memory
     
@@ -252,7 +252,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             turn.game_state = turn.game_state.remap(lambda x: x.to(learn_device))
             turn.taken_action = turn.taken_action.remap(lambda x: x.to(learn_device))
             turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(learn_device))
-            turn.reward_new = turn.reward_new.remap(lambda x: x.to(learn_device))
+            turn.reward = turn.reward.remap(lambda x: x.to(learn_device))
             turn.is_last_turn = turn.is_last_turn.to(learn_device)
 
         # Set up dataset
