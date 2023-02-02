@@ -31,7 +31,7 @@ class Learner:
             turn.game_state = turn.game_state.remap(lambda x: x.to(self.learn_device))
             turn.taken_action = turn.taken_action.remap(lambda x: x.to(self.learn_device))
             turn.next_turn_game_state = turn.next_turn_game_state.remap(lambda x: x.to(self.learn_device))
-            turn.reward_new = turn.reward_new.remap(lambda x: x.to(self.learn_device))
+            turn.reward = turn.reward.remap(lambda x: x.to(self.learn_device))
             turn.is_last_turn = turn.is_last_turn.to(self.learn_device)
     
     def learn(self) -> SplendidSplendorModel:
