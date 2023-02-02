@@ -11,11 +11,12 @@ from game_model.replay_memory import ReplayMemoryEntry
 
 class Learner:
     '''Class for training the model'''
-    def __init__(self, target_model: SplendidSplendorModel, replay_memory: list[ReplayMemoryEntry],settings: dict, writer: SummaryWriter):
+    def __init__(self, target_model: SplendidSplendorModel, replay_memory: list[ReplayMemoryEntry],settings: dict, writer: SummaryWriter,step_tracker:dict[str,int]):
         self.target_model = target_model
         self.replay_mem = replay_memory
         self.settings = settings
         self.writer = writer
+        self.step_tracker = step_tracker
 
         # Transfer params of target model to a learner model and set training mode
         self.model = deepcopy(self.target_model)
@@ -47,11 +48,11 @@ class Learner:
                                                 verbose=False)
 
         #TODO: get a step tracker working
-        scheduler.step(0) #updates the scheduler to the current epoch "step"
+        scheduler.step(self.step_tracker['epoch']) #updates the scheduler to the current epoch "step"
 
         # Set up dataset
         dataset = BellmanEquationDataSet(self.replay_mem,self.learn_device)
-        
+
         for i in range(self.settings['reps_per_play_sess']):
             # Instantiate dataloader for each epoch
             dataloader = DataLoader(dataset,
@@ -67,7 +68,7 @@ class Learner:
 
                 Q_batch = self.model.forward(current_game_states)
                 next_Q_batch = self.target_model.forward(next_game_states)
-                # Warning: this modifies next_Q_dicts in-place. next_Q_dicts is equal to target
+                # Warning: this modifies next_Q_batch in-place. next_Q_batch is equal to target_batch
                 output_shape_dict = ActionOutput().in_dict_form()
                 target_batch = self._target_Q(next_Q_batch,rewards,self.settings['gamma'],is_last_turns, output_shape_dict.index_dict)
 
@@ -78,6 +79,8 @@ class Learner:
 
                 batch_len: int = int(current_game_states.size()[0])
                 loss_amount = loss.detach().item()/batch_len
+                self.writer.add_scalar('net loss (iter)', loss_amount,self.step_tracker["total_learn_iters"])
+
 
                 optimizer.step() #update the weights
 
@@ -85,6 +88,12 @@ class Learner:
                 
                 # Overwrite the target model with the (hopefully) more better model
                 self.target_model = deepcopy(self.model)
+
+                self.step_tracker["learn_loop_iters"] += 1
+                self.step_tracker["total_learn_iters"] += 1
+
+            self.writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], self.step_tracker['epoch'])
+        self.step_tracker["learn_loop_iters"] = 0
 
         return self.target_model
 
@@ -124,13 +133,3 @@ class Learner:
             next_Q_batch[:,action_range[0]:action_range[1]] = target_result
 
         return next_Q_batch
-
-    def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
-        total_len = len(replay_memory)
-        last_round_count: float = sum([(1.0/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
-
-        # something produces a divide-by-0 error but I can't reproduce it consistently, figure out later
-        try:
-            return ceil(total_len/last_round_count)
-        except:
-            return(self.settings['memory_length'])

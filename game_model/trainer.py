@@ -116,6 +116,10 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         for key in stats_tracker['actions']:
             play_stats["action taken/" + key.name] = stats_tracker['actions'][key] / stats_tracker['total_play_rounds']
         
+        writer.add_scalar('Avg turns to win (epoch)',_avg_turns_to_win(replay_memory),step_tracker['epoch'])
+        for key in play_stats:
+            writer.add_scalar('Gameplay (epoch)/' + key,play_stats[key],step_tracker['epoch'])
+            
         return replay_memory
     
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int, statistic_tracker: dict) -> list[ReplayMemoryEntry]:
@@ -219,7 +223,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         
         return replay_memory
     
-    
+    '''
     def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
         # Transfer params of target model to a learner model and set training mode
         model = deepcopy(target_model)
@@ -276,7 +280,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                 Q_batch = model.forward(current_game_states, learn_profiler)
                 next_Q_batch = target_model.forward(next_game_states, learn_profiler)
                 # Warning: this modifies next_Q_dicts in-place. next_Q_dicts is equal to target
-                target_batch = target_Q(next_Q_batch,rewards,settings['gamma'],is_last_turns, output_shape_dict.index_dict)
+                target_batch = _target_Q(next_Q_batch,rewards,settings['gamma'],is_last_turns, output_shape_dict.index_dict)
 
                 optimizer.zero_grad()
 
@@ -310,19 +314,15 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             writer.add_scalar('Learning rate (epoch)', scheduler._last_lr[0], step_tracker['epoch'])
         step_tracker["learn_loop_iters"] = 0
         return target_model
-    
+    '''
 
     for epoch in range(settings['epochs']):
         replay_memory = play(target_model)
-        target_model = learn(target_model,replay_memory)
-        #learner = Learner(target_model,replay_memory,settings,writer)
-        #target_model = learner.learn()
+        #target_model = learn(target_model,replay_memory)
+        learner = Learner(target_model,replay_memory,settings,writer,step_tracker)
+        target_model = learner.learn()
         step_tracker['epoch'] += 1
         torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
-
-def _get_next_action_from_forward_result(forward: BetterParamDict[torch.Tensor], game: Game) -> tuple[Turn | str, BetterParamDict[torch.Tensor]]:
-    """Get the next action from the model's forward pass result."""
-    return ActionOutput.map_from_AI_output(forward, game, game.get_current_player())
 
 def _epsilon_greedy(Q: BetterParamDict[torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued
@@ -359,7 +359,7 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     except:
         return(settings['memory_length'])
 
-def target_Q(next_Q_batch: torch.Tensor, ## a 2D tensor, <batch dim> x <output size>
+def _target_Q(next_Q_batch: torch.Tensor, ## a 2D tensor, <batch dim> x <output size>
         reward_batch: torch.Tensor,     ## a 2D tensor, <batch dim> x <output size>
         gamma:float,
         is_last_turn:torch.Tensor,
