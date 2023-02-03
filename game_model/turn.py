@@ -80,6 +80,7 @@ class Turn:
         return result
 
     def validate(self, game_state: Game, player: Actor) -> str:
+        '''Check that a turn is valid, if it's not, return the reason that it isn't'''
         ## passing turn is always valid, for testing purposes
         if self.action_type == Action_Type.NOOP:
             return None
@@ -210,7 +211,7 @@ class Turn:
             self.last_discarded_optional += true_amount
 
         total_tokens = sum(player.resource_tokens)
-        if total_tokens <= 10:
+        if total_tokens <= 7:
             return
 
         self.last_discarded_mandatory = 0
