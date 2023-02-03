@@ -71,7 +71,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         output_shape_dict.get_backing_len(), 
         settings['hidden_layer_width'], 
         settings['n_hidden_layers'])
-    if exists('AI_model/SplendidSplendor-model.pkl'):
+    if exists('game_model/AI_model/SplendidSplendor-model.pkl'):
         target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
     target_model = target_model.to(play_device) 
