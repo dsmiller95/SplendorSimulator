@@ -19,6 +19,7 @@ class ReplayMemoryEntry:
         
         # some information about the game being played in this turn
         self.num_players: int = None
+        self.player_type: str = None
 
 
 

@@ -7,7 +7,7 @@ from utilities.simple_profile import SimpleProfileAggregator
 class SplendidSplendorModel(nn.Module):
     def __init__(self, input_len: int, output_len: int, hidden_layers_width: int, hidden_layers_num: int):
         '''Takes input and output objects in a dict form, with the keys being the input/output
-        names and the values being 1: length of vectors needed and 2: clamp bounds (output dict only).
+        names and the values being the length of the vectors needed.
         Takes hidden layer parameters to construct an arbitrary multi-layer perceptron'''
         super().__init__()
         self.hidden_num = hidden_layers_num
@@ -49,3 +49,14 @@ class SplendidSplendorModel(nn.Module):
             profiler.sample("output lane")
 
         return output
+
+class RandomModel():
+    def __init__(self, input_len: int, output_len: int):
+        '''Takes output objects in a dict form.
+        Outputs random normal distribution to output tensor'''
+        super().__init__()
+        self.input_shape = input_len
+        self.output_shape = output_len
+    
+    def forward(self,input: torch.Tensor) -> torch.Tensor:
+        return torch.randn(self.output_shape)
