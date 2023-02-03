@@ -215,13 +215,13 @@ class Turn:
             return
 
         self.last_discarded_mandatory = 0
-        for try_num in range(0, 4):
+        for try_num in range(5):
             for next_discard in self._discard_commands:
                 if player.resource_tokens[next_discard[0].value] > 0:
                     total_tokens -= 1
                     game_state.give_tokens_to_player(player, next_discard[0].value, -1)
                     self.last_discarded_mandatory += 1
-                    if total_tokens <= 10:
+                    if total_tokens <= 7:
                         return
 
         raise RuntimeError("could not discard down enough. error in discard down algorithm")

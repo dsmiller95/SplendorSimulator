@@ -1,7 +1,6 @@
 import random
 from math import ceil
 from os.path import exists
-import threading
 from typing import Callable
 import torch
 from yaml import safe_load as load
@@ -18,11 +17,6 @@ from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
 from utilities.better_param_dict import BetterParamDict
 from utilities.simple_profile import SimpleProfileAggregator
-
-from copy import deepcopy
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from torch.utils.data import DataLoader
-from game_model.AI_model.dataloader import BellmanEquationDataSet
 
 # Default hyperparameters
 settings: dict[str,float|int] = {}
@@ -77,9 +71,9 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         output_shape_dict.get_backing_len(), 
         settings['hidden_layer_width'], 
         settings['n_hidden_layers'])
-    #if exists('AI_model/SplendidSplendor-model.pkl'):
-    #    target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
-    #                                     map_location='cpu'))
+    if exists('AI_model/SplendidSplendor-model.pkl'):
+        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
+                                         map_location='cpu'))
     target_model = target_model.to(play_device) 
 
     play_stats: dict[str, float | list[float]] = {}
