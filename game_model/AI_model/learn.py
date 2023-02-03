@@ -39,7 +39,7 @@ class Learner:
         
         # Define loss function and optimizer
         loss_fn = torch.nn.MSELoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.settings['learning_rate'])
+        optimizer = torch.optim.SGD(self.model.parameters(), lr=self.settings['learning_rate'])
         scheduler = CosineAnnealingWarmRestarts(optimizer,
                                                 T_0=2,
                                                 T_mult=2,
