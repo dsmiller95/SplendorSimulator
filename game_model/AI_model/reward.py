@@ -16,22 +16,24 @@ class Reward:
         return reward
 
     def tokens_held_reward(self) -> float:
-        reward = self._get_reward_from_setting(self.settings['tokens_held'])
+        reward_mul = self._get_reward_from_setting(self.settings['tokens_held'])
+        reward: float = 0.0
         for i in range(5):
-            reward += self.current_player.resource_tokens[i]        
+            reward += self.current_player.resource_tokens[i] * reward_mul
         ## gold token is worth 1.5 regular resource tokens
-        reward += self.current_player.resource_tokens[5] * 1.5
+        reward += self.current_player.resource_tokens[5] * 1.5 *reward_mul
         return reward
 
     def cards_held_reward(self) -> float:
-        reward = self._get_reward_from_setting(self.settings['cards_held'])
+        reward_mul = self._get_reward_from_setting(self.settings['cards_held'])
+        reward: float = 0.0
         for i in range(5):
-            reward += self.current_player.resource_persistent[i] * 1
+            reward += self.current_player.resource_persistent[i] * reward_mul
         return reward
     
     def points_reward(self) -> float:
-        reward = self._get_reward_from_setting(self.settings['points'])
-        reward = self.current_player.sum_points * 10
+        reward_mul = self._get_reward_from_setting(self.settings['points'])
+        reward = self.current_player.sum_points * reward_mul
         return reward
 
     def win_lose_reward(self) -> float:
@@ -44,8 +46,8 @@ class Reward:
             return 0.0
 
     def length_of_game_reward(self) -> float:
-        reward = self._get_reward_from_setting(self.settings['length_of_game'])
-        return reward * float(self.game_state.turn_n)
+        reward_mul = self._get_reward_from_setting(self.settings['length_of_game'])
+        return reward_mul * float(self.game_state.turn_n)
 
     def _get_reward_from_setting(self,setting: list) -> float:
         return (setting[1] if setting[0] else 0.0)
