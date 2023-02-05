@@ -1,5 +1,6 @@
 import random
 from math import ceil
+from copy import deepcopy
 from os.path import exists
 from typing import Callable
 import torch
@@ -72,6 +73,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         settings['hidden_layer_width'], 
         settings['n_hidden_layers'])
     if exists('game_model/AI_model/SplendidSplendor-model.pkl'):
+        print('saved model exists, loading it now')
         target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
                                          map_location='cpu'))
     target_model = target_model.to(play_device) 
@@ -156,7 +158,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             turn_profiler.sample("q greedy")
 
             # Get the reward at initial state
-            init_reward = Reward(game,game.get_current_player_index(),settings).all_rewards()
+            reward = Reward(deepcopy(game),game.get_current_player_index(),settings)
+            init_reward = reward.all_rewards()
 
             # Pick the highest Q-valued action that works in the game
             (next_action, chosen_Action) = ActionOutput.map_from_AI_output(Q, game, game.get_current_player())
@@ -168,8 +171,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             turn_profiler.sample("output mapping to action")
 
             # Play move
-            current_player = game.get_current_player()
             step_status = step_game(game, next_action)
+            current_player = game.get_current_player() #I think this is actually taking the data from the next player in turn?
             turn_profiler.sample("game step")
             on_game_changed(game, next_action)
 
@@ -184,7 +187,8 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
             # Get reward from state transition, and convert to dict form 
             next_reward = Reward(game,game.get_current_player_index(),settings).all_rewards()
-            transition_reward = next_reward - init_reward
+            gasoline = reward.you_were_a_schemer(game,anarchy_coeff=5.0)
+            transition_reward = next_reward - init_reward + gasoline
             reward_dict = player_mem.taken_action.remap(lambda x: transition_reward * x)
 
             # Store reward in memory
@@ -348,10 +352,10 @@ def _avg_turns_to_win(replay_memory: list[ReplayMemoryEntry]) -> int:
     last_round_count: float = sum([(1.0/x.num_players) if x.is_last_turn == 1 else 0 for x in replay_memory])
 
     # something produces a divide-by-0 error but I can't reproduce it consistently, figure out later
-    try:
+    if last_round_count > 0:
         return ceil(total_len/last_round_count)
-    except:
-        return(settings['memory_length'])
+    else:
+        return(total_len)
 
 def _target_Q(next_Q_batch: torch.Tensor, ## a 2D tensor, <batch dim> x <output size>
         reward_batch: torch.Tensor,     ## a 2D tensor, <batch dim> x <output size>

@@ -14,6 +14,7 @@ class SplendidSplendorModel(nn.Module):
         self.hidden_width = hidden_layers_width
         self.input_lane = nn.Linear(in_features = input_len, out_features = self.hidden_width)
         self.in_activation = nn.ReLU()
+        self.name:str = "DQNN Perceptron"
         
         hidden_layer = nn.Sequential(nn.Linear(self.hidden_width,self.hidden_width),nn.ReLU())
         self.hidden_layers = nn.ModuleList([hidden_layer for i in range(self.hidden_num)])
@@ -57,6 +58,7 @@ class RandomModel():
         super().__init__()
         self.input_shape = input_len
         self.output_shape = output_len
+        self.name:str = "Random Normal"
     
     def forward(self,input: torch.Tensor) -> torch.Tensor:
         return torch.randn(self.output_shape)

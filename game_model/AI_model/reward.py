@@ -1,8 +1,11 @@
 from game_model.game import Game
+from random import randint,random
+from game_model.actor import Actor
 
 class Reward:
     def __init__(self, game_state: Game, player_index: int, settings: dict):
-        self.current_player = game_state.get_player(player_index)
+        self.current_player: Actor = game_state.get_player(player_index)
+        self.current_player_index: int = player_index
         self.game_state = game_state
         self.settings = settings
         
@@ -48,6 +51,25 @@ class Reward:
     def length_of_game_reward(self) -> float:
         reward_mul = self._get_reward_from_setting(self.settings['length_of_game'])
         return reward_mul * float(self.game_state.turn_n)
+    
+    def you_were_a_schemer(self,next_game_state: Game, anarchy_coeff: float) -> float:
+        you_had_plans = self.current_player.as_serializable_data()
+        your_little_plan = next_game_state.get_player(self.current_player_index).as_serializable_data()
+        turned_it_on_itself = you_had_plans == your_little_plan
+        if turned_it_on_itself:
+            print('joker mode activated')
+            silver_dollar = randint(0,1)
+            you_live = silver_dollar == 0
+            you_die = silver_dollar == 1
+            if you_live:
+                return -1.0 * anarchy_coeff
+            else:
+                a_little_anarchy:float = -random() * anarchy_coeff
+                return a_little_anarchy
+        else:
+            print('according to plan')
+            according_to_plan: float = 0.0
+            return according_to_plan
 
     def _get_reward_from_setting(self,setting: list) -> float:
         return (setting[1] if setting[0] else 0.0)
