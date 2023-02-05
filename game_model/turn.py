@@ -201,15 +201,19 @@ class Turn:
         player.sum_points += chosen_noble.points
 
     def _discard_down(self, game_state: Game, player: Actor):
-        ## first discard outright if values round to >1
+        # first discard outright if values round to >1
+
+        #remove its ability to voluntarily discard, but keep its ability to choose what will be discarded if it goes over 7 tokens
+        '''
         self.last_discarded_optional = 0
         for discard_command in self._discard_commands:
-            true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
-            if true_amount <= 0:
-                continue
-            game_state.give_tokens_to_player(player, discard_command[0].value, -true_amount)
-            self.last_discarded_optional += true_amount
-
+           true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
+           if true_amount <= 0:
+               continue
+           game_state.give_tokens_to_player(player, discard_command[0].value, -true_amount)
+           self.last_discarded_optional += true_amount
+        '''
+        
         total_tokens = sum(player.resource_tokens)
         if total_tokens <= 7:
             return

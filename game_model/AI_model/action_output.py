@@ -187,8 +187,7 @@ class ActionOutput:
         # discarding tokens goes here
         discard_choice = _find_valid_discard_options(action_output.discard_combination_choice, player.resource_tokens, turn)
         if discard_choice is not None:
-            #remove its ability to voluntarily discard, but keep its ability to choose what will be discarded if it goes over 7 tokens
-            #chosen_action_indexes['discard_combination_choice'] = discard_choice 
+            chosen_action_indexes['discard_combination_choice'] = discard_choice 
             turn.set_discard_preferences(discard_choices.map_from_index(discard_choice))
         SimpleProfileAggregator.sample_static("action output, pick discard")
 
