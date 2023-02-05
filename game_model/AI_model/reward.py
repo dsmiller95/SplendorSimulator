@@ -57,7 +57,6 @@ class Reward:
         your_little_plan = next_game_state.get_player(self.current_player_index).as_serializable_data()
         turned_it_on_itself = you_had_plans == your_little_plan
         if turned_it_on_itself:
-            print('joker mode activated')
             silver_dollar = randint(0,1)
             you_live = silver_dollar == 0
             you_die = silver_dollar == 1
@@ -67,7 +66,6 @@ class Reward:
                 a_little_anarchy:float = -random() * anarchy_coeff
                 return a_little_anarchy
         else:
-            print('according to plan')
             according_to_plan: float = 0.0
             return according_to_plan
 
