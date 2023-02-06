@@ -122,6 +122,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
         return replay_memory
     
+
     def play_single_game(target_model: SplendidSplendorModel,len_left_in_replay: int, statistic_tracker: dict) -> list[ReplayMemoryEntry]:
         replay_memory: list[ReplayMemoryEntry] = []
         
@@ -132,7 +133,6 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             
         won = False
         while not (won and next_player_index == 0):
-            ''' Use target network to play the games'''
             turn_profiler.begin_sample_run()
             # Map game state to AI input
             ai_input = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
@@ -140,6 +140,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             
             # Store game state in memory
             player_mem = ReplayMemoryEntry(ai_input)
+
             #save this game to the last turn of this player's memory
             if len(replay_memory) >= turns_since_last:
                 replay_memory[-turns_since_last].next_turn_game_state = ai_input
@@ -224,7 +225,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
                 last_turn_player.reward = reward_dict
         
         return replay_memory
-    
+
     '''
     def learn(target_model: SplendidSplendorModel,replay_memory: list[ReplayMemoryEntry]):
         # Transfer params of target model to a learner model and set training mode

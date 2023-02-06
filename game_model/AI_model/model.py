@@ -28,11 +28,6 @@ class SplendidSplendorModel(nn.Module):
             torch.nn.utils.weight_norm(m)
     
     def forward(self,input: torch.Tensor, profiler: SimpleProfileAggregator = None) -> torch.Tensor:
-        '''
-        input_dict is layed out the same way as the input_shape_dict, except the values are the
-        actual scalar vectors that get passed to the model {'in1':torch.Tensor[n], etc.} 
-        '''
-        
         output:torch.Tensor = self.input_lane.forward(input)
         if profiler is not None:
             profiler.sample("input lane")
