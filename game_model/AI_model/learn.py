@@ -38,7 +38,7 @@ class Learner:
     def learn(self) -> SplendidSplendorModel:
         
         # Define loss function and optimizer
-        loss_fn = torch.nn.MSELoss()
+        loss_fn = torch.nn.HuberLoss()
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.settings['learning_rate'])
         scheduler = CosineAnnealingWarmRestarts(optimizer,
                                                 T_0=2,
