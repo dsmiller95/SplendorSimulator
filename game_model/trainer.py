@@ -26,7 +26,7 @@ settings['gamma']: float = 0.9975 #discount factor, how much it cares about futu
             #(0: only current, 1: current and all future states)
 settings['epsilon']: float = 0.1 #how often to pick the maximum-Q-valued action
 settings['memory_length']: int = 1000      #number of rounds to play of the game
-settings['batch_size']: int = 1000 #so that we don't run out of memory accidentally
+settings['batch_size']: int = 1000
 settings['reps_per_play_sess']: int = 1 #how many times to train over the same replay memory buffer
 settings['epochs']: int = 100000 #how many play->learn cycles to run
 settings['hidden_layer_width'] = 1032 #I like to keep things like linear layer widths at multiples of 2 for faster GPU processing
@@ -38,10 +38,12 @@ settings['cards_held'] = [False,0.5]
 settings['points'] = [True,5.0]
 settings['win_lose'] = [True,200]
 settings['length_of_game'] = [True,-0.5]
+settings['joker_coeff'] = [True, 5.0]
 
 settings['play_device'] = "cuda"
 settings['learn_device'] = "cuda"
 settings['randomize_player_num'] = True
+settings['load_saved'] = True
 
 
 # Overwrite with user-defined parameters if they exist
@@ -72,10 +74,12 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         output_shape_dict.get_backing_len(), 
         settings['hidden_layer_width'], 
         settings['n_hidden_layers'])
-    if exists('game_model/AI_model/SplendidSplendor-model.pkl'):
+    if exists('game_model/AI_model/SplendidSplendor-model.pkl') and settings['load_saved']:
         print('saved model exists, loading it now')
-        target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',
-                                         map_location='cpu'))
+        try:
+            target_model.load_state_dict(torch.load('game_model/AI_model/SplendidSplendor-model.pkl',map_location='cpu'))
+        except:
+            print('model shape mismatch, going to overwrite the last model')
     target_model = target_model.to(play_device) 
 
     play_stats: dict[str, float | list[float]] = {}
