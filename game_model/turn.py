@@ -2,7 +2,7 @@ from enum import IntEnum
 from game_model.actor import Actor
 from game_model.card import Card
 from game_model.game import Game
-
+from game_data.game_config_data import GameConfigData
 from game_model.resource_types import ResourceType
 from game_model.turn_actions import add_reserved_card, purchase_card
 from utilities.print_utils import stringify_resources
@@ -25,6 +25,8 @@ Card indexes:                                                      ,------------
 """
 
 default_discard_pref = [.06, .05, .04, .03, .02, .01]
+
+game_config = game_config = GameConfigData.read_file("./game_data/cards.csv")
 
 class Turn:
     def __init__(
@@ -215,7 +217,7 @@ class Turn:
         '''
         
         total_tokens = sum(player.resource_tokens)
-        if total_tokens <= 7:
+        if total_tokens <= game_config.max_resource_tokens:
             return
 
         self.last_discarded_mandatory = 0
@@ -225,7 +227,7 @@ class Turn:
                     total_tokens -= 1
                     game_state.give_tokens_to_player(player, next_discard[0].value, -1)
                     self.last_discarded_mandatory += 1
-                    if total_tokens <= 7:
+                    if total_tokens <= game_config.max_resource_tokens:
                         return
 
         raise RuntimeError("could not discard down enough. error in discard down algorithm")
