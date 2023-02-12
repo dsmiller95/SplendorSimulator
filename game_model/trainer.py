@@ -164,6 +164,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             # Get the reward at initial state
             reward = Reward(deepcopy(game),game.get_current_player_index(),settings)
             init_reward = reward.all_rewards()
+            turn_profiler.sample("reward w/game deepcopy")
 
             # Pick the highest Q-valued action that works in the game
             (next_action, chosen_Action) = ActionOutput.map_from_AI_output(Q, game, game.get_current_player())
