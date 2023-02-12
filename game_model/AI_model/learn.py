@@ -36,6 +36,7 @@ class Learner:
             turn.is_last_turn = turn.is_last_turn.to(self.learn_device)
     
     def learn(self) -> SplendidSplendorModel:
+        output_shape_dict = ActionOutput().in_dict_form()
         
         # Define loss function and optimizer
         loss_fn = torch.nn.HuberLoss()
@@ -69,7 +70,6 @@ class Learner:
                 Q_batch = self.model.forward(current_game_states)
                 next_Q_batch = self.target_model.forward(next_game_states)
                 # Warning: this modifies next_Q_batch in-place. next_Q_batch is equal to target_batch
-                output_shape_dict = ActionOutput().in_dict_form()
                 target_batch = self._target_Q(next_Q_batch,rewards,self.settings['gamma'],is_last_turns, output_shape_dict.index_dict)
 
                 optimizer.zero_grad()
@@ -89,6 +89,7 @@ class Learner:
                 # Overwrite the target model with the (hopefully) more better model
                 self.target_model = deepcopy(self.model)
 
+                ## TODO: learn_loop_iters is unused, is it necessary?
                 self.step_tracker["learn_loop_iters"] += 1
                 self.step_tracker["total_learn_iters"] += 1
 
