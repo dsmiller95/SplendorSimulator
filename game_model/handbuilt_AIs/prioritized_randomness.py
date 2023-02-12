@@ -12,6 +12,8 @@ class PrioritizedRandomnessAI:
     If that fails, the AI will try to choose a random pick 3 action.
     If that fails, the AI will try to choose a random pick 2 action.
     If that fails, the AI will try to reserve a card
+    If that fails, the AI will pick as many unique tokens as it can (pick 3, but less than 3)
+    If that fails, NOOP 
     """
     def __init__(self):
         pass
