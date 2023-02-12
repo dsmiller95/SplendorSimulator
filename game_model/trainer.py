@@ -17,6 +17,7 @@ from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.learn import Learner
 from game_model.game_runner import step_game
 from game_model.handbuilt_AIs.prioritized_randomness import PrioritizedRandomnessAI
+from game_model.handbuilt_AIs.targeted_pick import TargetedPickAI
 from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
 from utilities.better_param_dict import BetterParamDict
@@ -353,10 +354,12 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
     def play_tourney_metrics(target_model: SplendidSplendorModel):
         target_model = target_model.to(play_device) 
         randomness_ai = PrioritizedRandomnessAI()
+        targeted_ai = TargetedPickAI()
         tournament_runner = TournamentRunner(
             {
                 "NeuralNet": lambda game: play_modeled_turn(game, target_model),
-                "PriorRandom": lambda game: randomness_ai.next_turn(game) 
+                "PriorRandom": lambda game: randomness_ai.next_turn(game),
+                "Targeted": lambda game: targeted_ai.next_turn(game)
             },
             game_config=game_config
         )

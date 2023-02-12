@@ -3,7 +3,7 @@ from typing import Callable
 from game_data.game_config_data import GameConfigData
 from game_model.game import Game
 from game_model.game_runner import step_game
-from game_model.turn import Turn
+from game_model.turn import Action_Type, Turn
 
 
 class TournamentRunner:
@@ -72,6 +72,8 @@ class TournamentRunner:
                 step_result = step_game(game, turn)
                 if not (step_result is None):
                     print("ERROR: invalid game step generated when running tourney with AI of name '" + participant_name + "' : " + step_result)
+                    turn = Turn(Action_Type.NOOP)
+                    step_game(game, turn)
                 if acting_player.qualifies_to_win():
                     won = True
         
