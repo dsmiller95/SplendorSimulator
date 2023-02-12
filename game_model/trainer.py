@@ -2,18 +2,21 @@ import random
 from math import ceil
 from copy import deepcopy
 from os.path import exists
+import time
 from typing import Callable
 import torch
 from yaml import safe_load as load
 from torch.utils.tensorboard import SummaryWriter
 from game_data.game_config_data import GameConfigData
 from game_model.AI_model.reward import Reward
+from game_model.AI_model.tournament_runner import TournamentRunner
 from game_model.game import Game
 from game_model.AI_model.model import SplendidSplendorModel
 from game_model.AI_model.gamestate_input import GamestateInputVector
 from game_model.AI_model.action_output import ActionOutput
 from game_model.AI_model.learn import Learner
 from game_model.game_runner import step_game
+from game_model.handbuilt_AIs.prioritized_randomness import PrioritizedRandomnessAI
 from game_model.turn import Action_Type, Turn
 from game_model.replay_memory import ReplayMemoryEntry
 from utilities.better_param_dict import BetterParamDict
@@ -44,6 +47,7 @@ settings['play_device'] = "cuda"
 settings['learn_device'] = "cuda"
 settings['randomize_player_num'] = True
 settings['load_saved'] = True
+settings['tournament_runs'] = 20
 
 
 # Overwrite with user-defined parameters if they exist
@@ -177,14 +181,14 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
 
             # Play move
             step_status = step_game(game, next_action)
-            current_player = game.get_current_player() #I think this is actually taking the data from the next player in turn?
+            acting_player = game.get_current_player() #I think this is actually taking the data from the next player in turn?
             turn_profiler.sample("game step")
             on_game_changed(game, next_action)
 
             statistic_tracker['mandatory discarded tokens'] += next_action.last_discarded_mandatory
             statistic_tracker['optional discarded tokens'] += next_action.last_discarded_optional
-            statistic_tracker['hand tokens'] += current_player.total_tokens()
-            statistic_tracker['reserved cards'] += sum([0 if x is None else 1 for x in current_player.reserved_cards])
+            statistic_tracker['hand tokens'] += acting_player.total_tokens()
+            statistic_tracker['reserved cards'] += sum([0 if x is None else 1 for x in acting_player.reserved_cards])
 
             next_player_index = game.active_index
             if not (step_status is None):
@@ -201,7 +205,7 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
             turn_profiler.sample("post-game stats/reward")
 
 
-            if game.get_current_player().qualifies_to_win():
+            if acting_player.qualifies_to_win():
                 won = True
 
             #Store turn in replay memory
@@ -319,6 +323,51 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         return target_model
     '''
 
+    def play_modeled_turn(game: Game, target_model: SplendidSplendorModel) -> Turn:
+        """
+        A simplified version of the play game code which will just return the next turn to take. will not
+        bother with replay memory of any kind, as this will only be used to collect performance metrics,
+        not train a network. if we need replay memory for diagnostics, the tournament runner can log it.
+        """
+        # Map game state to AI input
+        ai_input = GamestateInputVector.map_to_AI_input(game, input_shape_dict)
+
+        # Get model's predicted action
+        ai_input = ai_input.remap(lambda x: x.to(play_device))
+        ## TODO: what is this eval for? do we need this when we're just running the AI, not collecting training data?
+        target_model.eval()
+        with torch.no_grad(): #no need to save gradients since we're not backpropping, this saves a lot of time/memory
+            unshaped_Q = target_model.forward(ai_input.get_backing_packed_data()) #Q values == expected reward for an action taken
+            Q = BetterParamDict.reindex_over_new_data(output_shape_dict, unshaped_Q)
+            Q = Q.remap(lambda x: x.to(torch.device('cpu')))
+
+        # Apply epsilon greedy function to somewhat randomize the action picks for exploration
+        # TODO: for tournament runs should we use a different Q? or always pick the max-value?
+        Q = _epsilon_greedy(Q,settings['epsilon'])
+
+        # Pick the highest Q-valued action that works in the game
+        (next_action, chosen_Action) = ActionOutput.map_from_AI_output(Q, game, game.get_current_player())
+        return next_action
+
+    def play_tourney_metrics(target_model: SplendidSplendorModel):
+        target_model = target_model.to(play_device) 
+        randomness_ai = PrioritizedRandomnessAI()
+        tournament_runner = TournamentRunner(
+            {
+                "NeuralNet": lambda game: play_modeled_turn(game, target_model),
+                "PriorRandom": lambda game: randomness_ai.next_turn(game) 
+            },
+            game_config=game_config
+        )
+
+        tourney_start_time = time.time()
+        tournament_runner.run_tourney(settings['tournament_runs'], "NeuralNet")
+        tourney_runtime = time.time() - tourney_start_time
+        print("spent " + str(round(tourney_runtime * 1000)) + "ms running tourneys")
+        results = tournament_runner.raw_win_ratios()
+        for key in results:
+            writer.add_scalar('Tourney win ratio (epoch)/' + key,results[key],step_tracker['epoch'])
+
     for epoch in range(settings['epochs']):
         replay_memory = play(target_model)
         #target_model = learn(target_model,replay_memory)
@@ -326,6 +375,10 @@ def train(on_game_changed : Callable[[Game, Turn], None]):
         target_model = learner.learn()
         step_tracker['epoch'] += 1
         torch.save(target_model.state_dict(), 'game_model/AI_model/SplendidSplendor-model.pkl')
+
+        ## run tourneys
+        if settings['tournament_runs'] > 0:
+            play_tourney_metrics(target_model)
 
 def _epsilon_greedy(Q: BetterParamDict[torch.Tensor], epsilon: float):
     '''The epsilon greedy algorithm is supposed to choose the max Q-valued

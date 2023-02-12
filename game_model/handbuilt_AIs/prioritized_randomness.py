@@ -23,7 +23,7 @@ class PrioritizedRandomnessAI:
         # try to buy a reserved card
         for reserved_index in range(len(player.reserved_cards)):
             card = player.reserved_cards[reserved_index]
-            if player.can_purchase(card):
+            if card is not None and player.can_purchase(card):
                 return Turn(
                     Action_Type.BUY_CARD,
                     card_index=reserved_index + total_cards)
@@ -33,7 +33,7 @@ class PrioritizedRandomnessAI:
             if game.is_top_deck_index(card_index):
                 continue
             card_target = game.get_card_by_index(card_index)
-            if player.can_purchase(card_target):
+            if card_target is not None and player.can_purchase(card_target):
                 return Turn(
                     Action_Type.BUY_CARD,
                     card_index=card_index)
@@ -61,7 +61,7 @@ class PrioritizedRandomnessAI:
 
         ## Try to reserve a card
         if player.can_reserve_another():
-            valid_card_indexes = [i for i, x in range(0, total_cards) if game.get_card_by_index(x) is not None]
+            valid_card_indexes = [i for i in range(total_cards) if game.get_card_by_index(i) is not None]
             if len(valid_card_indexes) > 0:
                 picked_index = math.floor(random.random() * len(valid_card_indexes))
                 return Turn(

@@ -27,3 +27,6 @@ randomize_player_num: True
 play_device: "cuda"
 learn_device: "cuda"
 load_saved: True
+# the number of tournament runs to play every epoch as a training metric
+# these runs are not currently used as training data. they are only used as a metric
+tournament_runs: 20   
