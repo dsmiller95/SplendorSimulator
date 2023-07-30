@@ -8,5 +8,10 @@
     "cSpell.words": [
         "jsonify",
         "argmax"
-    ]
+    ],
+    "rust-analyzer.linkedProjects": [
+        ".\\rust_splendor\\Cargo.toml",
+        ".\\rust_splendor\\Cargo.toml"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false
 }
