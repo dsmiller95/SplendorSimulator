@@ -1,8 +1,8 @@
 
-pub mod game;
-pub mod actor;
-pub mod card;
-pub mod noble;
 mod constants;
-pub mod game_active_data;
+mod game_config;
+
+pub mod game_unsized;
+pub mod game_sized;
+pub mod game_components;
 
