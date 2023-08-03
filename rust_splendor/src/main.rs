@@ -1,6 +1,7 @@
 use crate::game_model::game_sized::GameSized;
 
 pub mod game_model;
+mod game_actions;
 
 fn main() {
     println!("Hello, world!");

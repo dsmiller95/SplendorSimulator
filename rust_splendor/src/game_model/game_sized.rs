@@ -1,4 +1,4 @@
-use crate::game_model::constants::{CARD_COUNT_PER_TIER, CARD_TIER_COUNT, COST_TYPE_COUNT, MAX_NOBLES, MAX_RESERVED_CARDS, RESOURCE_TYPE_COUNT};
+use crate::game_model::constants::{CARD_COUNT_PER_TIER, CARD_TIER_COUNT, RESOURCE_TYPE_COUNT, MAX_NOBLES, MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT};
 use crate::game_model::game_components::{Card, Noble};
 use super::constants::MAX_PLAYER_COUNT;
 
@@ -12,15 +12,15 @@ pub struct GameSized {
     /// assume the 1st actor in this list is the player whose turn it is.
     pub actors: [Option<ActorSized>; MAX_PLAYER_COUNT],
     pub available_nobles: [Option<Noble>; MAX_NOBLES],
-    pub bank_resources: [u8; RESOURCE_TYPE_COUNT],
+    pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
     pub card_rows: [CardRowSized; CARD_TIER_COUNT],
 }
 
 #[derive(Debug)]
 pub struct ActorSized {
-    pub resource_tokens : [u8; RESOURCE_TYPE_COUNT],
-    pub resources_from_cards : [u8; COST_TYPE_COUNT],
-    pub current_points : u8,
+    pub resource_tokens : [i8; RESOURCE_TOKEN_COUNT],
+    pub resources_from_cards : [i8; RESOURCE_TYPE_COUNT],
+    pub current_points : i8,
     pub reserved_cards: [Option<Card>; MAX_RESERVED_CARDS],
 }
 
@@ -37,7 +37,7 @@ impl GameSized {
         GameSized {
             actors: std::array::from_fn(|_| Some(ActorSized::new())),
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
-            bank_resources: [100; RESOURCE_TYPE_COUNT],
+            bank_resources: [100; RESOURCE_TOKEN_COUNT],
             card_rows: std::array::from_fn(|_| CardRowSized::new()),
         }
     }
@@ -46,8 +46,8 @@ impl GameSized {
 impl ActorSized {
     pub fn new() -> ActorSized {
         ActorSized {
-            resource_tokens: [101; RESOURCE_TYPE_COUNT],
-            resources_from_cards: [102; COST_TYPE_COUNT],
+            resource_tokens: [101; RESOURCE_TOKEN_COUNT],
+            resources_from_cards: [102; RESOURCE_TYPE_COUNT],
             current_points: 103,
             reserved_cards: std::array::from_fn(|_| None),
         }

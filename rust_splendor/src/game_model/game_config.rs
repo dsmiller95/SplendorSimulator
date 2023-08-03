@@ -5,5 +5,5 @@ pub struct GameConfig {
     pub all_cards: Vec<Card>,
     pub all_nobles: Vec<Noble>,
     
-    pub max_resource_tokens: u8,
+    pub max_resource_tokens: i8,
 }

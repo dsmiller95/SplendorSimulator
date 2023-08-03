@@ -1,6 +1,5 @@
-use crate::game_model::constants::{CARD_TIER_COUNT, RESOURCE_TYPE_COUNT};
+use crate::game_model::constants::{CARD_TIER_COUNT};
 use crate::game_model::game_components::{Card, Noble};
-use crate::game_model::game_config::GameConfig;
 use super::constants::MAX_PLAYER_COUNT;
 
 #[derive(Debug)]
@@ -9,10 +8,6 @@ pub struct GameUnsized {
     
     pub actors: [Option<ActorUnsized>; MAX_PLAYER_COUNT],
     pub card_rows: [CardRowUnsized; CARD_TIER_COUNT],
-    
-    pub bank_resources: [u8; RESOURCE_TYPE_COUNT],
-    
-    pub game_config: GameConfig,
 }
 
 #[derive(Debug)]
