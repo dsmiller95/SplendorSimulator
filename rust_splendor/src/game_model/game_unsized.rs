@@ -1,6 +1,6 @@
-use crate::game_model::constants::{CARD_TIER_COUNT};
+use crate::constants::{CARD_TIER_COUNT};
 use crate::game_model::game_components::{Card, Noble};
-use super::constants::MAX_PLAYER_COUNT;
+use crate::constants::MAX_PLAYER_COUNT;
 
 #[derive(Debug)]
 pub struct GameUnsized {

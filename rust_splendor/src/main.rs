@@ -1,7 +1,10 @@
+#![feature(concat_idents)]
+
 use crate::game_model::game_sized::GameSized;
 
 pub mod game_model;
 mod game_actions;
+mod constants;
 
 fn main() {
     println!("Hello, world!");
@@ -38,3 +41,21 @@ bytes: [1, 0, 0, 0, 1, 1, 0, 0, 104, 104, 104, 104, 104, 105, 0, 0, 1, 0, 0, 0, 
 , 102, 102, 102, 102, 102, 103, 100, 100, 100, 100, 100, 100, 245, 23]
 
  */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-use crate::game_model::constants::{RESOURCE_TYPE_COUNT};
+use crate::constants::{RESOURCE_TYPE_COUNT};
 
 #[derive(Debug)]
 pub struct Card {
