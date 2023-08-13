@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
 
         let transaction = CardTransaction{
-            player: PlayerSelection1,
+            player: player_n,
             selection_type: Reserve(card_pick),
         };
 
@@ -181,7 +181,7 @@ mod tests {
         assert_eq!(actor.iterate_reserved_cards().count(), 1);
 
         let transaction = CardTransaction{
-            player: PlayerSelection1,
+            player: player_n,
             selection_type: Reserve(card_pick),
         };
 
