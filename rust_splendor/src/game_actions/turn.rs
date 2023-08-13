@@ -1,6 +1,7 @@
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType};
 use crate::game_actions::bank_transactions::{BankTransaction, can_transact, transact};
+use crate::game_actions::card_transaction::{CardSelectionType, CardTransaction, CardTransactionError, transact_card};
 
 #[derive(Debug)]
 pub enum Turn {
@@ -61,6 +62,7 @@ impl Turn {
             }
         }
     }
+    
 }
     
 impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, ActorType> for Turn {
@@ -101,8 +103,20 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
             Turn::PurchaseCard(_) => {
                 todo!()
             }
-            Turn::ReserveCard(_) => {
-                todo!()
+            Turn::ReserveCard(reserved_card) => {
+                let reserve_transaction = CardTransaction{
+                    player: actor_index,
+                    selection_type: CardSelectionType::Reserve(*reserved_card),
+                };
+                let mapped_errs = transact_card(game, &reserve_transaction).map_err(|e| match e {
+                    CardTransactionError::UnknownCardOccupied => TurnResult::FailurePartialModification,
+                    _ => TurnResult::FailureNoModification
+                }).map(|_| TurnResult::Success);
+                
+                match mapped_errs {
+                    Ok(result) => result,
+                    Err(result) => result
+                }
             }
             Turn::Noop => TurnResult::Success
         }

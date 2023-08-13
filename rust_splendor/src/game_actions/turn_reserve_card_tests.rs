@@ -75,6 +75,7 @@ fn can_reserve_card_from_board() {
     assert_eq!(actor.iterate_reserved_cards().count(), 0);
 
     let turn = Turn::ReserveCard(card_pick);
+    assert_eq!(turn.can_take_turn(&sized, player_n), true);
     let turn_result = turn.take_turn(&mut sized, player_n);
     assert_eq!(turn_result, TurnResult::Success);
 

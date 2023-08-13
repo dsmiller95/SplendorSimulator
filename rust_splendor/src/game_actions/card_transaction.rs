@@ -4,7 +4,7 @@ use crate::game_model::game_components::Card;
 
 /// check if the card can move from one place to another
 /// does not check to see if the player has the resources to do so
-pub fn can_transact<ActorType, T>(game: &T, transaction: &CardTransaction) -> Result<(), CardTransactionError>
+pub fn can_transact_card<ActorType, T>(game: &T, transaction: &CardTransaction) -> Result<(), CardTransactionError>
     where ActorType: KnowableActorData,
           T: KnowableGameData<ActorType>
 {
@@ -29,11 +29,11 @@ pub fn can_transact<ActorType, T>(game: &T, transaction: &CardTransaction) -> Re
 
 /// move the card from one place to another
 /// does not check to see if the player has the resources to do so, nor does it modify the player's resources
-pub fn transact<ActorType, T>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
+pub fn transact_card<ActorType, T>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
     where ActorType: KnowableActorData,
           T: KnowableGameData<ActorType>
 {
-    can_transact(game, transaction)?;
+    can_transact_card(game, transaction)?;
 
     let pick = transaction.get_card_pick();
 
@@ -62,7 +62,7 @@ pub fn transact<ActorType, T>(game: &mut T, transaction: &CardTransaction) -> Re
         }
         Err(PutError::Occupied(card)) => {
             game.try_put_card(&pick, card).expect("Card slot must be empty, we just took a card from it");
-            Err(CardTransactionError::UnkownCardOccupied)
+            Err(CardTransactionError::UnknownCardOccupied)
         }
     }
     
@@ -106,7 +106,7 @@ pub enum CardTransactionError{
     MaximumReservedCardsExceeded,
     CardDoesNotExist,
     PlayerDoesNotExist,
-    UnkownCardOccupied
+    UnknownCardOccupied
 }
 
 #[derive(Debug, PartialEq)]
@@ -150,7 +150,7 @@ mod tests {
             selection_type: Reserve(card_pick),
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transact_card(&mut game, &transaction);
 
         assert_eq!(result, Ok(FullTransaction));
 
@@ -185,7 +185,7 @@ mod tests {
             selection_type: Reserve(card_pick),
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transact_card(&mut game, &transaction);
 
         assert_eq!(result, Ok(FullTransaction));
 
