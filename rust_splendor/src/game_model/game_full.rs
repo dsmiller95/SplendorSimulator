@@ -56,7 +56,7 @@ impl HasCards for GameSized {
         let mutable_slot = self.get_mut_card_slot(card_pick);
         match mutable_slot {
             None => {
-                Err(PutError::NoPlayerForReserved)
+                Err(PutError::DestinationDoesNotExist(card))
             }
             Some(Some(_)) => {
                 Err(PutError::Occupied(card))
