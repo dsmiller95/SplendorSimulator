@@ -140,7 +140,7 @@ mod tests {
         let card_id = 24;
         let card = Card::new().with_id(card_id);
         
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(4).game_sized;
         game.try_put_card(&card_pick.into(), card).unwrap();
         let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
@@ -160,6 +160,41 @@ mod tests {
         let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 1);
         assert_eq!(actor.iterate_reserved_cards().next().unwrap().id, card_id);
+        assert_eq!(actor.resource_tokens[Gold], 0);
+    }
+    
+    #[test]
+    fn singe_card_reserve_when_existing_reserve_success() {
+        let player_n = PlayerSelection3;
+        let card_pick = CardPickOnBoard {
+            tier: CardTier2,
+            pick: OpenCard(OpenCardPickInTier1),
+        };
+        let card_id = 24;
+        let card = Card::new().with_id(card_id);
+
+        let mut game = crate::game_actions::test_utils::get_test_game(4).game_sized;
+        game.try_put_card(&card_pick.into(), card).unwrap();
+        
+        let actor = game.get_actor_at_index_mut(player_n).unwrap();
+        actor.put_in_reserve(Card::new().with_id(1)).unwrap();
+        assert_eq!(actor.iterate_reserved_cards().count(), 1);
+
+        let transaction = CardTransaction{
+            player: PlayerSelection1,
+            selection_type: Reserve(card_pick),
+        };
+
+        let result = transact(&mut game, &transaction);
+
+        assert_eq!(result, Ok(FullTransaction));
+
+        let card = game.get_card_pick(&card_pick.into());
+        assert!(card.is_none());
+
+        let actor = game.get_actor_at_index(player_n).unwrap();
+        assert_eq!(actor.iterate_reserved_cards().count(), 2);
+        assert_eq!(actor.iterate_reserved_cards().filter(|x| x.id == card_id).next().is_some(), true);
         assert_eq!(actor.resource_tokens[Gold], 0);
     }
 }
