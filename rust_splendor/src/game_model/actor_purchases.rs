@@ -1,4 +1,4 @@
-use crate::constants::{RESOURCE_TOKEN_COUNT, ResourceType};
+use crate::constants::{MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, ResourceType};
 use crate::constants::ResourceTokenType::Gold;
 use crate::game_actions::knowable_game_data::KnowableActorData;
 use crate::game_model::game_components::Card;
@@ -31,7 +31,7 @@ impl KnowableActorData for ActorSized {
         total_deficit > 0 && gold_tokens >= total_deficit
     }
 
-    fn reserved_cards(&self) -> &[Option<Card>] {
+    fn reserved_cards(&self) -> &[Option<Card>; MAX_RESERVED_CARDS] {
         &self.reserved_cards
     }
 }
