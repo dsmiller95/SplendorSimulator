@@ -1,13 +1,17 @@
 use crate::constants::{RESOURCE_TOKEN_COUNT, ResourceType};
-use crate::constants::ResourceTokenType::GOLD;
+use crate::constants::ResourceTokenType::Gold;
 use crate::game_actions::knowable_game_data::KnowableActorData;
 use crate::game_model::game_components::Card;
 
 use crate::game_model::game_sized::{ActorSized};
 
 impl KnowableActorData for ActorSized {
-    fn owned_resources(&self) -> [i8; RESOURCE_TOKEN_COUNT] {
-        self.resource_tokens
+    fn owned_resources(&self) -> &[i8; RESOURCE_TOKEN_COUNT] {
+        &self.resource_tokens
+    }
+
+    fn owned_resources_mut(&mut self) -> &mut [i8; RESOURCE_TOKEN_COUNT] {
+        &mut self.resource_tokens
     }
 
     fn can_afford_card(&self, card: &Card) -> bool {
@@ -21,7 +25,7 @@ impl KnowableActorData for ActorSized {
             }
         }
         
-        let gold_tokens = self.resource_tokens[GOLD];
+        let gold_tokens = self.resource_tokens[Gold];
         
         
         total_deficit > 0 && gold_tokens >= total_deficit

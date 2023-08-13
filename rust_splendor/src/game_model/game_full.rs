@@ -1,8 +1,8 @@
-use crate::constants::{GlobalCardPick};
-use crate::game_actions::knowable_game_data::HasCards;
+use crate::constants::{GlobalCardPick, PlayerSelection, RESOURCE_TOKEN_COUNT};
+use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData};
 use crate::game_model::game_components::Card;
 use crate::game_model::game_config::GameConfig;
-use crate::game_model::game_sized::{GameSized};
+use crate::game_model::game_sized::{ActorSized, GameSized};
 use crate::game_model::game_unsized::GameUnsized;
 
 pub struct GameModel {
@@ -16,7 +16,7 @@ impl HasCards for GameSized {
         match card_pick {
             GlobalCardPick::OnBoard(card_pick) => {
                 self.card_rows[card_pick.tier]
-                    [card_pick.pick_in_tier]
+                    [card_pick.pick]
                     .as_ref()
             }
             GlobalCardPick::Reserved(reserved) => {
@@ -30,7 +30,7 @@ impl HasCards for GameSized {
         match card_pick {
             GlobalCardPick::OnBoard(card_pick) => {
                 self.card_rows[card_pick.tier]
-                    [card_pick.pick_in_tier]
+                    [card_pick.pick]
                     .as_mut()
             }
             GlobalCardPick::Reserved(reserved) => {
@@ -39,5 +39,23 @@ impl HasCards for GameSized {
                     .as_mut()
             }
         }
+    }
+}
+
+impl KnowableGameData<ActorSized> for GameSized {
+    fn get_actor_at_index(&self, index: PlayerSelection) -> Option<&ActorSized> {
+        self.actors[index].as_ref()
+    }
+
+    fn get_actor_at_index_mut(&mut self, index: PlayerSelection) -> Option<&mut ActorSized> {
+        self.actors[index].as_mut()
+    }
+
+    fn bank_resources(&self) -> &[i8; 6] {
+        &self.bank_resources
+    }
+
+    fn bank_resources_mut(&mut self) -> &mut [i8; RESOURCE_TOKEN_COUNT] {
+        &mut self.bank_resources
     }
 }

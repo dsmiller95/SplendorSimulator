@@ -31,11 +31,11 @@ mod resource_tokens{
     impl ResourceType {
         pub fn iterator() -> Iter<'static, ResourceType> {
             static DIRECTIONS: [ResourceType; 5] = [
-                ResourceType::RUBY,
-                ResourceType::EMERALD,
-                ResourceType::SAPPHIRE,
-                ResourceType::DIAMOND,
-                ResourceType::ONYX];
+                ResourceType::Ruby,
+                ResourceType::Emerald,
+                ResourceType::Sapphire,
+                ResourceType::Diamond,
+                ResourceType::Onyx];
             DIRECTIONS.iter()
         }
     }
@@ -70,7 +70,7 @@ mod resource_tokens{
         fn index(&self, index: ResourceTokenType) -> &Self::Output {
             match index {
                 ResourceTokenType::CostType(cost) => &self[cost],
-                ResourceTokenType::GOLD => &self[5],
+                ResourceTokenType::Gold => &self[5],
             }
         }
     }
@@ -78,7 +78,7 @@ mod resource_tokens{
         fn index_mut(&mut self, index: ResourceTokenType) -> &mut Self::Output {
             match index {
                 ResourceTokenType::CostType(cost) => &mut self[cost],
-                ResourceTokenType::GOLD => &mut self[5],
+                ResourceTokenType::Gold => &mut self[5],
             }
         }
     }

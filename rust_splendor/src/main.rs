@@ -1,5 +1,6 @@
 #![feature(concat_idents)]
 
+use crate::constants::MAX_PLAYER_COUNT;
 use crate::game_model::game_sized::GameSized;
 
 pub mod game_model;
@@ -12,7 +13,7 @@ fn main() {
     let knowable_size = std::mem::size_of::<GameSized>();
     println!("knowable size: {:?}", knowable_size);
     
-    let mut knowable_game = GameSized::new();
+    let mut knowable_game = GameSized::new(MAX_PLAYER_COUNT);
     println!("knowable game: {:?}", knowable_game);
     
     println!("bytes: {:?}", any_as_u8_slice(&knowable_game));

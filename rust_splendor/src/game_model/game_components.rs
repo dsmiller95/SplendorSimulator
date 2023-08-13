@@ -1,17 +1,17 @@
-use crate::constants::{RESOURCE_TYPE_COUNT};
+use crate::constants::{RESOURCE_TYPE_COUNT, ResourceAmountFlags};
 
 #[derive(Debug)]
 pub struct Card {
     pub id: u32,
-    pub cost: [i8; RESOURCE_TYPE_COUNT],
-    pub returns: [i8; RESOURCE_TYPE_COUNT],
+    pub cost: ResourceAmountFlags,
+    pub returns: ResourceAmountFlags,
     pub points: i8,
 }
 
 #[derive(Debug)]
 pub struct Noble {
     pub id: u32,
-    pub cost: [i8; RESOURCE_TYPE_COUNT],
+    pub cost: ResourceAmountFlags,
     pub points: i8,
 }
 
@@ -26,10 +26,10 @@ impl Noble {
 }
 
 impl Card {
-    pub fn new() -> Card {
+    pub fn new(cost: ResourceAmountFlags) -> Card {
         Card {
             id: 256,
-            cost: [106; RESOURCE_TYPE_COUNT],
+            cost,
             returns: [107; RESOURCE_TYPE_COUNT],
             points: 108,
         }

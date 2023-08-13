@@ -1,3 +1,4 @@
+use std::cmp::min;
 use crate::constants::{CARD_COUNT_PER_TIER, CARD_TIER_COUNT, RESOURCE_TYPE_COUNT, MAX_NOBLES, MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, MAX_PLAYER_COUNT};
 use crate::game_model::game_components::{Card, Noble};
 
@@ -32,11 +33,19 @@ pub struct ActorSized {
 }
 
 impl GameSized {
-    pub fn new() -> GameSized {
+    pub fn new(player_count: usize) -> GameSized {
+        let min_count =  min(player_count, MAX_PLAYER_COUNT);
+        let actors = std::array::from_fn(|i| {
+            if i < min_count {
+                Some(ActorSized::new())
+            } else {
+                None
+            }
+        });
         GameSized {
-            actors: std::array::from_fn(|_| Some(ActorSized::new())),
+            actors,
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
-            bank_resources: [100; RESOURCE_TOKEN_COUNT],
+            bank_resources: [0; RESOURCE_TOKEN_COUNT],
             card_rows: std::array::from_fn(|_| CardRowSized::new()),
         }
     }
@@ -45,9 +54,9 @@ impl GameSized {
 impl ActorSized {
     pub fn new() -> ActorSized {
         ActorSized {
-            resource_tokens: [101; RESOURCE_TOKEN_COUNT],
-            resources_from_cards: [102; RESOURCE_TYPE_COUNT],
-            current_points: 103,
+            resource_tokens: [0; RESOURCE_TOKEN_COUNT],
+            resources_from_cards: [0; RESOURCE_TYPE_COUNT],
+            current_points: 0,
             reserved_cards: std::array::from_fn(|_| None),
         }
     }
@@ -56,7 +65,7 @@ impl ActorSized {
 impl CardRowSized {
     pub fn new() -> CardRowSized {
         CardRowSized {
-            open_cards: std::array::from_fn(|_| Some(Card::new())),
+            open_cards: std::array::from_fn(|_| None),
             hidden_card: None,
         }
     }

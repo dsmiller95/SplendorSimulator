@@ -1,4 +1,4 @@
-mod game_config;
+pub mod game_config;
 
 pub mod game_unsized;
 pub mod game_sized;

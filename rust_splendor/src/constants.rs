@@ -55,7 +55,7 @@ indexable_sequential_enum!(CARD_TIER_COUNT, CardTier, 3);
 #[derive(Debug, Copy, Clone)]
 pub struct CardPickOnBoard {
     pub tier: CardTier,
-    pub pick_in_tier: CardPickInTier,
+    pub pick: CardPickInTier,
 }
 
 indexable_sequential_enum!(MAX_PLAYER_COUNT, PlayerSelection, 4);
@@ -75,20 +75,22 @@ pub enum GlobalCardPick {
 
 
 pub const RESOURCE_TOKEN_COUNT: usize = 6;
+pub type ResourceTokenBank = [i8; RESOURCE_TOKEN_COUNT];
 pub const RESOURCE_TYPE_COUNT: usize = RESOURCE_TOKEN_COUNT - 1;
-#[derive(Debug, Copy, Clone)]
+pub type ResourceAmountFlags = [i8; RESOURCE_TYPE_COUNT];
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
 pub enum ResourceType{
-    RUBY = 0,
-    EMERALD = 1,
-    SAPPHIRE = 2,
-    DIAMOND = 3,
-    ONYX = 4,
+    Ruby = 0,
+    Emerald = 1,
+    Sapphire = 2,
+    Diamond = 3,
+    Onyx = 4,
 }
 
 #[derive(Debug, Copy, Clone)]
 #[repr(u8)]
 pub enum ResourceTokenType {
     CostType(ResourceType),
-    GOLD = 5,
+    Gold = 5,
 }

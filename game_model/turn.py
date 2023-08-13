@@ -242,3 +242,6 @@ class Turn:
             "noble_preference": self.noble_preference,
             "discard_preference": self._discard_commands
         }
+
+
+
