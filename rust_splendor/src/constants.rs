@@ -64,13 +64,38 @@ indexable_sequential_enum!(MAX_RESERVED_CARDS, ReservedCardSelection, 3);
 #[derive(Debug, Copy, Clone)]
 pub struct CardPickInReservedCards {
     pub player_index : PlayerSelection,
-    pub reserved_card_index : ReservedCardSelection,
+    pub reserved_card: ReservedCardSelection,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum GlobalCardPick {
     OnBoard(CardPickOnBoard),
     Reserved(CardPickInReservedCards),
+}
+
+impl From<CardPickOnBoard> for GlobalCardPick {
+    fn from(card_pick: CardPickOnBoard) -> Self {
+        GlobalCardPick::OnBoard(card_pick)
+    }
+}
+impl From<CardPickInReservedCards> for GlobalCardPick {
+    fn from(card_pick: CardPickInReservedCards) -> Self {
+        GlobalCardPick::Reserved(card_pick)
+    }
+}
+
+pub fn board_card(tier: CardTier, pick: CardPickInTier) -> GlobalCardPick {
+    GlobalCardPick::OnBoard(CardPickOnBoard {
+        tier,
+        pick,
+    })
+}
+
+pub fn reserved_card(player_index: PlayerSelection, reserved_card: ReservedCardSelection) -> GlobalCardPick {
+    GlobalCardPick::Reserved(CardPickInReservedCards {
+        player_index,
+        reserved_card,
+    })
 }
 
 
