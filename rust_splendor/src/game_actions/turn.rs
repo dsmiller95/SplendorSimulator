@@ -12,6 +12,8 @@ pub enum Turn {
 }
 
 
+
+
 pub trait GameTurn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> {
     fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> TurnResult;
     /// Perform any validation that can be applied to self-data alone
