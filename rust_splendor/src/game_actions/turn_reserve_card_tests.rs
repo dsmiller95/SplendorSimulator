@@ -108,12 +108,12 @@ fn does_reserve_card_from_board_when_full_token_inventory() {
     let turn = Turn::ReserveCard(card_pick);
     assert_eq!(turn.can_take_turn(&sized, player_n), true);
     let turn_result = turn.take_turn(&mut sized, player_n);
-    assert_eq!(turn_result, Ok(TurnSuccess::Success));
+    assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
 
     let actor = sized.get_actor_at_index(player_n).unwrap();
     assert_eq!(actor.iterate_reserved_cards().count(), 1);
     assert_eq!(actor.iterate_reserved_cards().next().unwrap().id, card_id);
-    assert_eq!(actor.resource_tokens[Gold], 11);
+    assert_eq!(actor.resource_tokens[Gold], 10);
 }
 
 #[test]
