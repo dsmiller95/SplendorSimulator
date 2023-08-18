@@ -1,5 +1,5 @@
 use seq_macro::seq;
-use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, ReservedCardSelection, CardPickInReservedCards, reserved_card};
+use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, ReservedCardSelection, CardPickInReservedCards, reserved_card, MAX_INVENTORY_TOKENS};
 use crate::constants::CardPickInTier::OpenCard;
 use crate::constants::CardTier::{CardTier1, CardTier2};
 use crate::constants::GlobalCardPick::OnBoard;
@@ -9,7 +9,7 @@ use crate::constants::ReservedCardSelection::*;
 use crate::constants::ResourceTokenType::Gold;
 use crate::constants::ResourceType::*;
 use crate::game_actions::knowable_game_data::{HasCards, KnowableActorData, KnowableGameData};
-use crate::game_actions::turn::{GameTurn, Turn, TurnResult};
+use crate::game_actions::turn::{GameTurn, Turn, TurnFailed, TurnSuccess};
 use crate::game_model::game_components::Card;
 use crate::game_model::game_full::GameModel;
 
@@ -27,7 +27,7 @@ fn test_purchase_result(
     player_bank: ResourceTokenBank,
     player_persistent: ResourceAmountFlags,
     card: Card,
-    expected_result: TurnResult,
+    expected_result: Result<TurnSuccess, TurnFailed>,
     expected_bank: ResourceTokenBank,
     expected_player_bank: ResourceTokenBank){
     
@@ -47,7 +47,7 @@ fn test_purchase_result(
     assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), true);
     let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection2);
     assert_eq!(turn_result, expected_result);
-    if expected_result == TurnResult::Success {
+    if expected_result == Ok(TurnSuccess::Success) {
         assert_eq!(game.game_sized.bank_resources, expected_bank);
         assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
     }
@@ -58,7 +58,7 @@ fn test_purchase_result(
 }
 
 #[test]
-fn can_reserve_card_from_board() {
+fn does_reserve_card_from_board() {
     let player_n = PlayerSelection2;
     let card_pick = CardPickOnBoard {
         tier: CardTier1,
@@ -77,12 +77,43 @@ fn can_reserve_card_from_board() {
     let turn = Turn::ReserveCard(card_pick);
     assert_eq!(turn.can_take_turn(&sized, player_n), true);
     let turn_result = turn.take_turn(&mut sized, player_n);
-    assert_eq!(turn_result, TurnResult::Success);
+    assert_eq!(turn_result, Ok(TurnSuccess::Success));
 
     let actor = sized.get_actor_at_index(player_n).unwrap();
     assert_eq!(actor.iterate_reserved_cards().count(), 1);
     assert_eq!(actor.iterate_reserved_cards().next().unwrap().id, card_id);
     assert_eq!(actor.resource_tokens[Gold], 1);
+}
+
+
+#[test]
+fn does_reserve_card_from_board_when_full_token_inventory() {
+    let player_n = PlayerSelection2;
+    let card_pick = CardPickOnBoard {
+        tier: CardTier1,
+        pick: OpenCard(OpenCardPickInTier2),
+    };
+
+    let card_id = 24;
+    let card = Card::new().with_id(card_id);
+
+    let mut game = get_test_game();
+    let mut sized = game.game_sized;
+    
+    sized.try_put_card(&card_pick.into(), card).unwrap();
+    let actor = sized.get_actor_at_index_mut(player_n).unwrap();
+    assert_eq!(actor.iterate_reserved_cards().count(), 0);
+    actor.resource_tokens[Gold] = MAX_INVENTORY_TOKENS;
+
+    let turn = Turn::ReserveCard(card_pick);
+    assert_eq!(turn.can_take_turn(&sized, player_n), true);
+    let turn_result = turn.take_turn(&mut sized, player_n);
+    assert_eq!(turn_result, Ok(TurnSuccess::Success));
+
+    let actor = sized.get_actor_at_index(player_n).unwrap();
+    assert_eq!(actor.iterate_reserved_cards().count(), 1);
+    assert_eq!(actor.iterate_reserved_cards().next().unwrap().id, card_id);
+    assert_eq!(actor.resource_tokens[Gold], 11);
 }
 
 #[test]
@@ -115,7 +146,7 @@ fn can_not_reserve_card_when_full_reservations() {
 
     let turn = Turn::ReserveCard(card_pick);
     let turn_result = turn.take_turn(&mut sized, player_n);
-    assert_eq!(turn_result, TurnResult::FailureNoModification);
+    assert_eq!(turn_result, Err(TurnFailed::FailureNoModification));
     let actor = sized.get_actor_at_index(player_n).unwrap();
     assert_eq!(actor.iterate_reserved_cards().count(), 3);
     assert_eq!(actor.resource_tokens[Gold], 0);

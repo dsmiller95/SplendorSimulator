@@ -5,7 +5,7 @@ use crate::constants::GlobalCardPick::OnBoard;
 use crate::constants::OpenCardPickInTier::OpenCardPickInTier2;
 use crate::constants::PlayerSelection::*;
 use crate::constants::ResourceType::*;
-use crate::game_actions::turn::{GameTurn, Turn, TurnResult};
+use crate::game_actions::turn::{GameTurn, Turn, TurnFailed, TurnSuccess};
 use crate::game_model::game_components::Card;
 
 
@@ -27,7 +27,7 @@ fn test_purchase_result(
     player_bank: ResourceTokenBank,
     player_persistent: ResourceAmountFlags,
     card: Card,
-    expected_result: TurnResult,
+    expected_result: Result<TurnSuccess, TurnFailed>,
     expected_bank: ResourceTokenBank,
     expected_player_bank: ResourceTokenBank){
     
@@ -44,7 +44,7 @@ fn test_purchase_result(
     assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), true);
     let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection2);
     assert_eq!(turn_result, expected_result);
-    if expected_result == TurnResult::Success {
+    if expected_result == Ok(TurnSuccess::Success) {
         assert_eq!(game.game_sized.bank_resources, expected_bank);
         assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
     }
@@ -61,7 +61,7 @@ fn cannot_purchase_expensive_card() {
         [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0],
         Card::new().with_cost([1, 0, 1, 0, 0]),
-        TurnResult::FailureNoModification,
+        Err(TurnFailed::FailureNoModification),
         [1, 1, 1, 1, 1, 1],
         [0, 0, 0, 0, 0, 0],
     );
@@ -73,7 +73,7 @@ fn can_purchase_card_with_all_resources() {
         [1, 0, 1, 0, 0, 0],
         [0, 0, 0, 0, 0],
         Card::new().with_cost([1, 0, 1, 0, 0]),
-        TurnResult::FailureNoModification,
+        Err(TurnFailed::FailureNoModification),
         [2, 1, 2, 1, 1, 1],
         [0, 0, 0, 0, 0, 0],
     );
@@ -85,7 +85,7 @@ fn can_purchase_card_with_gold() {
         [1, 0, 0, 0, 0, 1],
         [0, 0, 0, 0, 0],
         Card::new().with_cost([1, 0, 1, 0, 0]),
-        TurnResult::Success,
+        Ok(TurnSuccess::Success),
         [2, 1, 1, 1, 1, 2],
         [0, 0, 0, 0, 0, 0],
     );
@@ -97,7 +97,7 @@ fn can_purchase_card_with_player_persistent_resources() {
         [0, 0, 0, 0, 0, 0],
         [0, 4, 4, 0, 10],
         Card::new().with_cost([0, 1, 1, 0, 7]),
-        TurnResult::Success,
+        Ok(TurnSuccess::Success),
         [1, 1, 1, 1, 1, 1],
         [0, 0, 0, 0, 0, 0],
     );
@@ -109,7 +109,7 @@ fn can_not_purchase_card_with_not_enough_player_persistent_resources() {
         [0, 0, 0, 0, 0, 0],
         [0, 4, 4, 0, 5],
         Card::new().with_cost([0, 1, 1, 0, 7]),
-        TurnResult::FailureNoModification,
+        Err(TurnFailed::FailureNoModification),
         [1, 1, 1, 1, 1, 1],
         [0, 0, 0, 0, 0, 0],
     );
@@ -121,7 +121,7 @@ fn can_purchase_card_with_combined_persistent_and_bank() {
         [0, 0, 0, 0, 0, 3],
         [0, 4, 4, 0, 5],
         Card::new().with_cost([0, 1, 1, 0, 7]),
-        TurnResult::Success,
+        Ok(TurnSuccess::Success),
         [1, 1, 1, 1, 1, 3],
         [0, 0, 0, 0, 0, 1],
     );
@@ -134,7 +134,7 @@ fn avoids_purchase_card_with_gold() {
         [1, 0, 1, 0, 0, 1],
         [0, 0, 0, 0, 0],
         Card::new().with_cost([1, 0, 1, 0, 0]),
-        TurnResult::Success,
+        Ok(TurnSuccess::Success),
         [2, 1, 2, 1, 1, 1],
         [0, 0, 0, 0, 0, 1],
     );

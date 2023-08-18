@@ -13,19 +13,23 @@ pub enum Turn {
 }
 
 pub trait GameTurn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> {
-    fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> TurnResult;
+    fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> Result<TurnSuccess, TurnFailed>;
     /// Perform any validation that can be applied to self-data alone
     fn is_valid(&self) -> bool;
     fn can_take_turn(&self, game: &T, actor_index: PlayerSelection) -> bool;
 }
 
 #[derive(Debug, PartialEq)]
-pub enum TurnResult {
+pub enum TurnSuccess {
     /// The full and complete effects of the turn have been applied
     Success,
     /// A partial subset of the turn's effects have been applied, but the game state is still valid
     /// the partial application of effects composes a valid turn
     SuccessPartial,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TurnFailed{
     /// The turn was not applied, and cannot be applied to this player and game state
     FailureNoModification,
     /// The turn was partially applied, and the modified game state is now invalid
@@ -62,13 +66,13 @@ impl Turn {
             }
         }
     }
-    
+        
 }
     
 impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, ActorType> for Turn {
-    fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> TurnResult {
+    fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> Result<TurnSuccess, TurnFailed> {
         if !self.can_take_turn(game, actor_index) {
-            return TurnResult::FailureNoModification
+            return Err(TurnFailed::FailureNoModification)
         }
         
         match self {
@@ -81,9 +85,9 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
                     .reduce(|a, b| a || b);
                 
                 match any_transact_failed {
-                    None => TurnResult::Success,
-                    Some(true) => TurnResult::SuccessPartial,
-                    Some(false) => TurnResult::Success
+                    None => Ok(TurnSuccess::Success),
+                    Some(true) => Ok(TurnSuccess::SuccessPartial),
+                    Some(false) => Ok(TurnSuccess::Success)
                 }
             },
 
@@ -95,9 +99,9 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
                     .reduce(|a, b| a || b);
 
                 match any_transact_failed {
-                    None => TurnResult::Success,
-                    Some(true) => TurnResult::SuccessPartial,
-                    Some(false) => TurnResult::Success
+                    None => Ok(TurnSuccess::Success), // no transactions attempted
+                    Some(true) => Ok(TurnSuccess::SuccessPartial), // at least one err
+                    Some(false) => Ok(TurnSuccess::Success) // no errors, all transactions succeeded
                 }
             }
             Turn::PurchaseCard(_) => {
@@ -108,17 +112,12 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
                     player: actor_index,
                     selection_type: CardSelectionType::Reserve(*reserved_card),
                 };
-                let mapped_errs = transact_card(game, &reserve_transaction).map_err(|e| match e {
-                    CardTransactionError::UnknownCardOccupied => TurnResult::FailurePartialModification,
-                    _ => TurnResult::FailureNoModification
-                }).map(|_| TurnResult::Success);
-                
-                match mapped_errs {
-                    Ok(result) => result,
-                    Err(result) => result
-                }
+                transact_card(game, &reserve_transaction).map_err(|e| match e {
+                    CardTransactionError::UnknownCardOccupied => TurnFailed::FailurePartialModification,
+                    _ => TurnFailed::FailureNoModification
+                }).map(|_| TurnSuccess::Success)
             }
-            Turn::Noop => TurnResult::Success
+            Turn::Noop => Ok(TurnSuccess::Success)
         }
     }
 
