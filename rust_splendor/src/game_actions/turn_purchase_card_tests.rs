@@ -7,7 +7,6 @@ mod tests {
     use crate::constants::GlobalCardPick::OnBoard;
     use crate::constants::OpenCardPickInTier::OpenCardPickInTier2;
     use crate::constants::PlayerSelection::*;
-    use crate::constants::ResourceType::*;
     use crate::game_actions::turn::{GameTurn, Turn};
     use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
     use crate::game_model::game_components::Card;

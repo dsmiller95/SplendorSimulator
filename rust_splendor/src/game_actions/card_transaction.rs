@@ -1,6 +1,5 @@
-use crate::constants::{CardPickOnBoard, GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, reserved_card, ReservedCardSelection, ResourceTokenType::*};
+use crate::constants::{CardPickOnBoard, GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, reserved_card, ReservedCardSelection};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData, PutError};
-use crate::game_model::game_components::Card;
 
 /// check if the card can move from one place to another
 /// does not check to see if the player has the resources to do so
@@ -123,11 +122,13 @@ mod tests {
     use crate::constants::CardTier::*;
     use crate::constants::OpenCardPickInTier::*;
     use crate::constants::PlayerSelection::*;
+    use crate::constants::ResourceTokenType::*;
     use crate::game_actions::card_transaction::CardSelectionType::Reserve;
     use crate::game_actions::knowable_game_data::HasCards;
     use super::*;
+    use crate::game_model::game_components::Card;
 
-    use super::CardTransactionError::*;
+
     use super::CardTransactionSuccess::*;
     
     
