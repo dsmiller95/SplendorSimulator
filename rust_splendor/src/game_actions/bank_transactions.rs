@@ -1,4 +1,4 @@
-use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType::*, ResourceTokenType};
+use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 
 pub fn can_transact<ActorType, T>(game: &T, transaction: &BankTransaction) -> Result<(), BankTransactionError>
@@ -72,6 +72,7 @@ mod tests {
     use crate::constants::PlayerSelection::*;
     use crate::constants::ResourceType::Diamond;
     use super::*;
+    use ResourceTokenType::*;
 
     use super::BankTransactionError::*;
     use super::BankTransactionSuccess::*;

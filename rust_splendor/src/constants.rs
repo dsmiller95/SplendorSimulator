@@ -72,7 +72,6 @@ pub enum GlobalCardPick {
     OnBoard(CardPickOnBoard),
     Reserved(CardPickInReservedCards),
 }
-
 impl From<CardPickOnBoard> for GlobalCardPick {
     fn from(card_pick: CardPickOnBoard) -> Self {
         GlobalCardPick::OnBoard(card_pick)
@@ -83,7 +82,6 @@ impl From<CardPickInReservedCards> for GlobalCardPick {
         GlobalCardPick::Reserved(card_pick)
     }
 }
-
 pub fn board_card(tier: CardTier, pick: CardPickInTier) -> GlobalCardPick {
     GlobalCardPick::OnBoard(CardPickOnBoard {
         tier,

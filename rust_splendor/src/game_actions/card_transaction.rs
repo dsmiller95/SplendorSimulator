@@ -79,7 +79,7 @@ pub fn transact_card<ActorType, T>(game: &mut T, transaction: &CardTransaction) 
     // }
 }
 
-impl CardTransaction{
+impl CardTransaction {
     pub fn get_card_pick(&self) -> GlobalCardPick{
         match self.selection_type {
             CardSelectionType::Reserve(onBoard) => onBoard.into(),
@@ -89,13 +89,14 @@ impl CardTransaction{
     }
 }
 
-/// A transaction which will move a card from the board to the player's inventory, or to their reserved cards
-pub struct CardTransaction{
+/// A transaction which will move a card from the board
+/// to the player's inventory or to their reserved cards
+pub struct CardTransaction {
     pub player: PlayerSelection,
     pub selection_type: CardSelectionType,
 }
 
-pub enum CardSelectionType{
+pub enum CardSelectionType {
     ObtainBoard(CardPickOnBoard),
     ObtainReserved(ReservedCardSelection),
     Reserve(CardPickOnBoard)

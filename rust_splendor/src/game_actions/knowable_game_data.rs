@@ -11,8 +11,6 @@ pub trait KnowableGameData<ActorType> : HasCards
     
     fn bank_resources(&self) -> &[i8; RESOURCE_TOKEN_COUNT];
     fn bank_resources_mut(&mut self) -> &mut [i8; RESOURCE_TOKEN_COUNT];
-    
-    
 }
 
 pub trait KnowableActorData {
