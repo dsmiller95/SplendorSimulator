@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, board_card};
 
@@ -12,12 +13,11 @@ mod tests {
     use crate::game_actions::bank_transactions::{BankTransaction, get_transaction_sequence, get_transaction_sequence_tokens};
     use crate::game_actions::card_transaction::CardSelectionType::ObtainBoard;
     use crate::game_actions::card_transaction::CardTransaction;
-    use crate::game_actions::sub_turn::{SubTurn, SubTurnAction};
+    use crate::game_actions::sub_turn::{SubTurn};
     use crate::game_actions::sub_turn::SubTurnAction::{TransactCard, TransactTokens};
     use crate::game_actions::test_utils::get_test_game;
-    use crate::game_actions::turn::{GameTurn, Turn, TurnPlanningFailed};
+    use crate::game_actions::turn::{Turn, TurnPlanningFailed};
     use crate::game_actions::turn::TurnPlanningFailed::*;
-    use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
     use crate::game_model::game_components::Card;
 
     #[test]

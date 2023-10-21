@@ -1,4 +1,4 @@
-use crate::constants::{GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, RESOURCE_TOKEN_COUNT, RESOURCE_TYPE_COUNT, ResourceAmountFlags};
+use crate::constants::{GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, RESOURCE_TOKEN_COUNT, ResourceAmountFlags};
 use crate::game_model::game_components::Card;
 
 
@@ -39,33 +39,6 @@ pub trait HasCards {
     
     fn take_card(&mut self, card_pick: &GlobalCardPick) -> Option<Card>;
     fn try_put_card(&mut self, card_pick: &GlobalCardPick, card: Card) -> Result<(), PutError<Card>>;
-    
-    // TODO: might be kinda useless. since typically we will transfer to an actor that is part of self,
-    //  so we won't be able to use a function like this due to ownership/borrowing rules.
-    fn try_consume_card<F>(&mut self, card_pick: &GlobalCardPick, consumer: F) -> Result<(), TryConsumeError>
-        where F:  FnOnce(Card) -> Result<(), PutError<Card>> {
-        let card = self.take_card(card_pick).ok_or(TryConsumeError::SourceEmpty)?;
-        
-        let consumed_result = consumer(card);
-
-        match consumed_result {
-            Ok(()) => Ok(()),
-            Err(PutError::DestinationDoesNotExist(card)) =>{
-                self.try_put_card(card_pick, card).expect("Card slot must be empty, we just took a card from it");
-                Err(TryConsumeError::DestinationDoesNotExist)  
-            } 
-            Err(PutError::Occupied(card)) => {
-                self.try_put_card(card_pick, card).expect("Card slot must be empty, we just took a card from it");
-                Err(TryConsumeError::DestinationOccupied)
-            }
-        }
-    }
-}
-
-pub enum TryConsumeError {
-    SourceEmpty,
-    DestinationOccupied,
-    DestinationDoesNotExist,
 }
 
 #[derive(Debug, Copy, Clone)]

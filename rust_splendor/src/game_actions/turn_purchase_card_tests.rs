@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, board_card};
 

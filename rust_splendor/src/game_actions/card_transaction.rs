@@ -72,25 +72,13 @@ pub fn transact_card<ActorType, T>(game: &mut T, transaction: &CardTransaction) 
             Err(CardTransactionError::UnknownCardOccupied)
         }
     }
-    
-    // match consume_result {
-    //     Ok(_) => Ok(CardTransactionSuccess::FullTransaction),
-    //     Err(e) => {
-    //         let mapped = match e {
-    //             TryConsumeError::SourceEmpty => CardTransactionError::CardDoesNotExist,
-    //             TryConsumeError::DestinationOccupied => CardTransactionError::UnkownCardOccupied,
-    //             TryConsumeError::DestinationDoesNotExist => CardTransactionError::PlayerDoesNotExist,
-    //         };
-    //         Err(mapped)
-    //     }
-    // }
 }
 
 impl CardTransaction {
     pub fn get_card_pick(&self) -> GlobalCardPick{
         match self.selection_type {
-            CardSelectionType::Reserve(onBoard) => onBoard.into(),
-            CardSelectionType::ObtainBoard(onBoard) => onBoard.into(),
+            CardSelectionType::Reserve(on_board) => on_board.into(),
+            CardSelectionType::ObtainBoard(on_board) => on_board.into(),
             CardSelectionType::ObtainReserved(reserved) => reserved_card(self.player, reserved),
         }
     }
@@ -121,8 +109,7 @@ pub enum CardTransactionError{
 
 #[derive(Debug, PartialEq)]
 pub enum CardTransactionSuccess {
-    FullTransaction,
-    PartialTransaction
+    FullTransaction
 }
 
 

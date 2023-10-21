@@ -2,9 +2,9 @@ use std::cmp::{max, min};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType};
 use crate::constants::ResourceTokenType::CostType;
-use crate::game_actions::bank_transactions::{BankTransaction, can_transact, get_transaction_sequence};
+use crate::game_actions::bank_transactions::{BankTransaction, get_transaction_sequence};
 use crate::game_actions::card_transaction::{CardSelectionType, CardTransaction};
-use crate::game_actions::sub_turn::{SubTurn, SubTurnAction, SubTurnFailureMode};
+use crate::game_actions::sub_turn::{SubTurn, SubTurnAction};
 use crate::game_actions::sub_turn::SubTurnFailureMode::MayPartialSucceed;
 use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
 use crate::game_actions::turn_result::TurnFailed::FailurePartialModification;
@@ -15,6 +15,7 @@ pub enum Turn {
     TakeTwoTokens(ResourceType),
     PurchaseCard(GlobalCardPick),
     ReserveCard(CardPickOnBoard),
+    #[allow(dead_code)]
     Noop, // reserved for testing, player passes their turn
 }
 
@@ -24,39 +25,10 @@ pub trait GameTurn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData
     fn is_valid(&self) -> bool;
     fn can_take_turn(&self, game: &T, actor_index: PlayerSelection) -> bool;
 }
-impl Turn {
-    fn all_bank_transactions(&self, actor_index: PlayerSelection) -> Vec<BankTransaction> {
-        match self {
-            Turn::TakeThreeTokens(a, b, c) => {
-                vec![
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*a), amount: -1},
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*b), amount: -1},
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*c), amount: -1},
-                ]
-            },
-            Turn::TakeTwoTokens(a) => {
-                vec![
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*a), amount: -1},
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*a), amount: -1},
-                ]
-            },
-            Turn::PurchaseCard(_) => {
-                vec![]
-            },
-            Turn::ReserveCard(_) => {
-                vec![
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::Gold, amount: -1},
-                ]
-            },
-            Turn::Noop => {
-                vec![]
-            }
-        }
-    }
-}
 
 #[derive(Debug, PartialEq)]
 pub enum TurnPlanningFailed{
+    #[allow(dead_code)]
     UnknownError,
     MissingPlayer,
     CantTakeTokens,

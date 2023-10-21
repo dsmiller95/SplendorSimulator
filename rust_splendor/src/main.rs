@@ -1,5 +1,5 @@
 #![feature(impl_trait_in_assoc_type)]
-#![feature(return_position_impl_trait_in_trait)]
+//#![feature(return_position_impl_trait_in_trait)]
 
 pub mod game_model;
 mod game_actions;
@@ -10,6 +10,7 @@ fn main() {
 
 }
 
+#[allow(dead_code)]
 fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
     unsafe {
         ::core::slice::from_raw_parts(
