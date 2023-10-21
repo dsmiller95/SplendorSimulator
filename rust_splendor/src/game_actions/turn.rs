@@ -125,6 +125,7 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
         };
 
         let mut is_first_turn = true;
+        let mut success_mode: Option<TurnSuccess> = None;
         for sub_turn in sub_turns {
             let sub_result = sub_turn.action
                 .do_sub_turn(game)
@@ -139,10 +140,18 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
                 return Err(FailurePartialModification);
             }
 
+            success_mode = Some(match success_mode {
+                None => sub_result,
+                Some(last_success) => last_success.combine(&sub_result)
+            });
+
             is_first_turn = false;
         }
 
-        Ok(TurnSuccess::Success)
+        match success_mode {
+            None => Err(FailurePartialModification),
+            Some(x) => Ok(x)
+        }
     }
 
     fn is_valid(&self) -> bool {

@@ -33,6 +33,7 @@ mod tests {
         expected_result: Result<TurnSuccess, TurnFailed>,
         expected_bank: ResourceTokenBank,
         expected_player_bank: ResourceTokenBank) {
+
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources = bank;
         let actor = game.actors[PlayerSelection2].as_mut().unwrap();
