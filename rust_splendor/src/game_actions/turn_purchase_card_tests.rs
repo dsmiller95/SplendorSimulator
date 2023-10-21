@@ -44,7 +44,7 @@ mod tests {
 
         let turn = Turn::PurchaseCard(board_card(CardTier1, OpenCard(OpenCardPickInTier2)));
 
-        assert_eq!(turn.can_take_turn(&game, PlayerSelection2), true);
+        assert_eq!(turn.can_take_turn(&game, PlayerSelection2), expected_result.is_ok());
         let turn_result = turn.take_turn(&mut game, PlayerSelection2);
         assert_eq!(turn_result, expected_result);
         if expected_result == Ok(TurnSuccess::Success) {
@@ -57,7 +57,7 @@ mod tests {
     }
 
     #[test]
-    fn cannot_purchase_expensive_card() {
+    fn when_expensive_card__cannot_purchase() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0],
@@ -70,20 +70,20 @@ mod tests {
     }
 
     #[test]
-    fn can_purchase_card_with_all_resources() {
+    fn when_affordable_card_exact__purchases() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [1, 0, 1, 0, 0, 0],
             [0, 0, 0, 0, 0],
             Card::new().with_cost([1, 0, 1, 0, 0]),
-            Err(TurnFailed::FailureNoModification),
+            Ok(TurnSuccess::Success),
             [2, 1, 2, 1, 1, 1],
             [0, 0, 0, 0, 0, 0],
         );
     }
 
     #[test]
-    fn can_purchase_card_with_gold() {
+    fn when_affordable_card_with_gold__purchases() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 1],
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn can_purchase_card_with_player_persistent_resources() {
+    fn when_affordable_card_with_persistent__purchases() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0],
@@ -109,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn can_not_purchase_card_with_not_enough_player_persistent_resources() {
+    fn when_expensive_card_with_not_enough_persistent__cannot_purchase() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0],
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn can_purchase_card_with_combined_persistent_and_bank() {
+    fn when_affordable_card_with_combined_gold_and_persistent__purchases() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 3],
@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn avoids_purchase_card_with_gold() {
+    fn when_affordable_card_with_extra_gold__purchases_without_gold() {
         test_purchase_result(
             [1, 1, 1, 1, 1, 1],
             [1, 0, 1, 0, 0, 1],

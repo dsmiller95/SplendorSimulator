@@ -90,6 +90,24 @@ mod tests {
             Ok(vec![bank_transact, default_card_transact()])
         )
     }
+    #[test]
+    fn when_multiple_tokens_of_type_required__produces_single_bank_transaction(){
+        let bank_transact =
+            TransactTokens(
+                get_transaction_sequence(
+                    PlayerSelection2,
+                    2,
+                    &[Emerald])
+            ).to_required();
+
+        test_sub_turn_result(
+            [1, 1, 1, 1, 1, 1],
+            [0, 2, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            Card::new().with_cost([0, 2, 0, 0, 0]),
+            Ok(vec![bank_transact, default_card_transact()])
+        )
+    }
 
     #[test]
     fn when_available_resources_excess__produces_bank_transactions(){
@@ -128,13 +146,13 @@ mod tests {
                 get_transaction_sequence(
                     PlayerSelection2,
                     1,
-                    &[Ruby, Sapphire])
-            ).to_partial();
+                    &[Sapphire])
+            ).to_required();
 
         test_sub_turn_result(
             [1, 1, 1, 1, 1, 1],
             [0, 0, 1, 0, 0, 0],
-            [1, 0, 1, 0, 0],
+            [1, 0, 0, 0, 0],
             Card::new().with_cost([1, 0, 1, 0, 0]),
             Ok(vec![bank_transact, default_card_transact()])
         )
@@ -164,8 +182,8 @@ mod tests {
             TransactTokens(
                 get_transaction_sequence_tokens(
                     PlayerSelection2,
-                    1,
-                    &[Gold, Gold])
+                    2,
+                    &[Gold])
             ).to_required();
 
         test_sub_turn_result(
@@ -195,24 +213,6 @@ mod tests {
         )
     }
     #[test]
-    fn when_multiple_tokens_of_type_required__produces_single_bank_transaction(){
-        let bank_transact =
-            TransactTokens(
-                get_transaction_sequence(
-                    PlayerSelection2,
-                    2,
-                    &[Emerald])
-            ).to_required();
-
-        test_sub_turn_result(
-            [1, 1, 1, 1, 1, 1],
-            [0, 2, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            Card::new().with_cost([0, 2, 0, 0, 0]),
-            Ok(vec![bank_transact, default_card_transact()])
-        )
-    }
-    #[test]
     fn when_multiple_tokens_of_type_required_and_gold_available__produces_mixed_gold_bank_transaction(){
         let bank_transact =
             TransactTokens(
@@ -227,6 +227,32 @@ mod tests {
             [0, 2, 0, 0, 0, 4],
             [0, 0, 0, 0, 0],
             Card::new().with_cost([0, 4, 0, 0, 0]),
+            Ok(vec![bank_transact, default_card_transact()])
+        )
+    }
+    #[test]
+    fn when_multiple_tokens_of_type_required_and_gold_available__produces_mixed_gold_bank_transaction_with_heterogeneous_amounts(){
+        let bank_transact =
+            TransactTokens(
+                vec![
+                    BankTransaction{
+                        player: PlayerSelection2,
+                        resource: CostType(Emerald),
+                        amount: 1
+                    },
+                    BankTransaction{
+                        player: PlayerSelection2,
+                        resource: Gold,
+                        amount: 2
+                    },
+                ]
+            ).to_required();
+
+        test_sub_turn_result(
+            [1, 1, 1, 1, 1, 1],
+            [0, 1, 0, 0, 0, 4],
+            [0, 0, 0, 0, 0],
+            Card::new().with_cost([0, 3, 0, 0, 0]),
             Ok(vec![bank_transact, default_card_transact()])
         )
     }

@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::cmp::{max, min};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType};
 use crate::constants::ResourceTokenType::CostType;
@@ -117,17 +117,31 @@ impl Turn {
                 }
 
                 let mut bank_transactions = vec![];
-                todo!();
-                let mut available_tokens = actor.owned_resources().clone();
+                let owned_tokens = actor.owned_resources();
+                let mut gold_deficit = 0;
                 for resource in ResourceType::iterator() {
                     let cost = modified_cost[*resource];
-                    if cost > 0 {
+                    if cost <= 0{
+                        continue;
+                    }
+                    let spent_tokens = min(cost, owned_tokens[*resource]);
+                    if spent_tokens > 0{
                         bank_transactions.push(BankTransaction{
                             player: actor_index,
                             resource: CostType(*resource),
-                            amount: cost
+                            amount: spent_tokens
                         });
                     }
+
+                    let deficit = cost - spent_tokens;
+                    gold_deficit += deficit;
+                }
+                if gold_deficit > 0 {
+                    bank_transactions.push(BankTransaction{
+                        player: actor_index,
+                        resource: ResourceTokenType::Gold,
+                        amount: gold_deficit
+                    });
                 }
 
                 if bank_transactions.len() > 0 {
@@ -223,45 +237,11 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
             _ => true,
         }
     }
-    
+
     fn can_take_turn(&self, game: &T, actor_index: PlayerSelection) -> bool {
         if !GameTurn::<T, ActorType>::is_valid(self) {
             return false
         }
-        let actor = game.get_actor_at_index(actor_index);
-        if actor.is_none() {
-            return false
-        }
-        let actor = actor.unwrap();
-        
-        match self {
-            Turn::TakeThreeTokens(a, b, c) => {
-                self.all_bank_transactions(actor_index)
-                    .iter().any(|transaction| 
-                        can_transact(game, transaction).is_ok()
-                    )
-            },
-            Turn::TakeTwoTokens(a) => {
-                self.all_bank_transactions(actor_index)
-                    .iter().any(|transaction|
-                    can_transact(game, transaction).is_ok()
-                )
-            },
-            Turn::PurchaseCard(card) => {
-                let picked_card = game.get_card_pick(card);
-                if picked_card.is_none() {
-                    return false
-                }
-                let picked_card = picked_card.unwrap();
-                actor.can_afford_card(picked_card)
-            },
-            Turn::ReserveCard(card) => {
-                let picked_card = game.get_card_pick(&GlobalCardPick::OnBoard(*card));
-                
-                picked_card.is_some()
-                    && actor.reserved_cards().iter().any(|x| x.is_none())
-            },
-            Turn::Noop => true,
-        }
+        return self.get_sub_turns(game, actor_index).is_ok();
     }
 }

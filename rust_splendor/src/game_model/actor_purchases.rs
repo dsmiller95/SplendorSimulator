@@ -51,7 +51,8 @@ impl KnowableActorData for Actor {
     }
 
     fn put_in_purchased(&mut self, card: Card) -> Result<(), PutError<Card>> {
-        todo!()
+        self.purchased_cards.push(card);
+        Ok(())
     }
 }
 #[cfg(test)]
