@@ -1,10 +1,11 @@
 use std::cmp::min;
 use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_NOBLES, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT};
 use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData, PutError};
+use crate::game_model::actor::Actor;
 use crate::game_model::game_components::{Card, Noble};
 use crate::game_model::game_config::GameConfig;
-use crate::game_model::game_sized::{ActorSized, CardRowSized};
-use crate::game_model::game_unsized::{ActorUnsized, CardRowUnsized};
+use crate::game_model::game_sized::{CardRowSized};
+use crate::game_model::game_unsized::{CardRowUnsized};
 
 #[derive(Debug)]
 pub struct GameModel {
@@ -13,12 +14,10 @@ pub struct GameModel {
 
     pub total_turns_taken: u32,
 
-    pub actors: [Option<ActorUnsized>; MAX_PLAYER_COUNT],
+    /// assume the 1st actor in this list is the player whose turn it is.
+    pub actors: [Option<Actor>; MAX_PLAYER_COUNT],
     pub card_rows: [CardRowUnsized; CARD_TIER_COUNT],
 
-
-    /// assume the 1st actor in this list is the player whose turn it is.
-    pub actors_sized: [Option<ActorSized>; MAX_PLAYER_COUNT],
     pub available_nobles: [Option<Noble>; MAX_NOBLES],
     pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
     pub card_rows_sized: [CardRowSized; CARD_TIER_COUNT],
@@ -29,30 +28,20 @@ impl GameModel {
         let min_count = min(player_count, MAX_PLAYER_COUNT);
         let actors = std::array::from_fn(|i| {
             if i < min_count {
-                Some(ActorUnsized::new())
+                Some(Actor::new())
             } else {
                 None
             }
         });
-
-        let actors_sized = std::array::from_fn(|i| {
-            if i < min_count {
-                Some(ActorSized::new())
-            } else {
-                None
-            }
-        });
-
 
         GameModel {
             game_config: config,
 
             total_turns_taken: 0,
-            actors,
             card_rows: std::array::from_fn(|_| CardRowUnsized::new()),
 
 
-            actors_sized,
+            actors,
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
             bank_resources: [0; RESOURCE_TOKEN_COUNT],
             card_rows_sized: std::array::from_fn(|_| CardRowSized::new()),
@@ -67,7 +56,7 @@ impl GameModel {
                     [card_pick.pick]
             }
             GlobalCardPick::Reserved(reserved) => {
-                &mut self.actors_sized[reserved.player_index]
+                &mut self.actors[reserved.player_index]
                     .as_mut()?
                     .reserved_cards[reserved.reserved_card]
             }
@@ -85,7 +74,7 @@ impl HasCards for GameModel {
                     .as_ref()
             }
             GlobalCardPick::Reserved(reserved) => {
-                self.actors_sized[reserved.player_index].as_ref()?
+                self.actors[reserved.player_index].as_ref()?
                     .reserved_cards[reserved.reserved_card]
                     .as_ref()
             }
@@ -118,13 +107,13 @@ impl HasCards for GameModel {
     }
 }
 
-impl KnowableGameData<ActorSized> for GameModel {
-    fn get_actor_at_index(&self, index: PlayerSelection) -> Option<&ActorSized> {
-        self.actors_sized[index].as_ref()
+impl KnowableGameData<Actor> for GameModel {
+    fn get_actor_at_index(&self, index: PlayerSelection) -> Option<&Actor> {
+        self.actors[index].as_ref()
     }
 
-    fn get_actor_at_index_mut(&mut self, index: PlayerSelection) -> Option<&mut ActorSized> {
-        self.actors_sized[index].as_mut()
+    fn get_actor_at_index_mut(&mut self, index: PlayerSelection) -> Option<&mut Actor> {
+        self.actors[index].as_mut()
     }
 
     fn bank_resources(&self) -> &[i8; 6] {

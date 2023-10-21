@@ -33,7 +33,7 @@ fn test_purchase_result(
     
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
     game.bank_resources = bank;
-    let actor = game.actors_sized[PlayerSelection2].as_mut().unwrap();
+    let actor = game.actors[PlayerSelection2].as_mut().unwrap();
     actor.resource_tokens = player_bank;
     actor.resources_from_cards = player_persistent;
 
@@ -46,11 +46,11 @@ fn test_purchase_result(
     assert_eq!(turn_result, expected_result);
     if expected_result == Ok(TurnSuccess::Success) {
         assert_eq!(game.bank_resources, expected_bank);
-        assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
+        assert_eq!(game.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
     }
     else{
         assert_eq!(game.bank_resources, bank);
-        assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens, player_bank);
+        assert_eq!(game.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, player_bank);
     }
 }
 

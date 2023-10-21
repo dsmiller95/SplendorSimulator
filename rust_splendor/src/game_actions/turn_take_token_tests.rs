@@ -34,7 +34,7 @@ fn take_two_takes_one_token_when_one_in_bank() {
     let turn_result = turn.take_turn(&mut game, PlayerSelection2);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
     assert_eq!(game.bank_resources[Diamond], 0);
-    assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens[Diamond], 1);
+    assert_eq!(game.actors[PlayerSelection2].as_ref().unwrap().resource_tokens[Diamond], 1);
 }
 
 
@@ -66,7 +66,7 @@ fn take_three_takes_two_tokens_when_two_in_bank() {
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 0);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 0);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);
@@ -92,7 +92,7 @@ fn take_three_takes_two_tokens_when_two_in_bank_of_requested() {
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 0);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 0);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);
@@ -106,7 +106,7 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max() {
     game.bank_resources[Diamond] = 1;
     game.bank_resources[Emerald] = 1;
 
-    game.actors_sized[PlayerSelection1].as_mut().unwrap()
+    game.actors[PlayerSelection1].as_mut().unwrap()
         .resource_tokens[Onyx] = MAX_INVENTORY_TOKENS - 2;
 
     let turn = Turn::TakeThreeTokens(
@@ -121,7 +121,7 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max() {
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 1);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 1);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 0);
@@ -136,7 +136,7 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_different_ord
     game.bank_resources[Emerald] = 1;
     game.bank_resources[Sapphire] = 1;
 
-    game.actors_sized[PlayerSelection1].as_mut().unwrap()
+    game.actors[PlayerSelection1].as_mut().unwrap()
         .resource_tokens[Onyx] = MAX_INVENTORY_TOKENS - 2;
 
     let turn = Turn::TakeThreeTokens(
@@ -150,7 +150,7 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_different_ord
     assert_eq!(game_bank[Emerald], 0);
     assert_eq!(game_bank[Sapphire], 0);
     assert_eq!(game_bank[Ruby], 1);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Emerald], 1);
     assert_eq!(player_bank[Sapphire], 1);
     assert_eq!(player_bank[Ruby], 0);
@@ -162,7 +162,7 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_skips_empty_b
     game.bank_resources[Sapphire] = 0;
     game.bank_resources[Ruby] = 1;
 
-    game.actors_sized[PlayerSelection1].as_mut().unwrap()
+    game.actors[PlayerSelection1].as_mut().unwrap()
         .resource_tokens[Onyx] = MAX_INVENTORY_TOKENS - 2;
 
     let turn = Turn::TakeThreeTokens(
@@ -176,7 +176,7 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_skips_empty_b
     assert_eq!(game_bank[Emerald], 0);
     assert_eq!(game_bank[Sapphire], 0);
     assert_eq!(game_bank[Ruby], 0);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Emerald], 1);
     assert_eq!(player_bank[Sapphire], 0);
     assert_eq!(player_bank[Ruby], 1);
@@ -198,7 +198,7 @@ fn take_three_takes_three_tokens_when_three_in_bank() {
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 0);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 1);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);
@@ -233,7 +233,7 @@ fn take_three_takes_three_tokens_when_many_in_bank() {
     assert_eq!(game_bank[Ruby], 9);
     assert_eq!(game_bank[Diamond], 12);
     assert_eq!(game_bank[Emerald], 10);
-    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 1);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);

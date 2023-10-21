@@ -1,11 +1,10 @@
 use crate::constants::{MAX_RESERVED_CARDS, ReservedCardSelection, RESOURCE_TOKEN_COUNT, ResourceType};
 use crate::constants::ResourceTokenType::Gold;
 use crate::game_actions::knowable_game_data::{KnowableActorData, PutError};
+use crate::game_model::actor::Actor;
 use crate::game_model::game_components::Card;
 
-use crate::game_model::game_sized::{ActorSized};
-
-impl KnowableActorData for ActorSized {
+impl KnowableActorData for Actor {
     fn owned_resources(&self) -> &[i8; RESOURCE_TOKEN_COUNT] {
         &self.resource_tokens
     }
@@ -55,19 +54,19 @@ impl KnowableActorData for ActorSized {
 mod tests {
     use crate::constants::MAX_RESERVED_CARDS;
     use crate::game_actions::knowable_game_data::KnowableActorData;
+    use crate::game_model::actor::Actor;
     use crate::game_model::game_components::Card;
-    use crate::game_model::game_sized::ActorSized;
 
     #[test]
     fn puts_card_in_empty_reserve(){
-        let mut actor = ActorSized::new();
+        let mut actor = Actor::new();
         let card = Card::new().with_id(2);
         actor.put_in_reserve(card).unwrap();
         assert_eq!(actor.reserved_cards[0].as_ref().unwrap().id, 2);
     }
     #[test]
     fn puts_card_in_partiall_full_reserve(){
-        let mut actor = ActorSized::new();
+        let mut actor = Actor::new();
         actor.reserved_cards[0] = Some(Card::new().with_id(1));
         let card = Card::new().with_id(2);
         actor.put_in_reserve(card).unwrap();
@@ -76,7 +75,7 @@ mod tests {
     
     #[test]
     fn cannot_puts_card_in_full_reserve(){
-        let mut actor = ActorSized::new();
+        let mut actor = Actor::new();
         actor.reserved_cards = std::array::from_fn(|i| Some(Card::new().with_id((i + 22) as u32)));
         let card = Card::new().with_id(33);
         actor.put_in_reserve(card).expect_err("Should not be able to put card in full reserve");
