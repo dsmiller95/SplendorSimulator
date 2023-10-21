@@ -1,5 +1,6 @@
 #![feature(impl_trait_in_assoc_type)]
-//#![feature(return_position_impl_trait_in_trait)]
+#![allow(stable_features)] // allow here because rust rover error inspections have not caught up yet
+#![feature(return_position_impl_trait_in_trait)]
 
 pub mod game_model;
 mod game_actions;
