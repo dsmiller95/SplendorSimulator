@@ -1,4 +1,5 @@
-use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType};
+use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType, ResourceType};
+use crate::constants::ResourceTokenType::CostType;
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 
 pub fn can_transact<ActorType, T>(game: &T, transaction: &BankTransaction) -> Result<(), BankTransactionError>
@@ -46,10 +47,29 @@ pub fn transact<ActorType, T>(game: &mut T, transaction: &BankTransaction) -> Re
     Ok(BankTransactionSuccess::FullTransaction)
 }
 
+pub fn get_transaction_sequence_tokens(player: PlayerSelection, amount: i8, resources: &[ResourceTokenType]) -> Vec<BankTransaction> {
+    resources.iter()
+        .map(|resource| BankTransaction{
+            player,
+            resource: *resource,
+            amount
+        })
+        .collect()
+}
+
+pub fn get_transaction_sequence(player: PlayerSelection, amount: i8, resources: &[ResourceType]) -> Vec<BankTransaction> {
+    let tokens = resources.iter()
+        .map(|resource| CostType(*resource))
+        .collect::<Vec<ResourceTokenType>>();
+    get_transaction_sequence_tokens(player, amount, &tokens)
+}
+
+#[derive(Debug, PartialEq)]
+
 pub struct BankTransaction{
     pub player: PlayerSelection,
     pub resource: ResourceTokenType,
-    /// Positive for deposit, negative for withdrawal
+    /// Positive for deposit into bank, negative for withdrawal from bank
     pub amount: i8
 }
 

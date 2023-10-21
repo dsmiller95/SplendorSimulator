@@ -4,6 +4,10 @@ use crate::game_actions::bank_transactions::{BankTransaction, transact};
 use crate::game_actions::card_transaction::{CardTransaction, CardTransactionError, transact_card};
 use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
 
+use super::bank_transactions::can_transact;
+
+
+#[derive(Debug, PartialEq)]
 pub struct SubTurn{
     pub action: SubTurnAction,
     pub failure_mode: SubTurnFailureMode
@@ -15,6 +19,7 @@ pub enum SubTurnFailureMode{
     MayPartialSucceed
 }
 
+#[derive(Debug, PartialEq)]
 pub enum SubTurnAction{
     /// Perform all transactions with the global bank
     TransactTokens(Vec<BankTransaction>),
@@ -22,6 +27,18 @@ pub enum SubTurnAction{
     TransactCard(CardTransaction)
 }
 impl SubTurnAction {
+    pub fn to_partial(self) -> SubTurn {
+        SubTurn {
+            action: self,
+            failure_mode: SubTurnFailureMode::MayPartialSucceed
+        }
+    }
+    pub fn to_required(self) -> SubTurn {
+        SubTurn {
+            action: self,
+            failure_mode: SubTurnFailureMode::MustAllSucceed
+        }
+    }
     pub fn do_sub_turn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed>{
         match self {
             SubTurnAction::TransactTokens(bank_transactions) => {
@@ -45,6 +62,28 @@ impl SubTurnAction {
                     })
                     .map(|_| TurnSuccess::Success)
             }
+        }
+    }
+}
+
+impl SubTurn{
+    pub fn can_complete<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>(&self, game: &T) -> bool {
+        match &self.action {
+            SubTurnAction::TransactTokens(bank_transactions) => match self.failure_mode {
+                SubTurnFailureMode::MustAllSucceed => {
+                    bank_transactions.iter().all(|transaction|
+                        can_transact(game, transaction).is_ok()
+                    )
+                }
+                SubTurnFailureMode::MayPartialSucceed => {
+                    bank_transactions.iter().any(|transaction|
+                        can_transact(game, transaction).is_ok()
+                    )
+                }
+            }
+            SubTurnAction::TransactCard(card_transaciton) => {
+                card_transaciton.can_transact(game).is_ok()
+            },
         }
     }
 }

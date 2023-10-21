@@ -1,4 +1,4 @@
-use crate::constants::{GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, RESOURCE_TOKEN_COUNT};
+use crate::constants::{GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, RESOURCE_TOKEN_COUNT, RESOURCE_TYPE_COUNT, ResourceAmountFlags};
 use crate::game_model::game_components::Card;
 
 
@@ -16,7 +16,9 @@ pub trait KnowableGameData<ActorType> : HasCards
 pub trait KnowableActorData {
     fn owned_resources(&self) -> &[i8; RESOURCE_TOKEN_COUNT];
     fn owned_resources_mut(&mut self) -> &mut [i8; RESOURCE_TOKEN_COUNT];
-    
+
+    fn persistent_resources(&self) -> &ResourceAmountFlags;
+
     fn can_afford_card(&self, card: &Card) -> bool;
     fn reserved_cards(&self) -> &[Option<Card>; MAX_RESERVED_CARDS];
     

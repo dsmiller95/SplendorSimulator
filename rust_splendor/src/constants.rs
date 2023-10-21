@@ -8,7 +8,7 @@ macro_rules! sequential_enum {
     ($const_name:ident, $enum_name:ident, $count:expr) => {
         pub const $const_name: usize = $count;
         seq!(N in 1..=$count {
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug, PartialEq, Copy, Clone)]
             pub enum $enum_name {
                 #(
                     $enum_name~N,
@@ -43,7 +43,7 @@ macro_rules! indexable_sequential_enum {
 }
 indexable_sequential_enum!(CARD_COUNT_PER_TIER, OpenCardPickInTier, 4);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CardPickInTier {
     HiddenCard,
     OpenCard(OpenCardPickInTier)
@@ -52,7 +52,7 @@ pub enum CardPickInTier {
 
 indexable_sequential_enum!(CARD_TIER_COUNT, CardTier, 3);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct CardPickOnBoard {
     pub tier: CardTier,
     pub pick: CardPickInTier,
@@ -111,7 +111,7 @@ pub enum ResourceType{
     Onyx = 4,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 #[repr(u8)]
 pub enum ResourceTokenType {
     CostType(ResourceType),

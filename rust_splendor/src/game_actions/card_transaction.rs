@@ -26,6 +26,14 @@ pub fn can_transact_card<ActorType, T>(game: &T, transaction: &CardTransaction) 
     Ok(())
 }
 
+impl CardTransaction {
+    pub fn can_transact<ActorType, T>(&self, game: &T) -> Result<(), CardTransactionError>
+        where ActorType: KnowableActorData,
+              T: KnowableGameData<ActorType>{
+        can_transact_card(game, self)
+    }
+}
+
 /// move the card from one place to another
 /// does not check to see if the player has the resources to do so, nor does it modify the player's resources
 pub fn transact_card<ActorType, T>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
@@ -90,11 +98,13 @@ impl CardTransaction {
 
 /// A transaction which will move a card from the board
 /// to the player's inventory or to their reserved cards
+#[derive(Debug, PartialEq)]
 pub struct CardTransaction {
     pub player: PlayerSelection,
     pub selection_type: CardSelectionType,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum CardSelectionType {
     ObtainBoard(CardPickOnBoard),
     ObtainReserved(ReservedCardSelection),

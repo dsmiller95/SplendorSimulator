@@ -1,4 +1,4 @@
-use crate::constants::{MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, ResourceType};
+use crate::constants::{MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, RESOURCE_TYPE_COUNT, ResourceAmountFlags, ResourceType};
 use crate::constants::ResourceTokenType::Gold;
 use crate::game_actions::knowable_game_data::{KnowableActorData, PutError};
 use crate::game_model::actor::Actor;
@@ -11,6 +11,10 @@ impl KnowableActorData for Actor {
 
     fn owned_resources_mut(&mut self) -> &mut [i8; RESOURCE_TOKEN_COUNT] {
         &mut self.resource_tokens
+    }
+
+    fn persistent_resources(&self) -> &ResourceAmountFlags {
+        &self.resources_from_cards
     }
 
     fn can_afford_card(&self, card: &Card) -> bool {

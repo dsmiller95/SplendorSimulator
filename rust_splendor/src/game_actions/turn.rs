@@ -1,6 +1,8 @@
+use std::cmp::max;
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType};
-use crate::game_actions::bank_transactions::{BankTransaction, can_transact};
+use crate::constants::ResourceTokenType::CostType;
+use crate::game_actions::bank_transactions::{BankTransaction, can_transact, get_transaction_sequence};
 use crate::game_actions::card_transaction::{CardSelectionType, CardTransaction};
 use crate::game_actions::sub_turn::{SubTurn, SubTurnAction, SubTurnFailureMode};
 use crate::game_actions::sub_turn::SubTurnFailureMode::MayPartialSucceed;
@@ -23,8 +25,6 @@ pub trait GameTurn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData
     fn can_take_turn(&self, game: &T, actor_index: PlayerSelection) -> bool;
 }
 impl Turn {
-
-
     fn all_bank_transactions(&self, actor_index: PlayerSelection) -> Vec<BankTransaction> {
         match self {
             Turn::TakeThreeTokens(a, b, c) => {
@@ -55,40 +55,106 @@ impl Turn {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum TurnPlanningFailed{
+    UnknownError,
+    MissingPlayer,
+    CantTakeTokens,
+    CantSpendTokens,
+    MissingCard,
+    PurchaseOtherPlayerReservedCard,
+    CantTakeCard,
+}
 
-impl  Turn {
-    fn get_sub_turns<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>
-        (&self, game: &mut T, actor_index: PlayerSelection) -> Option<Vec<SubTurn>> {
+impl Turn {
+    pub(crate) fn get_sub_turns<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>
+        (&self, game: &T, actor_index: PlayerSelection) -> Result<Vec<SubTurn>, TurnPlanningFailed> {
+        use crate::game_actions::turn::TurnPlanningFailed::*;
 
-        if !self.can_take_turn(game, actor_index) {
-            return None;
-        }
+        // if !self.can_take_turn(game, actor_index) {
+        //     return Err(UnknownError);
+        // }
 
         match self {
             Turn::TakeThreeTokens(a, b, c) => {
-                let take_tokens = SubTurnAction::TransactTokens(vec![
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*a), amount: -1},
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*b), amount: -1},
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*c), amount: -1},
-                ]);
-                Some(vec![SubTurn{
-                    action: take_tokens,
-                    failure_mode: SubTurnFailureMode::MayPartialSucceed
-                }])
+                let take_tokens = SubTurnAction::TransactTokens(
+                    get_transaction_sequence(actor_index, -1, &[*a, *b, *c])
+                ).to_partial();
+                if !take_tokens.can_complete(game) {
+                    return Err(CantTakeTokens);
+                }
+                Ok(vec![
+                    take_tokens
+                ])
             },
 
             Turn::TakeTwoTokens(a) => {
-                let take_tokens = SubTurnAction::TransactTokens(vec![
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*a), amount: -1},
-                    BankTransaction{player: actor_index, resource: ResourceTokenType::CostType(*a), amount: -1},
-                ]);
-                Some(vec![SubTurn{
-                    action: take_tokens,
-                    failure_mode: SubTurnFailureMode::MayPartialSucceed
-                }])
+                let take_tokens = SubTurnAction::TransactTokens(
+                    get_transaction_sequence(actor_index, -1, &[*a, *a])
+                ).to_partial();
+                if !take_tokens.can_complete(game) {
+                    return Err(CantTakeTokens);
+                }
+                Ok(vec![
+                    take_tokens
+                ])
             }
-            Turn::PurchaseCard(_) => {
-                todo!()
+            Turn::PurchaseCard(card_pick) => {
+                let Some(picked_card) = game.get_card_pick(card_pick) else {
+                    return Err(MissingCard)
+                };
+                let Some(actor) = game.get_actor_at_index(actor_index) else {
+                    return Err(MissingPlayer)
+                };
+
+                let mut result_actions = vec![];
+
+                let base_cost = picked_card.cost;
+                let resources_from_cards = actor.persistent_resources();
+                let mut modified_cost = base_cost.clone();
+                for resource in ResourceType::iterator() {
+                    modified_cost[*resource] = max(0, modified_cost[*resource] - resources_from_cards[*resource]);
+                }
+
+                let mut bank_transactions = vec![];
+                for resource in ResourceType::iterator() {
+                    let cost = modified_cost[*resource];
+                    if cost > 0 {
+                        bank_transactions.push(BankTransaction{
+                            player: actor_index,
+                            resource: CostType(*resource),
+                            amount: cost
+                        });
+                    }
+                }
+
+                if bank_transactions.len() > 0 {
+                    let take_tokens = SubTurnAction::TransactTokens(bank_transactions).to_required();
+                    if !take_tokens.can_complete(game) {
+                        return Err(CantSpendTokens)
+                    }
+                    result_actions.push(take_tokens);
+                }
+
+                let selection_type = match *card_pick {
+                    GlobalCardPick::OnBoard(x) => CardSelectionType::ObtainBoard(x),
+                    GlobalCardPick::Reserved(x) => {
+                        if x.player_index != actor_index {
+                            return Err(PurchaseOtherPlayerReservedCard)
+                        }
+                        CardSelectionType::ObtainReserved(x.reserved_card)
+                    }
+                };
+
+                let take_card = SubTurnAction::TransactCard(CardTransaction{
+                    player: actor_index,
+                    selection_type
+                }).to_required();
+                if !take_card.can_complete(game){
+                    return Err(CantTakeCard);
+                }
+                result_actions.push(take_card);
+                Ok(result_actions)
             }
             Turn::ReserveCard(reserved_card) => {
                 let reserve_card = SubTurnAction::TransactCard(CardTransaction{
@@ -96,23 +162,16 @@ impl  Turn {
                     selection_type: CardSelectionType::Reserve(*reserved_card)
                 });
 
-
                 let take_gold = SubTurnAction::TransactTokens(vec![
                     BankTransaction{player: actor_index, resource: ResourceTokenType::Gold, amount: -1},
                 ]);
 
-                Some(vec![
-                    SubTurn{
-                        action: reserve_card,
-                        failure_mode: SubTurnFailureMode::MustAllSucceed
-                    },
-                    SubTurn{
-                        action: take_gold,
-                        failure_mode: SubTurnFailureMode::MayPartialSucceed
-                    }
+                Ok(vec![
+                    reserve_card.to_required(),
+                    take_gold.to_partial()
                 ])
             }
-            Turn::Noop => Some(vec![])
+            Turn::Noop => Ok(vec![])
         }
     }
 }
@@ -120,7 +179,7 @@ impl  Turn {
 impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, ActorType> for Turn {
     fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> Result<TurnSuccess, TurnFailed> {
 
-        let Some(sub_turns) = self.get_sub_turns(game, actor_index) else {
+        let Ok(sub_turns) = self.get_sub_turns(game, actor_index) else {
             return Err(TurnFailed::FailureNoModification)
         };
 
