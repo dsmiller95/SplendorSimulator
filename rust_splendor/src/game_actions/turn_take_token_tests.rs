@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use crate::constants::{MAX_INVENTORY_TOKENS, ResourceTokenType, MAX_PLAYER_COUNT};
     use crate::constants::PlayerSelection::*;
@@ -6,9 +7,8 @@ mod tests {
     use crate::game_actions::turn::{GameTurn, Turn};
     use crate::game_actions::turn_result::TurnSuccess;
 
-
     #[test]
-    fn cannot_act_on_missing_player() {
+    fn when_player_missing__cannot_take_tokens() {
         let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 10;
         let turn = Turn::TakeTwoTokens(Diamond);
@@ -16,22 +16,14 @@ mod tests {
     }
 
     #[test]
-    fn cannot_take_three_of_same_token() {
+    fn when_taking_three_of_same_type__cannot_take() {
         let game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         let turn = Turn::TakeThreeTokens(Diamond, Diamond, Emerald);
         assert_eq!(turn.can_take_turn(&game, PlayerSelection2), false);
     }
 
     #[test]
-    fn take_two_takes_one_token_when_one_in_bank_valid() {
-        let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-        game.bank_resources[Diamond] = 1;
-        let turn = Turn::TakeTwoTokens(Diamond);
-        assert_eq!(turn.can_take_turn(&game, PlayerSelection2), true);
-    }
-
-    #[test]
-    fn take_two_takes_one_token_when_one_in_bank() {
+    fn when_taking_two_and_bank_has_one__takes_only_one() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Diamond] = 1;
         let turn = Turn::TakeTwoTokens(Diamond);
@@ -41,22 +33,8 @@ mod tests {
         assert_eq!(game.actors[PlayerSelection2].as_ref().unwrap().resource_tokens[Diamond], 1);
     }
 
-
     #[test]
-    fn take_three_takes_two_tokens_when_two_in_bank_is_valid() {
-        let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-        game.bank_resources[Ruby] = 0;
-        game.bank_resources[Diamond] = 1;
-        game.bank_resources[Emerald] = 1;
-        let turn = Turn::TakeThreeTokens(
-            Ruby,
-            Diamond,
-            Emerald);
-        assert_eq!(turn.can_take_turn(&game, PlayerSelection1), true);
-    }
-
-    #[test]
-    fn take_three_takes_two_tokens_when_two_in_bank() {
+    fn when_taking_three_and_bank_has_two__takes_only_two() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Ruby] = 0;
         game.bank_resources[Diamond] = 1;
@@ -78,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn take_three_takes_two_tokens_when_two_in_bank_of_requested() {
+    fn when_taking_three_and_bank_has_two_and_others__takes_only_two() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Ruby] = 0;
         game.bank_resources[Diamond] = 1;
@@ -98,6 +76,8 @@ mod tests {
         assert_eq!(game_bank[Ruby], 0);
         assert_eq!(game_bank[Diamond], 0);
         assert_eq!(game_bank[Emerald], 0);
+        assert_eq!(game_bank[Sapphire], 10);
+        assert_eq!(game_bank[Onyx], 10);
         let player_bank = game.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
         assert_eq!(player_bank[Ruby], 0);
         assert_eq!(player_bank[Diamond], 1);
@@ -106,7 +86,7 @@ mod tests {
 
 
     #[test]
-    fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max() {
+    fn when_inventory_nearly_full__takes_first_tokens_only() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Ruby] = 1;
         game.bank_resources[Diamond] = 1;
@@ -134,10 +114,10 @@ mod tests {
     }
 
     // TODO: in the previous model, we used a discard-down meta-turn action to allow the player to choose
-//  to discard a different token than one they picked. how can we test this, and represent it, in the turn?
-//  it may be that we dont need to pay attention to MAX_INVENTORY_TOKENS in this phase...
+    //  to discard a different token than one they picked. how can we test this, and represent it, in the turn?
+    //  it may be that we dont need to pay attention to MAX_INVENTORY_TOKENS in this phase...
     #[test]
-    fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_different_order() {
+    fn when_inventory_nearly_full__takes_first_tokens_only_in_different_order() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Ruby] = 1;
         game.bank_resources[Emerald] = 1;
@@ -164,7 +144,7 @@ mod tests {
     }
 
     #[test]
-    fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_skips_empty_bank() {
+    fn when_inventory_nearly_full_and_bank_partially_empty__takes_tokens_in_bank() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Emerald] = 1;
         game.bank_resources[Sapphire] = 0;
@@ -191,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn take_three_takes_three_tokens_when_three_in_bank() {
+    fn when_taking_three_exact_in_bank__takes_three() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Ruby] = 1;
         game.bank_resources[Diamond] = 1;
@@ -213,20 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn take_three_takes_three_tokens_when_three_in_bank_valid() {
-        let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-        game.bank_resources[Ruby] = 1;
-        game.bank_resources[Diamond] = 1;
-        game.bank_resources[Emerald] = 1;
-        let turn = Turn::TakeThreeTokens(
-            Ruby,
-            Diamond,
-            Emerald);
-        assert_eq!(turn.can_take_turn(&game, PlayerSelection1), true);
-    }
-
-    #[test]
-    fn take_three_takes_three_tokens_when_many_in_bank() {
+    fn when_taking_three_excess_in_bank__takes_three() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Ruby] = 10;
         game.bank_resources[Diamond] = 13;

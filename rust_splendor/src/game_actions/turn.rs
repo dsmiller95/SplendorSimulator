@@ -9,6 +9,7 @@ use crate::game_actions::sub_turn::SubTurnFailureMode::MayPartialSucceed;
 use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
 use crate::game_actions::turn_result::TurnFailed::FailurePartialModification;
 
+// TODO: how should we represent discarding tokens as part of a turn?
 #[derive(Debug)]
 pub enum Turn {
     TakeThreeTokens(ResourceType, ResourceType, ResourceType),
@@ -42,10 +43,6 @@ impl Turn {
     pub(crate) fn get_sub_turns<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>
         (&self, game: &T, actor_index: PlayerSelection) -> Result<Vec<SubTurn>, TurnPlanningFailed> {
         use crate::game_actions::turn::TurnPlanningFailed::*;
-
-        // if !self.can_take_turn(game, actor_index) {
-        //     return Err(UnknownError);
-        // }
 
         match self {
             Turn::TakeThreeTokens(a, b, c) => {
@@ -211,9 +208,8 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
     }
 
     fn can_take_turn(&self, game: &T, actor_index: PlayerSelection) -> bool {
-        if !GameTurn::<T, ActorType>::is_valid(self) {
-            return false
-        }
-        return self.get_sub_turns(game, actor_index).is_ok();
+        // ??? why do I need to do this? is_valid() is *Literally* right there, why can't I just call it?
+        let is_valid = <Turn as GameTurn<T, ActorType>>::is_valid(self);
+        is_valid && self.get_sub_turns(game, actor_index).is_ok()
     }
 }

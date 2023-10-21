@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, reserved_card, MAX_INVENTORY_TOKENS};
     use crate::constants::CardPickInTier::OpenCard;
@@ -21,7 +22,7 @@ mod tests {
         game
     }
     #[test]
-    fn does_reserve_card_from_board() {
+    fn when_card_on_board__reserves_card() {
         let player_n = PlayerSelection2;
         let card_pick = CardPickOnBoard {
             tier: CardTier1,
@@ -49,7 +50,7 @@ mod tests {
 
 
     #[test]
-    fn does_reserve_card_from_board_when_full_token_inventory() {
+    fn when_player_tokens_full__reserves_card_and_wastes_gold() {
         let player_n = PlayerSelection2;
         let card_pick = CardPickOnBoard {
             tier: CardTier1,
@@ -78,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn can_not_reserve_card_when_full_reservations() {
+    fn when_player_reservations_full__does_not_reserve_card() {
         let player_n = PlayerSelection2;
         let card_pick = CardPickOnBoard {
             tier: CardTier2,

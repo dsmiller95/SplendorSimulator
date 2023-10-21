@@ -12,7 +12,6 @@ mod tests {
     use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
     use crate::game_model::game_components::Card;
 
-
     #[test]
     fn cannot_purchase_empty_card() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
