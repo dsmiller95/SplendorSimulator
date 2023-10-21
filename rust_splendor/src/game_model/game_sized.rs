@@ -1,20 +1,5 @@
-use std::cmp::min;
-use crate::constants::{CARD_COUNT_PER_TIER, CARD_TIER_COUNT, RESOURCE_TYPE_COUNT, MAX_NOBLES, MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, MAX_PLAYER_COUNT};
-use crate::game_model::game_components::{Card, Noble};
-
-/// Data in this struct represents all relevant information about the game, which can be passed
-/// to and from the AI.
-/// This structure must be fully sized, and not contain any references to other data.
-/// this structure is designed to be rapidly blitted to the ai, so it should be small and ideally
-///     match the structure of the data we will send to the ai.
-#[derive(Debug)]
-pub struct GameSized {
-    /// assume the 1st actor in this list is the player whose turn it is.
-    pub actors: [Option<ActorSized>; MAX_PLAYER_COUNT],
-    pub available_nobles: [Option<Noble>; MAX_NOBLES],
-    pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
-    pub card_rows: [CardRowSized; CARD_TIER_COUNT],
-}
+use crate::constants::{CARD_COUNT_PER_TIER, RESOURCE_TYPE_COUNT, MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT};
+use crate::game_model::game_components::Card;
 
 #[derive(Debug)]
 pub struct CardRowSized {
@@ -30,25 +15,6 @@ pub struct ActorSized {
     pub resources_from_cards : [i8; RESOURCE_TYPE_COUNT],
     pub current_points : i8,
     pub reserved_cards: [Option<Card>; MAX_RESERVED_CARDS],
-}
-
-impl GameSized {
-    pub fn new(player_count: usize) -> GameSized {
-        let min_count =  min(player_count, MAX_PLAYER_COUNT);
-        let actors = std::array::from_fn(|i| {
-            if i < min_count {
-                Some(ActorSized::new())
-            } else {
-                None
-            }
-        });
-        GameSized {
-            actors,
-            available_nobles: std::array::from_fn(|_| Some(Noble::new())),
-            bank_resources: [0; RESOURCE_TOKEN_COUNT],
-            card_rows: std::array::from_fn(|_| CardRowSized::new()),
-        }
-    }
 }
 
 impl ActorSized {

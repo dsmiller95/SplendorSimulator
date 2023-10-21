@@ -12,14 +12,14 @@ use crate::game_model::game_components::Card;
 #[test]
 fn cannot_purchase_empty_card() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.card_rows[CardTier1].open_cards[OpenCardPickInTier2] = None;
+    game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = None;
 
     let turn = Turn::PurchaseCard(OnBoard(CardPickOnBoard {
         tier: CardTier1,
         pick: OpenCard(OpenCardPickInTier2),
     }));
 
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), false);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection2), false);
 }
 
 fn test_purchase_result(
@@ -32,25 +32,25 @@ fn test_purchase_result(
     expected_player_bank: ResourceTokenBank){
     
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources = bank;
-    let actor = game.game_sized.actors[PlayerSelection2].as_mut().unwrap(); 
+    game.bank_resources = bank;
+    let actor = game.actors_sized[PlayerSelection2].as_mut().unwrap();
     actor.resource_tokens = player_bank;
     actor.resources_from_cards = player_persistent;
 
-    game.game_sized.card_rows[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
+    game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
     
     let turn = Turn::PurchaseCard(board_card(CardTier1, OpenCard(OpenCardPickInTier2)));
 
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), true);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection2);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection2), true);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection2);
     assert_eq!(turn_result, expected_result);
     if expected_result == Ok(TurnSuccess::Success) {
-        assert_eq!(game.game_sized.bank_resources, expected_bank);
-        assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
+        assert_eq!(game.bank_resources, expected_bank);
+        assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
     }
     else{
-        assert_eq!(game.game_sized.bank_resources, bank);
-        assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, player_bank);
+        assert_eq!(game.bank_resources, bank);
+        assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens, player_bank);
     }
 }
 

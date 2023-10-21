@@ -17,7 +17,7 @@ use crate::game_model::game_full::GameModel;
 
 fn get_test_game() -> GameModel {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources = [5, 5, 5, 5, 5, 6];
+    game.bank_resources = [5, 5, 5, 5, 5, 6];
     
     game
 }
@@ -32,28 +32,28 @@ fn test_purchase_result(
     expected_player_bank: ResourceTokenBank){
     
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources = bank;
-    let actor =game.game_sized.actors[PlayerSelection2].as_mut().unwrap(); 
+    game.bank_resources = bank;
+    let actor =game.actors_sized[PlayerSelection2].as_mut().unwrap();
     actor.resource_tokens = player_bank;
     actor.resources_from_cards = player_persistent;
 
-    game.game_sized.card_rows[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
+    game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
     
     let turn = Turn::PurchaseCard(OnBoard(CardPickOnBoard {
         tier: CardTier1,
         pick: OpenCard(OpenCardPickInTier2),
     }));
 
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), true);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection2);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection2), true);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection2);
     assert_eq!(turn_result, expected_result);
     if expected_result == Ok(TurnSuccess::Success) {
-        assert_eq!(game.game_sized.bank_resources, expected_bank);
-        assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
+        assert_eq!(game.bank_resources, expected_bank);
+        assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens, expected_player_bank);
     }
     else{
-        assert_eq!(game.game_sized.bank_resources, bank);
-        assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens, player_bank);
+        assert_eq!(game.bank_resources, bank);
+        assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens, player_bank);
     }
 }
 
@@ -69,7 +69,7 @@ fn does_reserve_card_from_board() {
     let card = Card::new().with_id(card_id);
 
     let mut game = get_test_game();
-    let mut sized = game.game_sized;
+    let mut sized = game;
     sized.try_put_card(&card_pick.into(), card).unwrap();
     let actor = sized.get_actor_at_index(player_n).unwrap();
     assert_eq!(actor.iterate_reserved_cards().count(), 0);
@@ -98,7 +98,7 @@ fn does_reserve_card_from_board_when_full_token_inventory() {
     let card = Card::new().with_id(card_id);
 
     let mut game = get_test_game();
-    let mut sized = game.game_sized;
+    let mut sized = game;
     
     sized.try_put_card(&card_pick.into(), card).unwrap();
     let actor = sized.get_actor_at_index_mut(player_n).unwrap();
@@ -130,7 +130,7 @@ fn can_not_reserve_card_when_full_reservations() {
     let card4 = Card::new().with_id(4);
     
     let mut game = get_test_game();
-    let mut sized = game.game_sized;
+    let mut sized = game;
     sized.try_put_card(&card_pick.into(), card1).unwrap();
     
     for (a, b) in [

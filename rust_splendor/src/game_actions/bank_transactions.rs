@@ -79,9 +79,9 @@ mod tests {
     
     #[test]
     fn single_token_deposit_success() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 5;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 1;
+        game.actors_sized[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 1;
 
         let transaction = BankTransaction{
             player: PlayerSelection1,
@@ -98,9 +98,9 @@ mod tests {
 
     #[test]
     fn single_token_deposit_fails_when_no_player_tokens() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 5;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 0;
+        game.actors_sized[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 0;
 
         let transaction = BankTransaction{
             player: PlayerSelection1,
@@ -116,9 +116,9 @@ mod tests {
     }
     #[test]
     fn single_token_deposit_fails_when_no_player_exists() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 5;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 0;
+        game.actors_sized[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 0;
 
         let transaction = BankTransaction{
             player: PlayerSelection3,
@@ -135,9 +135,9 @@ mod tests {
 
     #[test]
     fn single_token_withdraw_success() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 5;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 1;
+        game.actors_sized[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 1;
 
         let transaction = BankTransaction{
             player: PlayerSelection1,
@@ -153,9 +153,9 @@ mod tests {
     }
     #[test]
     fn single_token_withdraw_fail_when_empty_bank() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Gold] = 0;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = 1;
+        game.actors_sized[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = 1;
 
         let transaction = BankTransaction{
             player: PlayerSelection1,
@@ -172,9 +172,9 @@ mod tests {
 
     #[test]
     fn single_token_withdraw_fail_when_full_player() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 5;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = MAX_INVENTORY_TOKENS;
+        game.actors_sized[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = MAX_INVENTORY_TOKENS;
 
         let transaction = BankTransaction{
             player: PlayerSelection1,

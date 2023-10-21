@@ -7,66 +7,66 @@ use crate::game_actions::turn::{GameTurn, Turn, TurnSuccess};
 #[test]
 fn cannot_act_on_missing_player() {
     let mut game = crate::game_actions::test_utils::get_test_game(2);
-    game.game_sized.bank_resources[Diamond] = 10;
+    game.bank_resources[Diamond] = 10;
     let turn = Turn::TakeTwoTokens(Diamond);
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection3), false);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection3), false);
 }
 
 #[test]
 fn cannot_take_three_of_same_token() {
     let game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
     let turn = Turn::TakeThreeTokens(Diamond, Diamond, Emerald);
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), false);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection2), false);
 }
 
 #[test]
 fn take_two_takes_one_token_when_one_in_bank_valid() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Diamond] = 1;
+    game.bank_resources[Diamond] = 1;
     let turn = Turn::TakeTwoTokens(Diamond);
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection2), true);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection2), true);
 }
 #[test]
 fn take_two_takes_one_token_when_one_in_bank() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Diamond] = 1;
+    game.bank_resources[Diamond] = 1;
     let turn = Turn::TakeTwoTokens(Diamond);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection2);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection2);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
-    assert_eq!(game.game_sized.bank_resources[Diamond], 0);
-    assert_eq!(game.game_sized.actors[PlayerSelection2].as_ref().unwrap().resource_tokens[Diamond], 1);
+    assert_eq!(game.bank_resources[Diamond], 0);
+    assert_eq!(game.actors_sized[PlayerSelection2].as_ref().unwrap().resource_tokens[Diamond], 1);
 }
 
 
 #[test]
 fn take_three_takes_two_tokens_when_two_in_bank_is_valid() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 0;
-    game.game_sized.bank_resources[Diamond] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
+    game.bank_resources[Ruby] = 0;
+    game.bank_resources[Diamond] = 1;
+    game.bank_resources[Emerald] = 1;
     let turn = Turn::TakeThreeTokens(
         Ruby,
         Diamond,
         Emerald);
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection1), true);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection1), true);
 }
 #[test]
 fn take_three_takes_two_tokens_when_two_in_bank() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 0;
-    game.game_sized.bank_resources[Diamond] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
+    game.bank_resources[Ruby] = 0;
+    game.bank_resources[Diamond] = 1;
+    game.bank_resources[Emerald] = 1;
     let turn = Turn::TakeThreeTokens(
         Ruby,
         Diamond,
         Emerald);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 0);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 0);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);
@@ -74,25 +74,25 @@ fn take_three_takes_two_tokens_when_two_in_bank() {
 #[test]
 fn take_three_takes_two_tokens_when_two_in_bank_of_requested() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 0;
-    game.game_sized.bank_resources[Diamond] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
+    game.bank_resources[Ruby] = 0;
+    game.bank_resources[Diamond] = 1;
+    game.bank_resources[Emerald] = 1;
 
-    game.game_sized.bank_resources[Sapphire] = 10;
-    game.game_sized.bank_resources[Onyx] = 10;
-    game.game_sized.bank_resources[ResourceTokenType::Gold] = 10;
+    game.bank_resources[Sapphire] = 10;
+    game.bank_resources[Onyx] = 10;
+    game.bank_resources[ResourceTokenType::Gold] = 10;
     
     let turn = Turn::TakeThreeTokens(
         Ruby,
         Diamond,
         Emerald);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 0);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 0);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);
@@ -102,11 +102,11 @@ fn take_three_takes_two_tokens_when_two_in_bank_of_requested() {
 #[test]
 fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 1;
-    game.game_sized.bank_resources[Diamond] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
+    game.bank_resources[Ruby] = 1;
+    game.bank_resources[Diamond] = 1;
+    game.bank_resources[Emerald] = 1;
 
-    game.game_sized.actors[PlayerSelection1].as_mut().unwrap()
+    game.actors_sized[PlayerSelection1].as_mut().unwrap()
         .resource_tokens[Onyx] = MAX_INVENTORY_TOKENS - 2;
 
     let turn = Turn::TakeThreeTokens(
@@ -115,13 +115,13 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max() {
         Emerald);
 
 
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 1);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 1);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 0);
@@ -132,11 +132,11 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max() {
 #[test]
 fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_different_order() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
-    game.game_sized.bank_resources[Sapphire] = 1;
+    game.bank_resources[Ruby] = 1;
+    game.bank_resources[Emerald] = 1;
+    game.bank_resources[Sapphire] = 1;
 
-    game.game_sized.actors[PlayerSelection1].as_mut().unwrap()
+    game.actors_sized[PlayerSelection1].as_mut().unwrap()
         .resource_tokens[Onyx] = MAX_INVENTORY_TOKENS - 2;
 
     let turn = Turn::TakeThreeTokens(
@@ -144,13 +144,13 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_different_ord
         Sapphire,
         Ruby);
 
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Emerald], 0);
     assert_eq!(game_bank[Sapphire], 0);
     assert_eq!(game_bank[Ruby], 1);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Emerald], 1);
     assert_eq!(player_bank[Sapphire], 1);
     assert_eq!(player_bank[Ruby], 0);
@@ -158,11 +158,11 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_different_ord
 #[test]
 fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_skips_empty_bank() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Emerald] = 1;
-    game.game_sized.bank_resources[Sapphire] = 0;
-    game.game_sized.bank_resources[Ruby] = 1;
+    game.bank_resources[Emerald] = 1;
+    game.bank_resources[Sapphire] = 0;
+    game.bank_resources[Ruby] = 1;
 
-    game.game_sized.actors[PlayerSelection1].as_mut().unwrap()
+    game.actors_sized[PlayerSelection1].as_mut().unwrap()
         .resource_tokens[Onyx] = MAX_INVENTORY_TOKENS - 2;
 
     let turn = Turn::TakeThreeTokens(
@@ -170,13 +170,13 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_skips_empty_b
         Sapphire,
         Ruby);
 
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Emerald], 0);
     assert_eq!(game_bank[Sapphire], 0);
     assert_eq!(game_bank[Ruby], 0);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Emerald], 1);
     assert_eq!(player_bank[Sapphire], 0);
     assert_eq!(player_bank[Ruby], 1);
@@ -185,20 +185,20 @@ fn take_three_takes_two_tokens_based_on_ordering_when_capacity_max_skips_empty_b
 #[test]
 fn take_three_takes_three_tokens_when_three_in_bank() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 1;
-    game.game_sized.bank_resources[Diamond] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
+    game.bank_resources[Ruby] = 1;
+    game.bank_resources[Diamond] = 1;
+    game.bank_resources[Emerald] = 1;
     let turn = Turn::TakeThreeTokens(
         Ruby,
         Diamond,
         Emerald);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::Success));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Ruby], 0);
     assert_eq!(game_bank[Diamond], 0);
     assert_eq!(game_bank[Emerald], 0);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 1);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);
@@ -207,33 +207,33 @@ fn take_three_takes_three_tokens_when_three_in_bank() {
 #[test]
 fn take_three_takes_three_tokens_when_three_in_bank_valid() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 1;
-    game.game_sized.bank_resources[Diamond] = 1;
-    game.game_sized.bank_resources[Emerald] = 1;
+    game.bank_resources[Ruby] = 1;
+    game.bank_resources[Diamond] = 1;
+    game.bank_resources[Emerald] = 1;
     let turn = Turn::TakeThreeTokens(
         Ruby,
         Diamond,
         Emerald);
-    assert_eq!(turn.can_take_turn(&game.game_sized, PlayerSelection1), true);
+    assert_eq!(turn.can_take_turn(&game, PlayerSelection1), true);
 }
 
 #[test]
 fn take_three_takes_three_tokens_when_many_in_bank() {
     let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
-    game.game_sized.bank_resources[Ruby] = 10;
-    game.game_sized.bank_resources[Diamond] = 13;
-    game.game_sized.bank_resources[Emerald] = 11;
+    game.bank_resources[Ruby] = 10;
+    game.bank_resources[Diamond] = 13;
+    game.bank_resources[Emerald] = 11;
     let turn = Turn::TakeThreeTokens(
         Ruby,
         Diamond,
         Emerald);
-    let turn_result = turn.take_turn(&mut game.game_sized, PlayerSelection1);
+    let turn_result = turn.take_turn(&mut game, PlayerSelection1);
     assert_eq!(turn_result, Ok(TurnSuccess::Success));
-    let game_bank = game.game_sized.bank_resources;
+    let game_bank = game.bank_resources;
     assert_eq!(game_bank[Ruby], 9);
     assert_eq!(game_bank[Diamond], 12);
     assert_eq!(game_bank[Emerald], 10);
-    let player_bank = game.game_sized.actors[PlayerSelection1].as_ref().unwrap().resource_tokens;
+    let player_bank = game.actors_sized[PlayerSelection1].as_ref().unwrap().resource_tokens;
     assert_eq!(player_bank[Ruby], 1);
     assert_eq!(player_bank[Diamond], 1);
     assert_eq!(player_bank[Emerald], 1);

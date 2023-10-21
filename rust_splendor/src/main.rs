@@ -1,8 +1,6 @@
 #![feature(impl_trait_in_assoc_type)]
-#![feature(return_position_impl_trait_in_trait)]
 
 use crate::constants::MAX_PLAYER_COUNT;
-use crate::game_model::game_sized::GameSized;
 
 pub mod game_model;
 mod game_actions;
@@ -11,15 +9,6 @@ mod constants;
 fn main() {
     println!("Hello, world!");
 
-    let knowable_size = std::mem::size_of::<GameSized>();
-    println!("knowable size: {:?}", knowable_size);
-    
-    let mut knowable_game = GameSized::new(MAX_PLAYER_COUNT);
-    println!("knowable game: {:?}", knowable_game);
-    
-    println!("bytes: {:?}", any_as_u8_slice(&knowable_game));
-    knowable_game.bank_resources[2] = 27;
-    println!("bytes: {:?}", any_as_u8_slice(&knowable_game));
 }
 
 fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {

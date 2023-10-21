@@ -140,7 +140,7 @@ mod tests {
         let card_id = 24;
         let card = Card::new().with_id(card_id);
         
-        let mut game = crate::game_actions::test_utils::get_test_game(4).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(4);
         game.try_put_card(&card_pick.into(), card).unwrap();
         let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
@@ -173,7 +173,7 @@ mod tests {
         let card_id = 24;
         let card = Card::new().with_id(card_id);
 
-        let mut game = crate::game_actions::test_utils::get_test_game(4).game_sized;
+        let mut game = crate::game_actions::test_utils::get_test_game(4);
         game.try_put_card(&card_pick.into(), card).unwrap();
         
         let actor = game.get_actor_at_index_mut(player_n).unwrap();
