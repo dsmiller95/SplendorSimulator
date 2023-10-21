@@ -117,6 +117,8 @@ impl Turn {
                 }
 
                 let mut bank_transactions = vec![];
+                todo!();
+                let mut available_tokens = actor.owned_resources().clone();
                 for resource in ResourceType::iterator() {
                     let cost = modified_cost[*resource];
                     if cost > 0 {
