@@ -1,5 +1,4 @@
-use seq_macro::seq;
-use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, ReservedCardSelection, CardPickInReservedCards, reserved_card, MAX_INVENTORY_TOKENS};
+use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, reserved_card, MAX_INVENTORY_TOKENS};
 use crate::constants::CardPickInTier::OpenCard;
 use crate::constants::CardTier::{CardTier1, CardTier2};
 use crate::constants::GlobalCardPick::OnBoard;

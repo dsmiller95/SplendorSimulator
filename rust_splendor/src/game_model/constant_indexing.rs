@@ -1,10 +1,10 @@
 mod card_picks {
     use std::ops::{Index, IndexMut};
     use crate::constants::{CardPickInTier};
+    use crate::game_model::card::CardRow;
     use crate::game_model::game_components::Card;
-    use crate::game_model::game_sized::CardRowSized;
 
-    impl Index<CardPickInTier> for CardRowSized {
+    impl Index<CardPickInTier> for CardRow {
         type Output = Option<Card>;
         fn index(&self, index: CardPickInTier) -> &Self::Output {
             match index {
@@ -13,7 +13,7 @@ mod card_picks {
             }
         }
     }
-    impl IndexMut<CardPickInTier> for CardRowSized {
+    impl IndexMut<CardPickInTier> for CardRow {
         fn index_mut(&mut self, index: CardPickInTier) -> &mut Self::Output {
             match index {
                 CardPickInTier::HiddenCard => &mut self.hidden_card,

@@ -1,7 +1,5 @@
 #![feature(impl_trait_in_assoc_type)]
 
-use crate::constants::MAX_PLAYER_COUNT;
-
 pub mod game_model;
 mod game_actions;
 mod constants;

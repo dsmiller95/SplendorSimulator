@@ -2,10 +2,9 @@ use std::cmp::min;
 use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_NOBLES, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT};
 use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData, PutError};
 use crate::game_model::actor::Actor;
+use crate::game_model::card::CardRow;
 use crate::game_model::game_components::{Card, Noble};
 use crate::game_model::game_config::GameConfig;
-use crate::game_model::game_sized::{CardRowSized};
-use crate::game_model::game_unsized::{CardRowUnsized};
 
 #[derive(Debug)]
 pub struct GameModel {
@@ -16,11 +15,11 @@ pub struct GameModel {
 
     /// assume the 1st actor in this list is the player whose turn it is.
     pub actors: [Option<Actor>; MAX_PLAYER_COUNT],
-    pub card_rows: [CardRowUnsized; CARD_TIER_COUNT],
+    pub card_rows: [CardRow; CARD_TIER_COUNT],
 
     pub available_nobles: [Option<Noble>; MAX_NOBLES],
     pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
-    pub card_rows_sized: [CardRowSized; CARD_TIER_COUNT],
+    pub card_rows_sized: [CardRow; CARD_TIER_COUNT],
 }
 
 impl GameModel {
@@ -38,13 +37,13 @@ impl GameModel {
             game_config: config,
 
             total_turns_taken: 0,
-            card_rows: std::array::from_fn(|_| CardRowUnsized::new()),
+            card_rows: std::array::from_fn(|_| CardRow::new()),
 
 
             actors,
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
             bank_resources: [0; RESOURCE_TOKEN_COUNT],
-            card_rows_sized: std::array::from_fn(|_| CardRowSized::new()),
+            card_rows_sized: std::array::from_fn(|_| CardRow::new()),
         }
     }
 }
