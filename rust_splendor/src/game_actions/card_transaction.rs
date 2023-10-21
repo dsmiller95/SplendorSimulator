@@ -114,6 +114,7 @@ pub enum CardTransactionSuccess {
 
 
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use crate::constants::CardPickInTier::OpenCard;
     use crate::constants::CardTier::*;
@@ -130,7 +131,7 @@ mod tests {
     
     
     #[test]
-    fn singe_card_reserve_success() {
+    fn when_empty_reserve__reserves_card() {
         let player_n = PlayerSelection3;
         let card_pick = CardPickOnBoard {
             tier: CardTier2,
@@ -163,7 +164,7 @@ mod tests {
     }
     
     #[test]
-    fn singe_card_reserve_when_existing_reserve_success() {
+    fn when_partial_reserve__reserves_card() {
         let player_n = PlayerSelection3;
         let card_pick = CardPickOnBoard {
             tier: CardTier2,
