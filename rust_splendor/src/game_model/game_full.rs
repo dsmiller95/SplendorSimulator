@@ -1,16 +1,45 @@
-use crate::constants::{GlobalCardPick, PlayerSelection, RESOURCE_TOKEN_COUNT};
+use std::cmp::min;
+use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT};
 use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData, PutError};
 use crate::game_model::game_components::Card;
 use crate::game_model::game_config::GameConfig;
 use crate::game_model::game_sized::{ActorSized, GameSized};
-use crate::game_model::game_unsized::GameUnsized;
+use crate::game_model::game_unsized::{ActorUnsized, CardRowUnsized};
 
+#[derive(Debug)]
 pub struct GameModel {
-    pub game_unsized: GameUnsized,
     pub game_sized: GameSized,
     pub game_config: GameConfig,
+
+
+    pub total_turns_taken: u32,
+
+    pub actors: [Option<ActorUnsized>; MAX_PLAYER_COUNT],
+    pub card_rows: [CardRowUnsized; CARD_TIER_COUNT],
 }
 
+impl GameModel {
+    pub fn new(sized: GameSized, config: GameConfig, player_count: usize) -> GameModel {
+        let min_count = min(player_count, MAX_PLAYER_COUNT);
+        let actors = std::array::from_fn(|i| {
+            if i < min_count {
+                Some(ActorUnsized::new())
+            } else {
+                None
+            }
+        });
+
+
+        GameModel {
+            game_sized: sized,
+            game_config: config,
+
+            total_turns_taken: 0,
+            actors,
+            card_rows: std::array::from_fn(|_| CardRowUnsized::new()),
+        }
+    }
+}
 impl GameSized {
     fn get_mut_card_slot(&mut self, card_pick: &GlobalCardPick) -> Option<&mut Option<Card>> {
         let mut_ref = match card_pick {
@@ -19,7 +48,8 @@ impl GameSized {
                     [card_pick.pick]
             }
             GlobalCardPick::Reserved(reserved) => {
-                &mut self.actors[reserved.player_index].as_mut()?
+                &mut self.actors[reserved.player_index]
+                    .as_mut()?
                     .reserved_cards[reserved.reserved_card]
             }
         };
