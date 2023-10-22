@@ -8,8 +8,18 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 }
 /// references a function in a different crate in the workspace.
 #[pyfunction]
-fn add_one_as_string(a: i32) -> PyResult<String> {
-    Ok(rust_splendor::add_one(a).to_string())
+fn add_one_as_string(a: i32) -> PyResult<TestStruct> {
+    let res = TestStruct{
+        something: rust_splendor::add_one(a).to_string(),
+        another: a
+    };
+    Ok(res)
+}
+
+#[pyclass(get_all)]
+struct TestStruct {
+    pub something: String,
+    another: i32
 }
 
 /// A Python module implemented in Rust.

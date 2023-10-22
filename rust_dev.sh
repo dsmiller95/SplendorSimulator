@@ -1,4 +1,3 @@
 cd rust_module/bindings
-maturin develop
+maturin develop && python
 cd ../..
-python
