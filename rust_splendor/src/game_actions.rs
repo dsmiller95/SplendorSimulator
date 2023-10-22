@@ -10,3 +10,5 @@ pub mod card_transaction;
 pub mod sub_turn;
 pub mod turn_result;
 mod purchase_card_sub_turn_generation_test;
+pub mod player_scoped_game_data;
+mod player_scoped_game_data_wrapper;

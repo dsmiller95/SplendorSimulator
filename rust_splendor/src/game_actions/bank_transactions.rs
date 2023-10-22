@@ -2,49 +2,51 @@ use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType,
 use crate::constants::ResourceTokenType::CostType;
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 
-pub fn can_transact<ActorType, T>(game: &T, transaction: &BankTransaction) -> Result<(), BankTransactionError>
-    where ActorType: KnowableActorData,
-          T: KnowableGameData<ActorType>
-{
-    let bank_resources = game.bank_resources();
-    let player_resources = game.get_actor_at_index(transaction.player)
-        .ok_or(BankTransactionError::PlayerDoesNotExist)?
-        .owned_resources();
+impl BankTransaction {
+    pub fn can_transact<ActorType, T>(&self, game: &T) -> Result<(), BankTransactionError>
+        where ActorType: KnowableActorData,
+              T: KnowableGameData<ActorType>
+    {
+        let bank_resources = game.bank_resources();
+        let player_resources = game.get_actor_at_index(self.player)
+            .ok_or(BankTransactionError::PlayerDoesNotExist)?
+            .owned_resources();
 
-    match transaction.amount {
-        0 => return Ok(()),
-        ..=-1 => {
-            if bank_resources[transaction.resource] + transaction.amount < 0 {
-                return Err(BankTransactionError::NotEnoughResourcesInBank);
+        match self.amount {
+            0 => return Ok(()),
+            ..=-1 => {
+                if bank_resources[self.resource] + self.amount < 0 {
+                    return Err(BankTransactionError::NotEnoughResourcesInBank);
+                }
+                let total_player_tokens = player_resources.iter().sum::<i8>();
+                if total_player_tokens - self.amount > MAX_INVENTORY_TOKENS {
+                    return Err(BankTransactionError::MaxTokensPerPlayerExceeded);
+                }
             }
-            let total_player_tokens = player_resources.iter().sum::<i8>();
-            if total_player_tokens - transaction.amount > MAX_INVENTORY_TOKENS {
-                return Err(BankTransactionError::MaxTokensPerPlayerExceeded);
+            1.. => {
+                if player_resources[self.resource] - self.amount < 0 {
+                    return Err(BankTransactionError::NotEnoughResourcesInPlayer);
+                }
             }
-        }
-        1.. => {
-            if player_resources[transaction.resource] - transaction.amount < 0 {
-                return Err(BankTransactionError::NotEnoughResourcesInPlayer);
-            }
-        }
-    };
-    
-    Ok(())
-}
+        };
 
-pub fn transact<ActorType, T>(game: &mut T, transaction: &BankTransaction) -> Result<BankTransactionSuccess, BankTransactionError>
-    where ActorType: KnowableActorData,
-          T: KnowableGameData<ActorType>
-{
-    can_transact(game, transaction)?;
+        Ok(())
+    }
 
-    game.get_actor_at_index_mut(transaction.player)
-        .ok_or(BankTransactionError::PlayerDoesNotExist)?
-        .owned_resources_mut()[transaction.resource] -= transaction.amount;
+    pub fn transact<ActorType, T>(&self, game: &mut T) -> Result<BankTransactionSuccess, BankTransactionError>
+        where ActorType: KnowableActorData,
+              T: KnowableGameData<ActorType>
+    {
+        self.can_transact(game)?;
 
-    game.bank_resources_mut()[transaction.resource] += transaction.amount;
-    
-    Ok(BankTransactionSuccess::FullTransaction)
+        game.get_actor_at_index_mut(self.player)
+            .ok_or(BankTransactionError::PlayerDoesNotExist)?
+            .owned_resources_mut()[self.resource] -= self.amount;
+
+        game.bank_resources_mut()[self.resource] += self.amount;
+
+        Ok(BankTransactionSuccess::FullTransaction)
+    }
 }
 
 pub fn get_transaction_sequence_tokens(player: PlayerSelection, amount: i8, resources: &[ResourceTokenType]) -> Vec<BankTransaction> {
@@ -109,7 +111,7 @@ mod tests {
             amount: 1
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transaction.transact(&mut game);
 
         assert_eq!(result, Ok(FullTransaction));
         assert_eq!(game.bank_resources[Diamond], 6);
@@ -128,7 +130,7 @@ mod tests {
             amount: 1
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transaction.transact(&mut game);
 
         assert_eq!(result, Err(NotEnoughResourcesInPlayer));
         assert_eq!(game.bank_resources[Diamond], 5);
@@ -146,7 +148,7 @@ mod tests {
             amount: 1
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transaction.transact(&mut game);
 
         assert_eq!(result, Err(PlayerDoesNotExist));
         assert_eq!(game.bank_resources[Diamond], 5);
@@ -165,7 +167,7 @@ mod tests {
             amount: -1
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transaction.transact(&mut game);
 
         assert_eq!(result, Ok(FullTransaction));
         assert_eq!(game.bank_resources[Diamond], 4);
@@ -183,7 +185,7 @@ mod tests {
             amount: -1
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transaction.transact(&mut game);
 
         assert_eq!(result, Err(NotEnoughResourcesInBank));
         assert_eq!(game.bank_resources[Gold], 0);
@@ -202,7 +204,7 @@ mod tests {
             amount: -1
         };
 
-        let result = transact(&mut game, &transaction);
+        let result = transaction.transact(&mut game);
 
         assert_eq!(result, Err(MaxTokensPerPlayerExceeded));
         assert_eq!(game.bank_resources[Diamond], 5);

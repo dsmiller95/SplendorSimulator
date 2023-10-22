@@ -1,11 +1,8 @@
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 
-use crate::game_actions::bank_transactions::{BankTransaction, transact};
+use crate::game_actions::bank_transactions::{BankTransaction};
 use crate::game_actions::card_transaction::{CardTransaction, CardTransactionError, transact_card};
 use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
-
-use super::bank_transactions::can_transact;
-
 
 #[derive(Debug, PartialEq)]
 pub struct SubTurn{
@@ -45,7 +42,7 @@ impl SubTurnAction {
                 let any_transact_failed = bank_transactions
                     .iter()
                     .map(|transaction|
-                        transact(game, transaction).is_err()
+                        transaction.transact(game).is_err()
                     )
                     .reduce(|a, b| a || b);
                 match any_transact_failed {
@@ -72,18 +69,18 @@ impl SubTurn{
             SubTurnAction::TransactTokens(bank_transactions) => match self.failure_mode {
                 SubTurnFailureMode::MustAllSucceed => {
                     bank_transactions.iter().all(|transaction|
-                        can_transact(game, transaction).is_ok()
+                        transaction.can_transact(game).is_ok()
                     )
                 }
                 SubTurnFailureMode::MayPartialSucceed => {
                     bank_transactions.iter().any(|transaction|
-                        can_transact(game, transaction).is_ok()
+                        transaction.can_transact(game).is_ok()
                     )
                 }
             }
-            SubTurnAction::TransactCard(card_transaciton) => {
-                card_transaciton.can_transact(game).is_ok()
-            },
+            SubTurnAction::TransactCard(card_transaction) => {
+                card_transaction.can_transact(game).is_ok()
+            }
         }
     }
 }

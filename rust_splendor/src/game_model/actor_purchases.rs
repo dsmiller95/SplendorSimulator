@@ -17,23 +17,6 @@ impl KnowableActorData for Actor {
         &self.resources_from_cards
     }
 
-    fn can_afford_card(&self, card: &Card) -> bool {
-        let mut total_deficit = 0;
-        for &resource in ResourceType::iterator() {
-            let deficit = card.cost[resource] 
-                - self.resources_from_cards[resource]
-                - self.resource_tokens[resource];
-            if deficit > 0 {
-                total_deficit += deficit;
-            }
-        }
-        
-        let gold_tokens = self.resource_tokens[Gold];
-        
-        
-        total_deficit > 0 && gold_tokens >= total_deficit
-    }
-
     fn reserved_cards(&self) -> &[Option<Card>; MAX_RESERVED_CARDS] {
         &self.reserved_cards
     }
