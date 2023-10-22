@@ -2,10 +2,16 @@ use crate::game_model::game_components::{Card, Noble};
 
 #[derive(Debug, Clone)]
 pub struct GameConfig {
-    pub all_cards: Vec<Card>,
+    pub all_cards: Vec<TieredCard>,
     pub all_nobles: Vec<Noble>,
     
     pub max_resource_tokens: i8,
+}
+
+#[derive(Debug, Clone)]
+pub struct TieredCard{
+    pub tier: u8,
+    pub card: Card,
 }
 
 impl GameConfig {
