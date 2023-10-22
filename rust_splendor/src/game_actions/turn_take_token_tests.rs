@@ -1,9 +1,11 @@
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
+    use std::panic;
     use crate::constants::{MAX_INVENTORY_TOKENS, ResourceTokenType, MAX_PLAYER_COUNT};
     use crate::constants::PlayerSelection::*;
     use crate::constants::ResourceType::*;
+    use crate::game_actions::player_scoped_game_data::CanPlayerScope;
     use crate::game_actions::turn::{GameTurn, Turn};
     use crate::game_actions::turn_result::TurnSuccess;
 
@@ -12,14 +14,26 @@ mod tests {
         let mut game = crate::game_actions::test_utils::get_test_game(2);
         game.bank_resources[Diamond] = 10;
         let turn = Turn::TakeTwoTokens(Diamond);
-        assert_eq!(turn.can_take_turn(&game, PlayerSelection3), false);
+
+        let panic_result = panic::catch_unwind(|| {
+            let (game, can_turn) = game.on_player(PlayerSelection3, |scoped| {
+                turn.can_take_turn(scoped, PlayerSelection3)
+            });
+        });
+
+        assert!(panic_result.is_err());
     }
 
     #[test]
     fn when_taking_three_of_same_type__cannot_take() {
         let game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         let turn = Turn::TakeThreeTokens(Diamond, Diamond, Emerald);
-        assert_eq!(turn.can_take_turn(&game, PlayerSelection2), false);
+
+        let (game, can_turn) = game.on_player(PlayerSelection2, |scoped| {
+            turn.can_take_turn(scoped, PlayerSelection2)
+        });
+
+        assert_eq!(can_turn, false);
     }
 
     #[test]
@@ -27,7 +41,11 @@ mod tests {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.bank_resources[Diamond] = 1;
         let turn = Turn::TakeTwoTokens(Diamond);
-        let turn_result = turn.take_turn(&mut game, PlayerSelection2);
+
+        let (game, turn_result) = game.on_player(PlayerSelection2, |scoped| {
+            turn.take_turn(scoped, PlayerSelection2)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
         assert_eq!(game.bank_resources[Diamond], 0);
         assert_eq!(game.actors[PlayerSelection2].as_ref().unwrap().resource_tokens[Diamond], 1);
@@ -43,7 +61,11 @@ mod tests {
             Ruby,
             Diamond,
             Emerald);
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
+
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Ruby], 0);
@@ -70,7 +92,11 @@ mod tests {
             Ruby,
             Diamond,
             Emerald);
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
+
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Ruby], 0);
@@ -100,8 +126,10 @@ mod tests {
             Diamond,
             Emerald);
 
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
 
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Ruby], 0);
@@ -131,7 +159,11 @@ mod tests {
             Sapphire,
             Ruby);
 
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
+
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Emerald], 0);
@@ -158,7 +190,10 @@ mod tests {
             Sapphire,
             Ruby);
 
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Emerald], 0);
@@ -180,7 +215,11 @@ mod tests {
             Ruby,
             Diamond,
             Emerald);
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
+
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::Success));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Ruby], 0);
@@ -202,7 +241,11 @@ mod tests {
             Ruby,
             Diamond,
             Emerald);
-        let turn_result = turn.take_turn(&mut game, PlayerSelection1);
+
+        let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
+            turn.take_turn(scoped, PlayerSelection1)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::Success));
         let game_bank = game.bank_resources;
         assert_eq!(game_bank[Ruby], 9);

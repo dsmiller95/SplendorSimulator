@@ -13,6 +13,7 @@ mod tests {
     use crate::game_actions::bank_transactions::{BankTransaction, get_transaction_sequence, get_transaction_sequence_tokens};
     use crate::game_actions::card_transaction::CardSelectionType::ObtainBoard;
     use crate::game_actions::card_transaction::CardTransaction;
+    use crate::game_actions::player_scoped_game_data::CanPlayerScope;
     use crate::game_actions::sub_turn::{SubTurn};
     use crate::game_actions::sub_turn::SubTurnAction::{TransactCard, TransactTokens};
     use crate::game_actions::test_utils::get_test_game;
@@ -32,7 +33,8 @@ mod tests {
         }));
 
         // act
-        let sub_turns = turn.get_sub_turns(&game, PlayerSelection2);
+        let mut scoped = game.scope_to(PlayerSelection2).unwrap();
+        let sub_turns = turn.get_sub_turns(&scoped, PlayerSelection2);
 
         // assert
         assert_eq!(sub_turns, Err(MissingCard));
@@ -66,7 +68,8 @@ mod tests {
         let turn = Turn::PurchaseCard(board_card(CardTier1, OpenCard(OpenCardPickInTier2)));
 
         // act
-        let sub_turns = turn.get_sub_turns(&game, PlayerSelection2);
+        let mut scoped = game.scope_to(PlayerSelection2).unwrap();
+        let sub_turns = turn.get_sub_turns(&scoped, PlayerSelection2);
 
         // assert
         assert_eq!(sub_turns, expected_result);

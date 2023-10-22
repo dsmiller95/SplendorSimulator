@@ -33,19 +33,12 @@ impl BankTransaction {
         Ok(())
     }
 
-    pub fn transact<ActorType, T>(&self, game: &mut T) -> Result<BankTransactionSuccess, BankTransactionError>
-        where ActorType: KnowableActorData,
-              T: KnowableGameData<ActorType>
+    pub fn transact<T>(&self, game: &mut T) -> Result<BankTransactionSuccess, BankTransactionError>
+        where T: PlayerScopedGameData
     {
-        let player_scoped_wrapper = PlayerScopedGameDataWrapper::<T, ActorType>::new(game, self.player)
-            .ok_or(BankTransactionError::PlayerDoesNotExist)?;
-        
-        self.can_transact(&player_scoped_wrapper)?;
+        self.can_transact(game)?;
 
-        game.get_actor_at_index_mut(self.player)
-            .ok_or(BankTransactionError::PlayerDoesNotExist)?
-            .owned_resources_mut()[self.resource] -= self.amount;
-
+        game.owned_resources_mut()[self.resource] -= self.amount;
         game.bank_resources_mut()[self.resource] += self.amount;
 
         Ok(BankTransactionSuccess::FullTransaction)
@@ -95,10 +88,12 @@ pub enum BankTransactionSuccess {
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
+    use std::panic;
     use crate::constants::PlayerSelection::*;
     use crate::constants::ResourceType::Diamond;
     use super::*;
     use ResourceTokenType::*;
+    use crate::game_actions::player_scoped_game_data::CanPlayerScope;
 
     use super::BankTransactionError::*;
     use super::BankTransactionSuccess::*;
@@ -114,7 +109,9 @@ mod tests {
             amount: 1
         };
 
-        let result = transaction.transact(&mut game);
+        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
+            transaction.transact(scoped)
+        });
 
         assert_eq!(result, Ok(FullTransaction));
         assert_eq!(game.bank_resources[Diamond], 6);
@@ -133,7 +130,9 @@ mod tests {
             amount: 1
         };
 
-        let result = transaction.transact(&mut game);
+        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
+            transaction.transact(scoped)
+        });
 
         assert_eq!(result, Err(NotEnoughResourcesInPlayer));
         assert_eq!(game.bank_resources[Diamond], 5);
@@ -142,8 +141,6 @@ mod tests {
     #[test]
     fn when_player_missing__fails() {
         let mut game = crate::game_actions::test_utils::get_test_game(2);
-        game.bank_resources[Diamond] = 5;
-        game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 0;
 
         let transaction = BankTransaction{
             player: PlayerSelection3,
@@ -151,11 +148,13 @@ mod tests {
             amount: 1
         };
 
-        let result = transaction.transact(&mut game);
+        let panic_result = panic::catch_unwind(|| {
+            let (game, result) = game.on_player(PlayerSelection3, |scoped| {
+                transaction.transact(scoped)
+            });
+        });
 
-        assert_eq!(result, Err(PlayerDoesNotExist));
-        assert_eq!(game.bank_resources[Diamond], 5);
-        assert_eq!(game.get_actor_at_index(PlayerSelection1).unwrap().resource_tokens[Diamond], 0);
+        assert!(panic_result.is_err());
     }
 
     #[test]
@@ -170,7 +169,9 @@ mod tests {
             amount: -1
         };
 
-        let result = transaction.transact(&mut game);
+        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
+            transaction.transact(scoped)
+        });
 
         assert_eq!(result, Ok(FullTransaction));
         assert_eq!(game.bank_resources[Diamond], 4);
@@ -188,7 +189,9 @@ mod tests {
             amount: -1
         };
 
-        let result = transaction.transact(&mut game);
+        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
+            transaction.transact(scoped)
+        });
 
         assert_eq!(result, Err(NotEnoughResourcesInBank));
         assert_eq!(game.bank_resources[Gold], 0);
@@ -207,7 +210,9 @@ mod tests {
             amount: -1
         };
 
-        let result = transaction.transact(&mut game);
+        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
+            transaction.transact(scoped)
+        });
 
         assert_eq!(result, Err(MaxTokensPerPlayerExceeded));
         assert_eq!(game.bank_resources[Diamond], 5);

@@ -1,21 +1,17 @@
 use crate::constants::{CardPickOnBoard, GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, reserved_card, ReservedCardSelection};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData, PutError};
+use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
 
 /// check if the card can move from one place to another
 /// does not check to see if the player has the resources to do so
-pub fn can_transact_card<ActorType, T>(game: &T, transaction: &CardTransaction) -> Result<(), CardTransactionError>
-    where ActorType: KnowableActorData,
-          T: KnowableGameData<ActorType>
+pub fn can_transact_card<T: PlayerScopedGameData>(game: &T, transaction: &CardTransaction) -> Result<(), CardTransactionError>
 {
     game.get_card_pick(&transaction.get_card_pick())
         .ok_or(CardTransactionError::CardDoesNotExist)?;
-    
-    let player = game.get_actor_at_index(transaction.player)
-        .ok_or(CardTransactionError::PlayerDoesNotExist)?;
-    
+
     match transaction.selection_type {
         CardSelectionType::ObtainReserved(_) => {
-            if player.iterate_reserved_cards().count() >= MAX_RESERVED_CARDS {
+            if game.iterate_reserved_cards().count() >= MAX_RESERVED_CARDS {
                 return Err(CardTransactionError::MaximumReservedCardsExceeded);
             }
         }
@@ -27,37 +23,30 @@ pub fn can_transact_card<ActorType, T>(game: &T, transaction: &CardTransaction) 
 }
 
 impl CardTransaction {
-    pub fn can_transact<ActorType, T>(&self, game: &T) -> Result<(), CardTransactionError>
-        where ActorType: KnowableActorData,
-              T: KnowableGameData<ActorType>{
+    pub fn can_transact<T: PlayerScopedGameData>(&self, game: &T) -> Result<(), CardTransactionError>{
         can_transact_card(game, self)
     }
 }
 
 /// move the card from one place to another
 /// does not check to see if the player has the resources to do so, nor does it modify the player's resources
-pub fn transact_card<ActorType, T>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
-    where ActorType: KnowableActorData,
-          T: KnowableGameData<ActorType>
+pub fn transact_card<T: PlayerScopedGameData>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
 {
     can_transact_card(game, transaction)?;
 
     let pick = transaction.get_card_pick();
 
     let card = game.take_card(&pick).ok_or(CardTransactionError::CardDoesNotExist)?;
-    
-    let actor = game.get_actor_at_index_mut(transaction.player)
-        .ok_or(CardTransactionError::PlayerDoesNotExist)?;
-    
+
     let consume_result = match transaction.selection_type {
         CardSelectionType::ObtainBoard(_) => {
-            actor.put_in_purchased(card)
+            game.put_in_purchased(card)
         }
         CardSelectionType::ObtainReserved(_) => {
-            actor.put_in_purchased(card)
+            game.put_in_purchased(card)
         }
         CardSelectionType::Reserve(_) => {
-            actor.put_in_reserve(card)
+            game.put_in_reserve(card)
         }
     };
 
@@ -123,6 +112,7 @@ mod tests {
     use crate::constants::ResourceTokenType::*;
     use crate::game_actions::card_transaction::CardSelectionType::Reserve;
     use crate::game_actions::knowable_game_data::HasCards;
+    use crate::game_actions::player_scoped_game_data::CanPlayerScope;
     use super::*;
     use crate::game_model::game_components::Card;
 
@@ -150,7 +140,9 @@ mod tests {
             selection_type: Reserve(card_pick),
         };
 
-        let result = transact_card(&mut game, &transaction);
+        let (game, result) = game.on_player(player_n, |scoped| {
+            transact_card(scoped, &transaction)
+        });
 
         assert_eq!(result, Ok(FullTransaction));
 
@@ -185,7 +177,9 @@ mod tests {
             selection_type: Reserve(card_pick),
         };
 
-        let result = transact_card(&mut game, &transaction);
+        let (game, result) = game.on_player(player_n, |scoped| {
+            transact_card(scoped, &transaction)
+        });
 
         assert_eq!(result, Ok(FullTransaction));
 

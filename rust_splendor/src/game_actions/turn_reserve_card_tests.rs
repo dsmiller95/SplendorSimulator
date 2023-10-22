@@ -9,6 +9,7 @@ mod tests {
     use crate::constants::ReservedCardSelection::*;
     use crate::constants::ResourceTokenType::Gold;
     use crate::game_actions::knowable_game_data::{HasCards, KnowableActorData, KnowableGameData};
+    use crate::game_actions::player_scoped_game_data::CanPlayerScope;
     use crate::game_actions::turn::{GameTurn, Turn};
     use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
     use crate::game_model::game_components::Card;
@@ -32,17 +33,19 @@ mod tests {
         let card_id = 24;
         let card = Card::new().with_id(card_id);
 
-        let mut sized = get_test_game();
-        sized.try_put_card(&card_pick.into(), card).unwrap();
-        let actor = sized.get_actor_at_index(player_n).unwrap();
+        let mut game = get_test_game();
+        game.try_put_card(&card_pick.into(), card).unwrap();
+        let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
 
         let turn = Turn::ReserveCard(card_pick);
-        assert_eq!(turn.can_take_turn(&sized, player_n), true);
-        let turn_result = turn.take_turn(&mut sized, player_n);
+        let (game, turn_result) = game.on_player(player_n, |scoped| {
+            turn.take_turn(scoped, player_n)
+        });
+
         assert_eq!(turn_result, Ok(TurnSuccess::Success));
 
-        let actor = sized.get_actor_at_index(player_n).unwrap();
+        let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 1);
         assert_eq!(actor.iterate_reserved_cards().next().unwrap().id, card_id);
         assert_eq!(actor.resource_tokens[Gold], 1);
@@ -60,19 +63,20 @@ mod tests {
         let card_id = 24;
         let card = Card::new().with_id(card_id);
 
-        let mut sized = get_test_game();
+        let mut game = get_test_game();
 
-        sized.try_put_card(&card_pick.into(), card).unwrap();
-        let actor = sized.get_actor_at_index_mut(player_n).unwrap();
+        game.try_put_card(&card_pick.into(), card).unwrap();
+        let actor = game.get_actor_at_index_mut(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
         actor.resource_tokens[Gold] = MAX_INVENTORY_TOKENS;
 
         let turn = Turn::ReserveCard(card_pick);
-        assert_eq!(turn.can_take_turn(&sized, player_n), true);
-        let turn_result = turn.take_turn(&mut sized, player_n);
+        let (game, turn_result) = game.on_player(player_n, |scoped| {
+            turn.take_turn(scoped, player_n)
+        });
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
 
-        let actor = sized.get_actor_at_index(player_n).unwrap();
+        let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 1);
         assert_eq!(actor.iterate_reserved_cards().next().unwrap().id, card_id);
         assert_eq!(actor.resource_tokens[Gold], 10);
@@ -91,24 +95,26 @@ mod tests {
         let card3 = Card::new().with_id(3);
         let card4 = Card::new().with_id(4);
 
-        let mut sized = get_test_game();
-        sized.try_put_card(&card_pick.into(), card1).unwrap();
+        let mut game = get_test_game();
+        game.try_put_card(&card_pick.into(), card1).unwrap();
 
         for (a, b) in [
             (ReservedCardSelection1, card2),
             (ReservedCardSelection2, card3),
             (ReservedCardSelection3, card4),
         ] {
-            sized.try_put_card(&reserved_card(player_n, a), b).unwrap();
+            game.try_put_card(&reserved_card(player_n, a), b).unwrap();
         }
 
-        let actor = sized.get_actor_at_index(player_n).unwrap();
+        let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 3);
 
         let turn = Turn::ReserveCard(card_pick);
-        let turn_result = turn.take_turn(&mut sized, player_n);
+        let (game, turn_result) = game.on_player(player_n, |scoped| {
+            turn.take_turn(scoped, player_n)
+        });
         assert_eq!(turn_result, Err(TurnFailed::FailureNoModification));
-        let actor = sized.get_actor_at_index(player_n).unwrap();
+        let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 3);
         assert_eq!(actor.resource_tokens[Gold], 0);
     }

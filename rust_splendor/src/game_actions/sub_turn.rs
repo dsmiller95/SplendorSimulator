@@ -1,11 +1,7 @@
-use crate::constants::PlayerSelection;
-use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
-
 use crate::game_actions::bank_transactions::{BankTransaction};
 use crate::game_actions::card_transaction::{CardTransaction, CardTransactionError, transact_card};
+use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
 use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
-
-use super::player_scoped_game_data_wrapper::PlayerScopedGameDataWrapper;
 
 #[derive(Debug, PartialEq)]
 pub struct SubTurn{
@@ -39,7 +35,7 @@ impl SubTurnAction {
             failure_mode: SubTurnFailureMode::MustAllSucceed
         }
     }
-    pub fn do_sub_turn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed>{
+    pub fn do_sub_turn<T: PlayerScopedGameData>(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed>{
         match self {
             SubTurnAction::TransactTokens(bank_transactions) => {
                 let any_transact_failed = bank_transactions
@@ -67,20 +63,17 @@ impl SubTurnAction {
 }
 
 impl SubTurn{
-    pub fn can_complete<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>(&self, game: &T, player_index: PlayerSelection) -> bool {
-        let Some(player_scoped_wrapper) = PlayerScopedGameDataWrapper::<T, ActorType>::new(game, player_index) else{
-            return false;
-        };
+    pub fn can_complete<T: PlayerScopedGameData>(&self, game: &T) -> bool {
         match &self.action {
             SubTurnAction::TransactTokens(bank_transactions) => match self.failure_mode {
                 SubTurnFailureMode::MustAllSucceed => {
                     bank_transactions.iter().all(|transaction|
-                        transaction.can_transact(&player_scoped_wrapper).is_ok()
+                        transaction.can_transact(game).is_ok()
                     )
                 }
                 SubTurnFailureMode::MayPartialSucceed => {
                     bank_transactions.iter().any(|transaction|
-                        transaction.can_transact(&player_scoped_wrapper).is_ok()
+                        transaction.can_transact(game).is_ok()
                     )
                 }
             }

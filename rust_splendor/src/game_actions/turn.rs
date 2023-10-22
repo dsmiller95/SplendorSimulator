@@ -1,9 +1,9 @@
 use std::cmp::{max, min};
-use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType};
 use crate::constants::ResourceTokenType::CostType;
 use crate::game_actions::bank_transactions::{BankTransaction, get_transaction_sequence};
 use crate::game_actions::card_transaction::{CardSelectionType, CardTransaction};
+use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
 use crate::game_actions::sub_turn::{SubTurn, SubTurnAction};
 use crate::game_actions::sub_turn::SubTurnFailureMode::MayPartialSucceed;
 use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
@@ -20,7 +20,7 @@ pub enum Turn {
     Noop, // reserved for testing, player passes their turn
 }
 
-pub trait GameTurn<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> {
+pub trait GameTurn<T: PlayerScopedGameData> {
     fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> Result<TurnSuccess, TurnFailed>;
     /// Perform any validation that can be applied to self-data alone
     fn is_valid(&self) -> bool;
@@ -40,7 +40,7 @@ pub enum TurnPlanningFailed{
 }
 
 impl Turn {
-    pub(crate) fn get_sub_turns<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>
+    pub(crate) fn get_sub_turns<T: PlayerScopedGameData>
         (&self, game: &T, actor_index: PlayerSelection) -> Result<Vec<SubTurn>, TurnPlanningFailed> {
         use crate::game_actions::turn::TurnPlanningFailed::*;
         
@@ -49,7 +49,7 @@ impl Turn {
                 let take_tokens = SubTurnAction::TransactTokens(
                     get_transaction_sequence(actor_index, -1, &[*a, *b, *c])
                 ).to_partial();
-                if !take_tokens.can_complete(game, actor_index) {
+                if !take_tokens.can_complete(game) {
                     return Err(CantTakeTokens);
                 }
                 Ok(vec![
@@ -61,7 +61,7 @@ impl Turn {
                 let take_tokens = SubTurnAction::TransactTokens(
                     get_transaction_sequence(actor_index, -1, &[*a, *a])
                 ).to_partial();
-                if !take_tokens.can_complete(game, actor_index) {
+                if !take_tokens.can_complete(game) {
                     return Err(CantTakeTokens);
                 }
                 Ok(vec![
@@ -72,21 +72,18 @@ impl Turn {
                 let Some(picked_card) = game.get_card_pick(card_pick) else {
                     return Err(MissingCard)
                 };
-                let Some(actor) = game.get_actor_at_index(actor_index) else {
-                    return Err(MissingPlayer)
-                };
 
                 let mut result_actions = vec![];
 
                 let base_cost = picked_card.cost;
-                let resources_from_cards = actor.persistent_resources();
+                let resources_from_cards = game.persistent_resources();
                 let mut modified_cost = base_cost.clone();
                 for resource in ResourceType::iterator() {
                     modified_cost[*resource] = max(0, modified_cost[*resource] - resources_from_cards[*resource]);
                 }
 
                 let mut bank_transactions = vec![];
-                let owned_tokens = actor.owned_resources();
+                let owned_tokens = game.owned_resources();
                 let mut gold_deficit = 0;
                 for resource in ResourceType::iterator() {
                     let cost = modified_cost[*resource];
@@ -115,7 +112,7 @@ impl Turn {
 
                 if bank_transactions.len() > 0 {
                     let take_tokens = SubTurnAction::TransactTokens(bank_transactions).to_required();
-                    if !take_tokens.can_complete(game, actor_index) {
+                    if !take_tokens.can_complete(game) {
                         return Err(CantSpendTokens)
                     }
                     result_actions.push(take_tokens);
@@ -135,7 +132,7 @@ impl Turn {
                     player: actor_index,
                     selection_type
                 }).to_required();
-                if !take_card.can_complete(game, actor_index) {
+                if !take_card.can_complete(game) {
                     return Err(CantTakeCard);
                 }
                 result_actions.push(take_card);
@@ -161,7 +158,7 @@ impl Turn {
     }
 }
 
-impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, ActorType> for Turn {
+impl<T: PlayerScopedGameData> GameTurn<T> for Turn {
     fn take_turn(&self, game: &mut T, actor_index: PlayerSelection) -> Result<TurnSuccess, TurnFailed> {
 
         let Ok(sub_turns) = self.get_sub_turns(game, actor_index) else {
@@ -209,7 +206,7 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> GameTurn<T, 
 
     fn can_take_turn(&self, game: &T, actor_index: PlayerSelection) -> bool {
         // ??? why do I need to do this? is_valid() is *Literally* right there, why can't I just call it?
-        let is_valid = <Turn as GameTurn<T, ActorType>>::is_valid(self);
+        let is_valid = <Turn as GameTurn<T>>::is_valid(self);
         is_valid && self.get_sub_turns(game, actor_index).is_ok()
     }
 }
