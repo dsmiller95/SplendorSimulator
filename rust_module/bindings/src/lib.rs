@@ -1,5 +1,16 @@
+mod game;
+mod turn;
+mod config;
+mod components;
+
 use pyo3::prelude::*;
 use rust_splendor;
+use crate::components::card::SplendorCard;
+use crate::components::resource_cost::SplendorResourceCost;
+use crate::components::resource_type::SplendorResourceType;
+use crate::config::SplendorConfig;
+use crate::game::SplendorGame;
+use crate::turn::SplendorTurn;
 
 /// Formats the sum of two numbers as string.
 #[pyfunction]
@@ -27,5 +38,13 @@ struct TestStruct {
 fn splendor_simulation(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_function(wrap_pyfunction!(add_one_as_string, m)?)?;
+
+    m.add_class::<SplendorResourceType>()?;
+    m.add_class::<SplendorResourceCost>()?;
+    m.add_class::<SplendorCard>()?;
+
+    m.add_class::<SplendorConfig>()?;
+    m.add_class::<SplendorGame>()?;
+    m.add_class::<SplendorTurn>()?;
     Ok(())
 }

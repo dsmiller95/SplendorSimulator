@@ -3,8 +3,8 @@
 #![feature(return_position_impl_trait_in_trait)]
 
 pub mod game_model;
-mod game_actions;
-mod constants;
+pub mod game_actions;
+pub mod constants;
 
 #[allow(dead_code)]
 fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {

@@ -1,6 +1,6 @@
 use crate::constants::{RESOURCE_TYPE_COUNT, ResourceAmountFlags};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Card {
     pub id: u32,
     pub cost: ResourceAmountFlags,
@@ -8,7 +8,7 @@ pub struct Card {
     pub points: i8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Noble {
     pub id: u32,
     pub cost: ResourceAmountFlags,

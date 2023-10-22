@@ -18,7 +18,7 @@ pub struct GameModel {
 
     pub available_nobles: [Option<Noble>; MAX_NOBLES],
     pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
-    pub card_rows_sized: [CardRow; CARD_TIER_COUNT],
+    pub card_rows_sized: [CardRow; CARD_TIER_COUNT], // todo: delet this
 }
 
 impl GameModel {

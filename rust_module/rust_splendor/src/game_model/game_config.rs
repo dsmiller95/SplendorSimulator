@@ -1,6 +1,6 @@
 use crate::game_model::game_components::{Card, Noble};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GameConfig {
     pub all_cards: Vec<Card>,
     pub all_nobles: Vec<Noble>,

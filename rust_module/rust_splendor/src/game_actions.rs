@@ -1,5 +1,5 @@
 
-mod turn;
+pub mod turn;
 pub mod knowable_game_data;
 mod test_utils;
 pub mod bank_transactions;

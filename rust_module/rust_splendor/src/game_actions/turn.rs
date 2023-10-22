@@ -147,6 +147,16 @@ impl Turn {
     }
 }
 
+impl Turn {
+    pub fn validate(&self) -> bool {
+        match self {
+            Turn::TakeThreeTokens(a, b, c) => {
+                a != b && a != c && b != c
+            },
+            _ => true,
+        }
+    }
+}
 impl<T: PlayerScopedGameData> GameTurn<T> for Turn {
     fn take_turn(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed> {
 
@@ -185,12 +195,7 @@ impl<T: PlayerScopedGameData> GameTurn<T> for Turn {
     }
 
     fn is_valid(&self) -> bool {
-        match self {
-            Turn::TakeThreeTokens(a, b, c) => {
-                a != b && a != c && b != c
-            },
-            _ => true,
-        }
+        self.validate()
     }
 
     fn can_take_turn(&self, game: &T) -> bool {
