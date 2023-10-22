@@ -6,11 +6,6 @@ pub mod game_model;
 mod game_actions;
 mod constants;
 
-fn main() {
-    println!("Hello, world!");
-
-}
-
 #[allow(dead_code)]
 fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
     unsafe {
@@ -19,6 +14,10 @@ fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
             ::core::mem::size_of::<T>(),
         )
     }
+}
+
+pub fn add_one(x: i32) -> i32 {
+    x + 1
 }
 
 /*

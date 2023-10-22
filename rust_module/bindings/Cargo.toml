@@ -1,0 +1,16 @@
+[package]
+name = "bindings"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+# The name of the native library. This is the name which will be used in Python to import the
+# library (i.e. `import splendor_simulation`). If you change this, you must also change the name of the
+# `#[pymodule]` in `src/lib.rs`.
+name = "splendor_simulation"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.19.0"
+rust_splendor = { path = "../rust_splendor" }
