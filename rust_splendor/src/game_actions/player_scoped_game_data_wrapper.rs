@@ -38,6 +38,7 @@ use delegate::delegate;
 use crate::game_actions::player_scoped_game_data::{CanPlayerScope, PlayerScopedGameData};
 use crate::game_model::actor::Actor;
 use crate::game_model::game_full::GameModel;
+use crate::constants::PlayerCardPick;
 
 
 impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScopedGameData for PlayerScopedGameDataWrapper<T, ActorType> {
@@ -46,11 +47,6 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScoped
             fn bank_resources(&self) -> &ResourceTokenBank;
             fn bank_resources_mut(&mut self) -> &mut ResourceTokenBank;
 
-            fn get_card_pick(&self, card_pick: &GlobalCardPick) -> Option<&Card>;
-            fn get_card_pick_mut(&mut self, card_pick: &GlobalCardPick) -> Option<&mut Card>;
-
-            fn take_card(&mut self, card_pick: &GlobalCardPick) -> Option<Card>;
-            fn try_put_card(&mut self, card_pick: &GlobalCardPick, card: Card) -> Result<(), PutError<Card>>;
         }
         to self.get_actor() {
             fn owned_resources(&self) -> &ResourceTokenBank;
@@ -64,6 +60,20 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScoped
             fn put_in_reserve(&mut self, card: Card) -> Result<(), PutError<Card>>;
             fn put_in_purchased(&mut self, card: Card) -> Result<(), PutError<Card>>;
         }
+    }
+
+    fn get_card_pick(&self, card_pick: &PlayerCardPick) -> Option<&Card>{
+        self.game.get_card_pick(&card_pick.as_global(self.player))
+    }
+    fn get_card_pick_mut(&mut self, card_pick: &PlayerCardPick) -> Option<&mut Card>{
+        self.game.get_card_pick_mut(&card_pick.as_global(self.player))
+    }
+
+    fn take_card(&mut self, card_pick: &PlayerCardPick) -> Option<Card>{
+        self.game.take_card(&card_pick.as_global(self.player))
+    }
+    fn try_put_card(&mut self, card_pick: &PlayerCardPick, card: Card) -> Result<(), PutError<Card>>{
+        self.game.try_put_card(&card_pick.as_global(self.player), card)
     }
 }
 impl CanPlayerScope for GameModel {

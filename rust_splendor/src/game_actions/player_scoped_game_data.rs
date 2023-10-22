@@ -1,4 +1,4 @@
-use crate::constants::{GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, ResourceAmountFlags, ResourceTokenBank};
+use crate::constants::{MAX_RESERVED_CARDS, PlayerCardPick, PlayerSelection, ResourceAmountFlags, ResourceTokenBank};
 use crate::game_actions::knowable_game_data::PutError;
 use crate::game_model::game_components::Card;
 
@@ -22,10 +22,10 @@ pub trait PlayerScopedGameData {
     }
 
 
-    fn get_card_pick(&self, card_pick: &GlobalCardPick) -> Option<&Card>;
-    fn get_card_pick_mut(&mut self, card_pick: &GlobalCardPick) -> Option<&mut Card>;
-    fn take_card(&mut self, card_pick: &GlobalCardPick) -> Option<Card>;
-    fn try_put_card(&mut self, card_pick: &GlobalCardPick, card: Card) -> Result<(), PutError<Card>>;
+    fn get_card_pick(&self, card_pick: &PlayerCardPick) -> Option<&Card>;
+    fn get_card_pick_mut(&mut self, card_pick: &PlayerCardPick) -> Option<&mut Card>;
+    fn take_card(&mut self, card_pick: &PlayerCardPick) -> Option<Card>;
+    fn try_put_card(&mut self, card_pick: &PlayerCardPick, card: Card) -> Result<(), PutError<Card>>;
 }
 
 pub trait CanPlayerScope: Sized {

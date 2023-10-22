@@ -17,7 +17,7 @@ mod tests {
 
         let panic_result = panic::catch_unwind(|| {
             let (game, can_turn) = game.on_player(PlayerSelection3, |scoped| {
-                turn.can_take_turn(scoped, PlayerSelection3)
+                turn.can_take_turn(scoped)
             });
         });
 
@@ -30,7 +30,7 @@ mod tests {
         let turn = Turn::TakeThreeTokens(Diamond, Diamond, Emerald);
 
         let (game, can_turn) = game.on_player(PlayerSelection2, |scoped| {
-            turn.can_take_turn(scoped, PlayerSelection2)
+            turn.can_take_turn(scoped)
         });
 
         assert_eq!(can_turn, false);
@@ -43,7 +43,7 @@ mod tests {
         let turn = Turn::TakeTwoTokens(Diamond);
 
         let (game, turn_result) = game.on_player(PlayerSelection2, |scoped| {
-            turn.take_turn(scoped, PlayerSelection2)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
@@ -63,7 +63,7 @@ mod tests {
             Emerald);
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
@@ -94,7 +94,7 @@ mod tests {
             Emerald);
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
@@ -127,7 +127,7 @@ mod tests {
             Emerald);
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
@@ -161,7 +161,7 @@ mod tests {
 
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
@@ -191,7 +191,7 @@ mod tests {
             Ruby);
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
@@ -217,7 +217,7 @@ mod tests {
             Emerald);
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::Success));
@@ -243,7 +243,7 @@ mod tests {
             Emerald);
 
         let (game, turn_result) = game.on_player(PlayerSelection1, |scoped| {
-            turn.take_turn(scoped, PlayerSelection1)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::Success));

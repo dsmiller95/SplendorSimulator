@@ -1,5 +1,5 @@
-use crate::constants::{CardPickOnBoard, GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, reserved_card, ReservedCardSelection};
-use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData, PutError};
+use crate::constants::{CardPickOnBoard, MAX_RESERVED_CARDS, PlayerCardPick, ReservedCardSelection};
+use crate::game_actions::knowable_game_data::{PutError};
 use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
 
 /// check if the card can move from one place to another
@@ -64,11 +64,11 @@ pub fn transact_card<T: PlayerScopedGameData>(game: &mut T, transaction: &CardTr
 }
 
 impl CardTransaction {
-    pub fn get_card_pick(&self) -> GlobalCardPick{
+    pub fn get_card_pick(&self) -> PlayerCardPick{
         match self.selection_type {
             CardSelectionType::Reserve(on_board) => on_board.into(),
             CardSelectionType::ObtainBoard(on_board) => on_board.into(),
-            CardSelectionType::ObtainReserved(reserved) => reserved_card(self.player, reserved),
+            CardSelectionType::ObtainReserved(reserved) => PlayerCardPick::Reserved(reserved),
         }
     }
 }
@@ -77,7 +77,6 @@ impl CardTransaction {
 /// to the player's inventory or to their reserved cards
 #[derive(Debug, PartialEq)]
 pub struct CardTransaction {
-    pub player: PlayerSelection,
     pub selection_type: CardSelectionType,
 }
 
@@ -115,6 +114,7 @@ mod tests {
     use crate::game_actions::player_scoped_game_data::CanPlayerScope;
     use super::*;
     use crate::game_model::game_components::Card;
+    use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 
 
     use super::CardTransactionSuccess::*;
@@ -136,7 +136,6 @@ mod tests {
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
 
         let transaction = CardTransaction{
-            player: player_n,
             selection_type: Reserve(card_pick),
         };
 
@@ -173,7 +172,6 @@ mod tests {
         assert_eq!(actor.iterate_reserved_cards().count(), 1);
 
         let transaction = CardTransaction{
-            player: player_n,
             selection_type: Reserve(card_pick),
         };
 

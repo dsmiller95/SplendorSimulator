@@ -40,7 +40,7 @@ mod tests {
 
         let turn = Turn::ReserveCard(card_pick);
         let (game, turn_result) = game.on_player(player_n, |scoped| {
-            turn.take_turn(scoped, player_n)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, Ok(TurnSuccess::Success));
@@ -72,7 +72,7 @@ mod tests {
 
         let turn = Turn::ReserveCard(card_pick);
         let (game, turn_result) = game.on_player(player_n, |scoped| {
-            turn.take_turn(scoped, player_n)
+            turn.take_turn(scoped)
         });
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
 
@@ -111,7 +111,7 @@ mod tests {
 
         let turn = Turn::ReserveCard(card_pick);
         let (game, turn_result) = game.on_player(player_n, |scoped| {
-            turn.take_turn(scoped, player_n)
+            turn.take_turn(scoped)
         });
         assert_eq!(turn_result, Err(TurnFailed::FailureNoModification));
         let actor = game.get_actor_at_index(player_n).unwrap();

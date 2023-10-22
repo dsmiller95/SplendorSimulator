@@ -10,7 +10,6 @@ use crate::game_model::game_config::GameConfig;
 pub struct GameModel {
     pub game_config: GameConfig,
 
-
     pub total_turns_taken: u32,
 
     /// assume the 1st actor in this list is the player whose turn it is.

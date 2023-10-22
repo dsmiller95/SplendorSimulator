@@ -5,7 +5,7 @@ mod tests {
 
     use crate::constants::CardPickInTier::OpenCard;
     use crate::constants::CardTier::CardTier1;
-    use crate::constants::GlobalCardPick::OnBoard;
+    use crate::constants::PlayerCardPick::OnBoard;
     use crate::constants::OpenCardPickInTier::OpenCardPickInTier2;
     use crate::constants::PlayerSelection::*;
     use crate::game_actions::player_scoped_game_data::CanPlayerScope;
@@ -17,14 +17,17 @@ mod tests {
     fn cannot_purchase_empty_card() {
         let mut game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = None;
-        let mut scoped = game.scope_to(PlayerSelection2).unwrap();
 
         let turn = Turn::PurchaseCard(OnBoard(CardPickOnBoard {
             tier: CardTier1,
             pick: OpenCard(OpenCardPickInTier2),
         }));
 
-        assert_eq!(turn.can_take_turn(&scoped, PlayerSelection2), false);
+        let (game, turn_result) = game.on_player(PlayerSelection2, |scoped| {
+            turn.can_take_turn(scoped)
+        });
+
+        assert_eq!(turn_result, false);
     }
 
     fn test_purchase_result(
@@ -44,10 +47,13 @@ mod tests {
 
         game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
 
-        let turn = Turn::PurchaseCard(board_card(CardTier1, OpenCard(OpenCardPickInTier2)));
+        let turn = Turn::PurchaseCard(OnBoard(CardPickOnBoard{
+            tier: CardTier1,
+            pick: OpenCard(OpenCardPickInTier2)
+        }));
 
         let (game, turn_result) = game.on_player(PlayerSelection2, |scoped| {
-            turn.take_turn(scoped, PlayerSelection2)
+            turn.take_turn(scoped)
         });
 
         assert_eq!(turn_result, expected_result);

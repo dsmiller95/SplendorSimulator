@@ -45,27 +45,25 @@ impl BankTransaction {
     }
 }
 
-pub fn get_transaction_sequence_tokens(player: PlayerSelection, amount: i8, resources: &[ResourceTokenType]) -> Vec<BankTransaction> {
+pub fn get_transaction_sequence_tokens(amount: i8, resources: &[ResourceTokenType]) -> Vec<BankTransaction> {
     resources.iter()
         .map(|resource| BankTransaction{
-            player,
             resource: *resource,
             amount
         })
         .collect()
 }
 
-pub fn get_transaction_sequence(player: PlayerSelection, amount: i8, resources: &[ResourceType]) -> Vec<BankTransaction> {
+pub fn get_transaction_sequence(amount: i8, resources: &[ResourceType]) -> Vec<BankTransaction> {
     let tokens = resources.iter()
         .map(|resource| CostType(*resource))
         .collect::<Vec<ResourceTokenType>>();
-    get_transaction_sequence_tokens(player, amount, &tokens)
+    get_transaction_sequence_tokens(amount, &tokens)
 }
 
+/// A transaction of tokens with the bank. Can be applied to any player.
 #[derive(Debug, PartialEq)]
-
 pub struct BankTransaction{
-    pub player: PlayerSelection,
     pub resource: ResourceTokenType,
     /// Positive for deposit into bank, negative for withdrawal from bank
     pub amount: i8
@@ -104,7 +102,6 @@ mod tests {
         game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 1;
 
         let transaction = BankTransaction{
-            player: PlayerSelection1,
             resource: CostType(Diamond),
             amount: 1
         };
@@ -125,7 +122,6 @@ mod tests {
         game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 0;
 
         let transaction = BankTransaction{
-            player: PlayerSelection1,
             resource: CostType(Diamond),
             amount: 1
         };
@@ -143,7 +139,6 @@ mod tests {
         let mut game = crate::game_actions::test_utils::get_test_game(2);
 
         let transaction = BankTransaction{
-            player: PlayerSelection3,
             resource: CostType(Diamond),
             amount: 1
         };
@@ -164,7 +159,6 @@ mod tests {
         game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Diamond] = 1;
 
         let transaction = BankTransaction{
-            player: PlayerSelection1,
             resource: CostType(Diamond),
             amount: -1
         };
@@ -184,7 +178,6 @@ mod tests {
         game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = 1;
 
         let transaction = BankTransaction{
-            player: PlayerSelection1,
             resource: CostType(Diamond),
             amount: -1
         };
@@ -205,7 +198,6 @@ mod tests {
         game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = MAX_INVENTORY_TOKENS;
 
         let transaction = BankTransaction{
-            player: PlayerSelection1,
             resource: CostType(Diamond),
             amount: -1
         };

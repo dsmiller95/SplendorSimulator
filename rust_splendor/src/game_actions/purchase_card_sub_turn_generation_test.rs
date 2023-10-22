@@ -5,7 +5,7 @@ mod tests {
 
     use crate::constants::CardPickInTier::OpenCard;
     use crate::constants::CardTier::CardTier1;
-    use crate::constants::GlobalCardPick::OnBoard;
+    use crate::constants::PlayerCardPick::OnBoard;
     use crate::constants::OpenCardPickInTier::OpenCardPickInTier2;
     use crate::constants::PlayerSelection::*;
     use crate::constants::ResourceTokenType::{CostType, Gold};
@@ -34,7 +34,7 @@ mod tests {
 
         // act
         let mut scoped = game.scope_to(PlayerSelection2).unwrap();
-        let sub_turns = turn.get_sub_turns(&scoped, PlayerSelection2);
+        let sub_turns = turn.get_sub_turns(&scoped);
 
         // assert
         assert_eq!(sub_turns, Err(MissingCard));
@@ -42,7 +42,6 @@ mod tests {
 
     fn default_card_transact() -> SubTurn {
         TransactCard(CardTransaction{
-            player: PlayerSelection2,
             selection_type: ObtainBoard(CardPickOnBoard{
                 tier: CardTier1,
                 pick: OpenCard(OpenCardPickInTier2),
@@ -65,11 +64,14 @@ mod tests {
 
         game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
 
-        let turn = Turn::PurchaseCard(board_card(CardTier1, OpenCard(OpenCardPickInTier2)));
+        let turn = Turn::PurchaseCard(CardPickOnBoard{
+            tier: CardTier1,
+            pick: OpenCard(OpenCardPickInTier2)
+        }.into());
 
         // act
         let mut scoped = game.scope_to(PlayerSelection2).unwrap();
-        let sub_turns = turn.get_sub_turns(&scoped, PlayerSelection2);
+        let sub_turns = turn.get_sub_turns(&scoped);
 
         // assert
         assert_eq!(sub_turns, expected_result);
@@ -80,7 +82,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence(
-                    PlayerSelection2,
                     1,
                     &[Ruby, Sapphire])
             ).to_required();
@@ -98,7 +99,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence(
-                    PlayerSelection2,
                     2,
                     &[Emerald])
             ).to_required();
@@ -117,7 +117,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence(
-                    PlayerSelection2,
                     1,
                     &[Ruby, Sapphire])
             ).to_required();
@@ -147,7 +146,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence(
-                    PlayerSelection2,
                     1,
                     &[Sapphire])
             ).to_required();
@@ -166,7 +164,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence_tokens(
-                    PlayerSelection2,
                     1,
                     &[CostType(Ruby), Gold])
             ).to_required();
@@ -184,7 +181,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence_tokens(
-                    PlayerSelection2,
                     2,
                     &[Gold])
             ).to_required();
@@ -202,7 +198,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence(
-                    PlayerSelection2,
                     1,
                     &[Sapphire, Diamond])
             ).to_required();
@@ -220,7 +215,6 @@ mod tests {
         let bank_transact =
             TransactTokens(
                 get_transaction_sequence_tokens(
-                    PlayerSelection2,
                     2,
                     &[CostType(Emerald), Gold])
             ).to_required();
@@ -239,12 +233,10 @@ mod tests {
             TransactTokens(
                 vec![
                     BankTransaction{
-                        player: PlayerSelection2,
                         resource: CostType(Emerald),
                         amount: 1
                     },
                     BankTransaction{
-                        player: PlayerSelection2,
                         resource: Gold,
                         amount: 2
                     },

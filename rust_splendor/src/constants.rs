@@ -72,6 +72,12 @@ pub enum GlobalCardPick {
     OnBoard(CardPickOnBoard),
     Reserved(CardPickInReservedCards),
 }
+#[derive(Debug, Copy, Clone)]
+pub enum PlayerCardPick{
+    OnBoard(CardPickOnBoard),
+    Reserved(ReservedCardSelection),
+}
+
 impl From<CardPickOnBoard> for GlobalCardPick {
     fn from(card_pick: CardPickOnBoard) -> Self {
         GlobalCardPick::OnBoard(card_pick)
@@ -80,6 +86,24 @@ impl From<CardPickOnBoard> for GlobalCardPick {
 impl From<CardPickInReservedCards> for GlobalCardPick {
     fn from(card_pick: CardPickInReservedCards) -> Self {
         GlobalCardPick::Reserved(card_pick)
+    }
+}
+
+impl From<CardPickOnBoard> for PlayerCardPick {
+    fn from(card_pick: CardPickOnBoard) -> Self {
+        PlayerCardPick::OnBoard(card_pick)
+    }
+}
+
+impl PlayerCardPick {
+    pub fn as_global(&self, player_index: PlayerSelection) -> GlobalCardPick {
+        match self {
+            PlayerCardPick::OnBoard(card_pick) => (*card_pick).into(),
+            PlayerCardPick::Reserved(reserved_card) => CardPickInReservedCards{
+                player_index,
+                reserved_card: *reserved_card,
+            }.into(),
+        }
     }
 }
 pub fn board_card(tier: CardTier, pick: CardPickInTier) -> GlobalCardPick {
