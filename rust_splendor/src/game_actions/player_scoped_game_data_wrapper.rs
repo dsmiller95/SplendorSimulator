@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use crate::constants::{GlobalCardPick, MAX_RESERVED_CARDS, PlayerSelection, ResourceAmountFlags, ResourceTokenBank};
+use crate::constants::{MAX_RESERVED_CARDS, PlayerSelection, ResourceAmountFlags, ResourceTokenBank};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData, PutError};
 use crate::game_model::game_components::Card;
 
@@ -11,17 +11,6 @@ pub struct PlayerScopedGameDataWrapper<T: KnowableGameData<ActorType>, ActorType
 }
 
 impl<'a, T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScopedGameDataWrapper<T, ActorType> {
-    pub fn new(game: T, player: PlayerSelection) -> Option<Self> {
-        if game.get_actor_at_index(player).is_none() {
-            return None;
-        }
-        Some(Self {
-            game,
-            player,
-            phantom: PhantomData
-        })
-    }
-
     fn get_actor(&self) -> &ActorType {
         self.game
             .get_actor_at_index(self.player)

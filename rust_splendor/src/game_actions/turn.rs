@@ -31,11 +31,9 @@ pub trait GameTurn<T: PlayerScopedGameData> {
 pub enum TurnPlanningFailed{
     #[allow(dead_code)]
     UnknownError,
-    MissingPlayer,
     CantTakeTokens,
     CantSpendTokens,
     MissingCard,
-    PurchaseOtherPlayerReservedCard,
     CantTakeCard,
 }
 

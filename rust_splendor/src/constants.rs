@@ -106,12 +106,6 @@ impl PlayerCardPick {
         }
     }
 }
-pub fn board_card(tier: CardTier, pick: CardPickInTier) -> GlobalCardPick {
-    GlobalCardPick::OnBoard(CardPickOnBoard {
-        tier,
-        pick,
-    })
-}
 
 pub fn reserved_card(player_index: PlayerSelection, reserved_card: ReservedCardSelection) -> GlobalCardPick {
     GlobalCardPick::Reserved(CardPickInReservedCards {

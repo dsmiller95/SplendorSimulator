@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
-    use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, board_card};
+    use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags};
 
     use crate::constants::CardPickInTier::OpenCard;
     use crate::constants::CardTier::CardTier1;
@@ -23,7 +23,7 @@ mod tests {
             pick: OpenCard(OpenCardPickInTier2),
         }));
 
-        let (game, turn_result) = game.on_player(PlayerSelection2, |scoped| {
+        let (_, turn_result) = game.on_player(PlayerSelection2, |scoped| {
             turn.can_take_turn(scoped)
         });
 

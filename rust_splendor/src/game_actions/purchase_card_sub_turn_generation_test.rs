@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
-    use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags, board_card};
+    use crate::constants::{MAX_PLAYER_COUNT, CardPickOnBoard, ResourceTokenBank, ResourceAmountFlags};
 
     use crate::constants::CardPickInTier::OpenCard;
     use crate::constants::CardTier::CardTier1;
@@ -33,7 +33,7 @@ mod tests {
         }));
 
         // act
-        let mut scoped = game.scope_to(PlayerSelection2).unwrap();
+        let scoped = game.scope_to(PlayerSelection2).unwrap();
         let sub_turns = turn.get_sub_turns(&scoped);
 
         // assert
@@ -70,7 +70,7 @@ mod tests {
         }.into());
 
         // act
-        let mut scoped = game.scope_to(PlayerSelection2).unwrap();
+        let scoped = game.scope_to(PlayerSelection2).unwrap();
         let sub_turns = turn.get_sub_turns(&scoped);
 
         // assert

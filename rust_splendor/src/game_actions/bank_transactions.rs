@@ -1,9 +1,6 @@
-use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType, ResourceType};
+use crate::constants::{MAX_INVENTORY_TOKENS, ResourceTokenType, ResourceType};
 use crate::constants::ResourceTokenType::CostType;
-use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
 use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
-
-use super::player_scoped_game_data_wrapper::PlayerScopedGameDataWrapper;
 
 impl BankTransaction {
     pub fn can_transact<T>(&self, game: &T) -> Result<(), BankTransactionError>
@@ -73,8 +70,7 @@ pub struct BankTransaction{
 pub enum BankTransactionError{
     NotEnoughResourcesInBank,
     NotEnoughResourcesInPlayer,
-    MaxTokensPerPlayerExceeded,
-    PlayerDoesNotExist
+    MaxTokensPerPlayerExceeded
 }
 
 #[derive(Debug, PartialEq)]
@@ -95,6 +91,7 @@ mod tests {
 
     use super::BankTransactionError::*;
     use super::BankTransactionSuccess::*;
+    use crate::game_actions::knowable_game_data::{KnowableGameData};
     #[test]
     fn when_deposit_single_token__deposits() {
         let mut game = crate::game_actions::test_utils::get_test_game(2);
@@ -136,7 +133,7 @@ mod tests {
     }
     #[test]
     fn when_player_missing__fails() {
-        let mut game = crate::game_actions::test_utils::get_test_game(2);
+        let game = crate::game_actions::test_utils::get_test_game(2);
 
         let transaction = BankTransaction{
             resource: CostType(Diamond),
@@ -144,7 +141,7 @@ mod tests {
         };
 
         let panic_result = panic::catch_unwind(|| {
-            let (game, result) = game.on_player(PlayerSelection3, |scoped| {
+            let (_, _) = game.on_player(PlayerSelection3, |scoped| {
                 transaction.transact(scoped)
             });
         });

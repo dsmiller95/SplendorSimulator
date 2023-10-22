@@ -16,7 +16,7 @@ mod tests {
         let turn = Turn::TakeTwoTokens(Diamond);
 
         let panic_result = panic::catch_unwind(|| {
-            let (game, can_turn) = game.on_player(PlayerSelection3, |scoped| {
+            let (_, _) = game.on_player(PlayerSelection3, |scoped| {
                 turn.can_take_turn(scoped)
             });
         });
@@ -29,7 +29,7 @@ mod tests {
         let game = crate::game_actions::test_utils::get_test_game(MAX_PLAYER_COUNT);
         let turn = Turn::TakeThreeTokens(Diamond, Diamond, Emerald);
 
-        let (game, can_turn) = game.on_player(PlayerSelection2, |scoped| {
+        let (_, can_turn) = game.on_player(PlayerSelection2, |scoped| {
             turn.can_take_turn(scoped)
         });
 
