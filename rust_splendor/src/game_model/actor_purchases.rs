@@ -1,5 +1,4 @@
-use crate::constants::{MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, ResourceAmountFlags, ResourceType};
-use crate::constants::ResourceTokenType::Gold;
+use crate::constants::{MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, ResourceAmountFlags};
 use crate::game_actions::knowable_game_data::{KnowableActorData, PutError};
 use crate::game_model::actor::Actor;
 use crate::game_model::game_components::Card;

@@ -1,6 +1,6 @@
 use std::cmp::{max, min};
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
-use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType, ResourceTokenBank};
+use crate::constants::{CardPickOnBoard, GlobalCardPick, PlayerSelection, ResourceType, ResourceTokenType};
 use crate::constants::ResourceTokenType::CostType;
 use crate::game_actions::bank_transactions::{BankTransaction, get_transaction_sequence};
 use crate::game_actions::card_transaction::{CardSelectionType, CardTransaction};
@@ -43,13 +43,13 @@ impl Turn {
     pub(crate) fn get_sub_turns<T: KnowableGameData<ActorType>, ActorType : KnowableActorData>
         (&self, game: &T, actor_index: PlayerSelection) -> Result<Vec<SubTurn>, TurnPlanningFailed> {
         use crate::game_actions::turn::TurnPlanningFailed::*;
-
+        
         match self {
             Turn::TakeThreeTokens(a, b, c) => {
                 let take_tokens = SubTurnAction::TransactTokens(
                     get_transaction_sequence(actor_index, -1, &[*a, *b, *c])
                 ).to_partial();
-                if !take_tokens.can_complete(game) {
+                if !take_tokens.can_complete(game, actor_index) {
                     return Err(CantTakeTokens);
                 }
                 Ok(vec![
@@ -61,7 +61,7 @@ impl Turn {
                 let take_tokens = SubTurnAction::TransactTokens(
                     get_transaction_sequence(actor_index, -1, &[*a, *a])
                 ).to_partial();
-                if !take_tokens.can_complete(game) {
+                if !take_tokens.can_complete(game, actor_index) {
                     return Err(CantTakeTokens);
                 }
                 Ok(vec![
@@ -115,7 +115,7 @@ impl Turn {
 
                 if bank_transactions.len() > 0 {
                     let take_tokens = SubTurnAction::TransactTokens(bank_transactions).to_required();
-                    if !take_tokens.can_complete(game) {
+                    if !take_tokens.can_complete(game, actor_index) {
                         return Err(CantSpendTokens)
                     }
                     result_actions.push(take_tokens);
@@ -135,7 +135,7 @@ impl Turn {
                     player: actor_index,
                     selection_type
                 }).to_required();
-                if !take_card.can_complete(game){
+                if !take_card.can_complete(game, actor_index) {
                     return Err(CantTakeCard);
                 }
                 result_actions.push(take_card);

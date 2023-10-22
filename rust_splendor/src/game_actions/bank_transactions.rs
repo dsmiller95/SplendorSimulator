@@ -1,16 +1,16 @@
 use crate::constants::{MAX_INVENTORY_TOKENS, PlayerSelection, ResourceTokenType, ResourceType};
 use crate::constants::ResourceTokenType::CostType;
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData};
+use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
+
+use super::player_scoped_game_data_wrapper::PlayerScopedGameDataWrapper;
 
 impl BankTransaction {
-    pub fn can_transact<ActorType, T>(&self, game: &T) -> Result<(), BankTransactionError>
-        where ActorType: KnowableActorData,
-              T: KnowableGameData<ActorType>
+    pub fn can_transact<T>(&self, game: &T) -> Result<(), BankTransactionError>
+        where T: PlayerScopedGameData
     {
         let bank_resources = game.bank_resources();
-        let player_resources = game.get_actor_at_index(self.player)
-            .ok_or(BankTransactionError::PlayerDoesNotExist)?
-            .owned_resources();
+        let player_resources = game.owned_resources();
 
         match self.amount {
             0 => return Ok(()),
@@ -37,7 +37,10 @@ impl BankTransaction {
         where ActorType: KnowableActorData,
               T: KnowableGameData<ActorType>
     {
-        self.can_transact(game)?;
+        let player_scoped_wrapper = PlayerScopedGameDataWrapper::<T, ActorType>::new(game, self.player)
+            .ok_or(BankTransactionError::PlayerDoesNotExist)?;
+        
+        self.can_transact(&player_scoped_wrapper)?;
 
         game.get_actor_at_index_mut(self.player)
             .ok_or(BankTransactionError::PlayerDoesNotExist)?
