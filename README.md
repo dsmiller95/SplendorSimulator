@@ -25,6 +25,10 @@ run commands:
 cd splendor-web-viewer
 npm install
 ```
+to dev locally:
+```bash
+npm run start
+```
 
 ## Develop
 
