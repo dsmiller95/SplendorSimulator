@@ -1,7 +1,11 @@
-set -e # exit script on first failure
-cd rust_module/bindings
+sh << END
+set -e # exit script on first failures
+cd rust_module
+cargo test
+cd bindings
 maturin develop
 cd ../..
 cd python_rust_bind_adapter
 pytest
 cd ..
+END

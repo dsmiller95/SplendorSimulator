@@ -41,5 +41,5 @@ source rust_dev.sh
 
 Run tests on the python binding. Will build the rust project
 ```bash
-bash rust_test.sh
+source rust_test.sh
 ```
