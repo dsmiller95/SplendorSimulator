@@ -1,5 +1,5 @@
 pytest
-#torch
+torch
 flask
 flask-cors
 pyyaml

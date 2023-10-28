@@ -4,9 +4,14 @@ A simulation of the board game splendor written in python. Will attempt to train
 ## Setup
 
 ### python training and webserver
-Install python 3.7+
+Install requirements:
 
-Setup:
+in a conda environment which will install Python 3.11 automatically
+```bash
+source setup_conda.sh
+```
+
+with a venv in Windows (after installing Python 3.1 on your own)
 ```bash
 source setup_windows.sh
 ```
