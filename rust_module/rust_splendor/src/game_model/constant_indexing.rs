@@ -23,10 +23,10 @@ mod card_picks {
     }
 }
 
-mod resource_tokens{
+pub mod resource_tokens{
     use std::ops::{Index, IndexMut};
     use std::slice::Iter;
-    use crate::constants::{RESOURCE_TOKEN_COUNT, RESOURCE_TYPE_COUNT, ResourceTokenType, ResourceType};
+    use crate::constants::{RESOURCE_TOKEN_COUNT, ResourceAmountFlags, ResourceTokenType, ResourceType};
 
     impl ResourceType {
         pub fn iterator() -> Iter<'static, ResourceType> {
@@ -41,13 +41,13 @@ mod resource_tokens{
     }
 
 
-    impl Index<ResourceType> for [i8; RESOURCE_TYPE_COUNT] {
+    impl Index<ResourceType> for ResourceAmountFlags {
         type Output = i8;
         fn index(&self, index: ResourceType) -> &Self::Output {
             &self[index as usize]
         }
     }
-    impl IndexMut<ResourceType> for [i8; RESOURCE_TYPE_COUNT] {
+    impl IndexMut<ResourceType> for ResourceAmountFlags {
         fn index_mut(&mut self, index: ResourceType) -> &mut Self::Output {
             &mut self[index as usize]
         }

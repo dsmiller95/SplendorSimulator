@@ -13,14 +13,22 @@ pub enum SplendorResourceType {
     Gold,
 }
 
+pub struct ResourceTokenToTypeConversionError(ResourceTokenType);
+
+impl From<ResourceTokenToTypeConversionError> for PyErr {
+    fn from(value: ResourceTokenToTypeConversionError) -> Self {
+        value.into()
+    }
+}
+
 impl TryInto<ResourceType> for SplendorResourceType {
-    type Error = ResourceTokenType;
+    type Error = ResourceTokenToTypeConversionError;
 
     fn try_into(self) -> Result<ResourceType, Self::Error> {
         let token : ResourceTokenType = self.into();
         match token {
             ResourceTokenType::CostType(resource_type) => Ok(resource_type),
-            token => Err(token),
+            token => Err(ResourceTokenToTypeConversionError(token)),
         }
     }
 }

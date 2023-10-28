@@ -5,6 +5,8 @@ use serde::Deserialize;
 use rust_splendor;
 use rust_splendor::game_model::game_components::{Card, Noble};
 use rust_splendor::game_model::game_config::{GameConfig, TieredCard};
+use crate::components::card::SplendorCard;
+use crate::components::noble::SplendorNoble;
 
 #[pyclass]
 #[derive(Clone)]
@@ -23,6 +25,19 @@ impl SplendorConfig {
                 wrapped_config: c,
             }
         })
+    }
+
+    #[getter]
+    fn cards(&self) -> Vec<SplendorCard> {
+        self.wrapped_config.all_cards.iter().map(|c| {
+            c.clone().into()
+        }).collect()
+    }
+    #[getter]
+    fn nobles(&self) -> Vec<SplendorNoble> {
+        self.wrapped_config.all_nobles.iter().map(|n| {
+            n.clone().into()
+        }).collect()
     }
 }
 
