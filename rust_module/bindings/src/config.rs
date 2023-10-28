@@ -17,7 +17,7 @@ pub struct SplendorConfig {
 #[pymethods]
 impl SplendorConfig {
     #[classmethod]
-    fn parse_config_csv(cls: &PyType, data: String) -> PyResult<SplendorConfig> {
+    fn parse_config_csv(_cls: &PyType, data: String) -> PyResult<SplendorConfig> {
         SplendorConfig::parse_config_csv_internal(data).map_err(|e| {
             PyValueError::new_err(e)
         }).map(|c| {

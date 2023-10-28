@@ -15,11 +15,11 @@ pub struct SplendorTurn {
 #[pymethods]
 impl SplendorTurn {
     #[classmethod]
-    fn new_take_three(cls: &PyType, first: SplendorResourceType, second: SplendorResourceType, third: SplendorResourceType) -> PyResult<Self> {
+    fn new_take_three(_cls: &PyType, first: SplendorResourceType, second: SplendorResourceType, third: SplendorResourceType) -> PyResult<Self> {
         let turn = Turn::TakeThreeTokens(
-                first.try_into().map_err(|_| PyValueError::new_err("invalid token"))?,
-                second.try_into().map_err(|_| PyValueError::new_err("invalid token"))?,
-                third.try_into().map_err(|_| PyValueError::new_err("invalid token"))?,);
+                first.try_into()?,
+                second.try_into()?,
+                third.try_into()?,);
 
         if !turn.validate() {
             return Err(PyValueError::new_err("invalid turn"));
@@ -31,16 +31,16 @@ impl SplendorTurn {
     }
 
     #[classmethod]
-    fn new_take_two(cls: &PyType, single: SplendorResourceType) -> PyResult<Self> {
+    fn new_take_two(_cls: &PyType, single: SplendorResourceType) -> PyResult<Self> {
         Ok(SplendorTurn {
-            wrapped: Turn::TakeTwoTokens(single.try_into().map_err(|e| PyValueError::new_err("invalid token"))?),
+            wrapped: Turn::TakeTwoTokens(single.try_into()?),
         })
     }
 
     /// pick is 0..4. 0 is the hidden card, 1..3 are exposed cards
     /// tier is 1..3
     #[classmethod]
-    fn new_buy_card_on_board(cls: &PyType, tier: u8, pick: u8) -> PyResult<Self> {
+    fn new_buy_card_on_board(_cls: &PyType, tier: u8, pick: u8) -> PyResult<Self> {
         let tier = match tier {
             1 => CardTier::CardTier1,
             2 => CardTier::CardTier2,
@@ -64,7 +64,7 @@ impl SplendorTurn {
     }
     /// reserved is 1..3
     #[classmethod]
-    fn new_buy_reserved_card(cls: &PyType, reserved_pick: u8) -> PyResult<Self> {
+    fn new_buy_reserved_card(_cls: &PyType, reserved_pick: u8) -> PyResult<Self> {
         let reserved_pick = match reserved_pick {
             1 => ReservedCardSelection::ReservedCardSelection1,
             2 => ReservedCardSelection::ReservedCardSelection2,
