@@ -8,7 +8,7 @@ mod tests {
     use crate::game_actions::player_scoped_game_data::CanPlayerScope;
     use crate::game_actions::turn::{GameTurn, Turn};
     use crate::game_actions::turn_result::TurnSuccess;
-
+    
     #[test]
     fn when_player_missing__cannot_take_tokens() {
         let mut game = crate::game_actions::test_utils::get_test_game(2);

@@ -45,8 +45,7 @@ impl GameModel {
             card_rows_sized: std::array::from_fn(|_| CardRow::new()),
         }
     }
-}
-impl GameModel {
+
     fn get_mut_card_slot(&mut self, card_pick: &GlobalCardPick) -> Option<&mut Option<Card>> {
         let mut_ref = match card_pick {
             GlobalCardPick::OnBoard(card_pick) => {
