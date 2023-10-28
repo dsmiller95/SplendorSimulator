@@ -12,9 +12,9 @@ pub struct SplendorGame {
 impl SplendorGame {
     // implicit clone on config
     #[new]
-    fn new(config: SplendorConfig, player_n: usize) -> PyResult<SplendorGame> {
+    fn new(config: SplendorConfig, player_n: usize, rand_seed: Option<i64>) -> PyResult<SplendorGame> {
         Ok(SplendorGame {
-            wrapped_game: GameModel::new(config.wrapped_config, player_n),
+            wrapped_game: GameModel::new(config.wrapped_config, player_n, rand_seed),
         })
     }
 

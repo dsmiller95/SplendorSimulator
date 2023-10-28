@@ -1,33 +1,9 @@
+import splendor_simulation
 
-
-def test_imports_splendor_simulation():
-    import splendor_simulation
-    added_one = splendor_simulation.add_one_as_string(1)
-    assert added_one.something == "2", "1 plus one should be 2"
-    assert added_one.another == 1, "1 should be 1"
-
-
-
-def test_success():
-    assert 1 == 1, "1 should be 1"
-
-test_config_raw = """
-Card ID,Card Type,Card Level,Ruby Cost,Emerald Cost,Sapphire Cost,Diamond Cost,Onyx Cost,Ruby Return,Emerald Return,Sapphire Return,Diamond Return,Onyx Return,Points Return
-1,Noble,0,3,3,3,0,0,0,0,0,0,0,3
-2,Noble,0,0,0,4,4,0,0,0,0,0,0,3
-3,Noble,0,3,3,0,0,3,0,0,0,0,0,3
-11,Regular,1,0,1,1,1,1,1,0,0,0,0,0
-12,Regular,1,0,1,1,2,1,1,0,0,0,0,0
-13,Regular,1,2,0,1,0,2,0,1,0,0,0,0
-14,Regular,2,0,3,0,0,0,0,0,0,0,1,0
-15,Regular,2,0,2,0,2,0,0,0,0,0,1,0
-16,Regular,2,1,3,1,0,0,0,0,1,0,0,0
-17,Regular,3,0,0,3,0,0,0,0,0,1,0,0
-""".strip()
+import test_data as test_data;
 
 def test_parses_config_data():
-    import splendor_simulation
-    config = splendor_simulation.SplendorConfig.parse_config_csv(test_config_raw)
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
     assert len(config.cards) == 7, "there should be 10 cards"
     
     assert config.cards[0].id == 11, "first card should have id 11"
@@ -44,8 +20,7 @@ def test_parses_config_data():
 
 
 def test_constructs_inspectable_game():
-    import splendor_simulation
-    config = splendor_simulation.SplendorConfig.parse_config_csv(test_config_raw)
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
     game = splendor_simulation.SplendorGame(config, 4)
     assert game.turn_n == 0, "turn should be 0"
     assert game.active_player_index == 0, "active player should be 0"
@@ -63,8 +38,7 @@ def test_constructs_inspectable_game():
     assert len(game.cards_by_level[2]) == 4, "there should be 4 level 3 cards"
 
 def test_construct_game_and_takes_pick_three():
-    import splendor_simulation
-    config = splendor_simulation.SplendorConfig.parse_config_csv(test_config_raw)
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
     game = splendor_simulation.SplendorGame(config, 4)
     assert game.turn_n == 0, "turn should be 0"
     assert game.active_player_index == 0, "active player should be 0"
@@ -90,7 +64,6 @@ def test_construct_game_and_takes_pick_three():
     assert game.active_player().resources[Gold] == 0, "active player should have 0 Gold"
 
 def test_cannot_construct_pick_three_of_same():
-    import splendor_simulation
     Ruby = splendor_simulation.SplendorResourceType.Ruby
     Sapphire = splendor_simulation.SplendorResourceType.Sapphire
 
@@ -104,7 +77,6 @@ def test_cannot_construct_pick_three_of_same():
     assert throws, "should throw when constructing turn. turn: " + str(turn)
 
 def test_cannot_construct_pick_three_with_gold():
-    import splendor_simulation
     Ruby = splendor_simulation.SplendorResourceType.Ruby
     Gold = splendor_simulation.SplendorResourceType.Gold
 
@@ -119,7 +91,6 @@ def test_cannot_construct_pick_three_with_gold():
     
 
 def test_can_construct_pick_three_of_different():
-    import splendor_simulation
     Ruby = splendor_simulation.SplendorResourceType.Ruby
     Sapphire = splendor_simulation.SplendorResourceType.Sapphire
     Emerald = splendor_simulation.SplendorResourceType.Emerald
@@ -127,8 +98,7 @@ def test_can_construct_pick_three_of_different():
     turn = splendor_simulation.SplendorTurn.new_take_three(Ruby, Sapphire, Emerald)
 
 def test_when_taking_invalid_turn__throws():
-    import splendor_simulation
-    config = splendor_simulation.SplendorConfig.parse_config_csv(test_config_raw)
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
     game = splendor_simulation.SplendorGame(config, 4)
     turn = splendor_simulation.SplendorTurn.new_buy_card_on_board(2, 1)
 
@@ -142,8 +112,7 @@ def test_when_taking_invalid_turn__throws():
     assert throws, "should have thrown."
 
 def test_when_picked_many_tokens__can_purchase_card():
-    import splendor_simulation
-    config = splendor_simulation.SplendorConfig.parse_config_csv(test_config_raw)
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
     game = splendor_simulation.SplendorGame(config, 1)
     assert game.turn_n == 0, "turn should be 0"
     assert game.active_player_index == 0, "active player should be 0"

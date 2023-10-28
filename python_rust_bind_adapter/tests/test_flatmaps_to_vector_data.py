@@ -1,10 +1,20 @@
+import splendor_simulation
 
-from game_model.AI_model.gamestate_input import GamestateInputVector
+import test_data as test_data;
 
-def test_game_state_input_correct_length_flat_map():
-    empty_input = GamestateInputVector()
-    flat_map = empty_input.flat_map()
-    assert len(flat_map.keys()) == 107
+
+def test_game_state_maps_to_correct_size():
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
+    game = splendor_simulation.SplendorGame(config, 4, hash(test_game_state_maps_to_correct_size.__name__))
+    game_vector = game.get_packed_state_array()
+
+    assert len(game_vector) == 512, "game vector should be 512 long"
+
+def test_game_state_provides_correct_index_mapping():
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
+    game = splendor_simulation.SplendorGame(config, 4, hash(test_game_state_maps_to_correct_size.__name__))
+    game_vector_indexes = game.get_packed_state_array_indexes()
+    
     expected_keys = [
         "player_0_temp_resources",
         "player_0_perm_resources",
@@ -116,9 +126,5 @@ def test_game_state_input_correct_length_flat_map():
     ]
 
     for expected in expected_keys:
-        assert expected in flat_map
-        
-def test_game_state_input_correct_length_raw_data():
-    empty_input = GamestateInputVector()
-    flat_map = empty_input.flat_map()
-    assert len(flat_map.aggregate_list) == 512 # TODO replace with correct value
+        assert expected in game_vector_indexes
+

@@ -22,7 +22,7 @@ pub struct GameModel {
 }
 
 impl GameModel {
-    pub fn new(config: GameConfig, player_count: usize) -> GameModel {
+    pub fn new(config: GameConfig, player_count: usize, rand_seed: Option<i64>) -> GameModel {
         let min_count = min(player_count, MAX_PLAYER_COUNT);
         let actors = std::array::from_fn(|i| {
             if i < min_count {
