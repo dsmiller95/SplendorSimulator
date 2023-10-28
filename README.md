@@ -4,7 +4,7 @@ A simulation of the board game splendor written in python. Will attempt to train
 ## Setup
 
 ### python training and webserver
-Install python 3.7+
+Install python 3.7-3.11 . python 3.12 is not supported.
 
 Setup:
 ```bash
@@ -34,7 +34,6 @@ Prerequisites:
 - setup python training and webserver
 - configure rust defaults for the directory using using `setup_rust.sh` . must be run once per machine.
 - rust is installed via rustup https://www.rust-lang.org/tools/install
-
 
 
 Setup + develop:

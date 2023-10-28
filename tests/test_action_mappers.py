@@ -14,7 +14,7 @@ def test_fit_best_pick_three():
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
 
     game.available_resources = [1, 1, 0, 1, 1, 4]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
 
     assert_banks([0, 0, 0, 0, 0], game.players[0].resource_tokens)
@@ -34,7 +34,7 @@ def test_fit_best_pick_three_invalid_then_pick_two():
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
 
     game.available_resources = [0, 4, 0, 0, 1, 4]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_TWO
 
@@ -54,7 +54,7 @@ def test_fit_pick_two():
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
 
     game.available_resources = [0, 4, 0, 0, 1, 4]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_TWO
 
@@ -74,7 +74,7 @@ def test_fit_pick_two_invalid_then_pick_three():
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
     
     game.available_resources = [0, 3, 1, 0, 1, 4]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_THREE_UNIQUE
 
@@ -101,7 +101,7 @@ def test_fit_buy_second_choice_card():
     
     game.available_resources = [0, 3, 1, 0, 1, 4]
     game.players[0].resource_tokens = [0, 1, 2, 1, 0, 0]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.BUY_CARD
 
@@ -134,7 +134,7 @@ def test_fit_buy_reserved_card():
     assert not (game.players[0].reserved_cards[0] is None)
     assert game.players[0].reserved_cards[0].returns == ResourceType.EMERALD
 
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.BUY_CARD
 
@@ -163,7 +163,7 @@ def test_fit_buy_card_fails_take_3_instead():
     
     game.available_resources = [0, 3, 1, 0, 1, 4]
     game.players[0].resource_tokens = [0, 1, 1, 1, 0, 0]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_THREE_UNIQUE
 
@@ -191,7 +191,7 @@ def test_fit_reserve_card_topdeck():
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
     
     game.players[0].resource_tokens = [0, 1, 1, 1, 0, 0]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.RESERVE_CARD
 
@@ -224,7 +224,7 @@ def test_fit_reserve_card_second_choice():
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
     
     game.players[0].resource_tokens = [0, 1, 1, 1, 0, 0]
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.RESERVE_CARD
 
@@ -259,7 +259,7 @@ def test_fit_reserve_card_fail_full_reserve_take_3_instead():
     action_out.reserve_buy = torch.Tensor([10, 20, 0])
     action_out.resource_token_draw = torch.Tensor([.1, .2, .3, .4, .5])
 
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_THREE_UNIQUE
 
@@ -286,7 +286,7 @@ def test_fit_pick_3_discard_3():
     game.available_resources = [1, 1, 1, 1, 1, 4]
     game.players[0].resource_tokens = [1, 2, 2, 2, 2, 1]
 
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_THREE_UNIQUE
 
@@ -308,7 +308,7 @@ def test_fit_pick_3_discard_5():
     game.players[0].resource_tokens = [1, 2, 2, 2, 2, 1]
     game.available_resources = [1, 1, 1, 1, 1, 4]
 
-    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])
+    mapped_action = ActionOutput._map_internal(action_out, game, game.players[0])[0]
     assert not (mapped_action is None)
     assert mapped_action.action_type == Action_Type.TAKE_THREE_UNIQUE
 
