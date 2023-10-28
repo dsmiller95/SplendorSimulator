@@ -32,7 +32,14 @@ npm install
 
 Must setup python training and webserver
 
+Must be using rust nightly, can be configured using `setup_rust.sh` . must be run once per machine.
+
 Setup + develop:
 ```bash
 source rust_dev.sh
+```
+
+Run tests on the python binding. Will build the rust project
+```bash
+bash rust_test.sh
 ```
