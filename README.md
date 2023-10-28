@@ -30,9 +30,12 @@ npm install
 
 ### rust submodule
 
-Must setup python training and webserver
+Prerequisites:
+- setup python training and webserver
+- configure rust defaults for the directory using using `setup_rust.sh` . must be run once per machine.
+- rust is installed via rustup https://www.rust-lang.org/tools/install
 
-Must be using rust nightly, can be configured using `setup_rust.sh` . must be run once per machine.
+
 
 Setup + develop:
 ```bash
