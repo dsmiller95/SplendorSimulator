@@ -5,11 +5,13 @@ def test_n_hot_representation_accurate_size_when_no_multiples():
 
     representation = CombinatorialIndexMapping(5, 3)
     assert 10 == representation.total_possible_options()
+    assert all([sum(x) == 3 for x in representation.options_list])
 
 def test_n_hot_representation_accurate_size_when_multiples():
 
     representation = CombinatorialIndexMapping(5, 3, allow_pick_multiple=True)
     assert 35 == representation.total_possible_options()
+    assert all([sum(x) == 3 for x in representation.options_list])
 
 def test_n_hot_maps_to_and_back_no_multiples():
 

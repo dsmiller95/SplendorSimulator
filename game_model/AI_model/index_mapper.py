@@ -53,6 +53,12 @@ class CombinatorialIndexMapping:
 
     def map_from_index(self, combinatorial_index: int) -> list[int]:
         return self.options_list[combinatorial_index]
+    
+    def get_1_hot_from_n_hot(self, desired_combination_n_hot: list[int]) -> list[int]:
+        full_list = [0] * self.total_possible_options()
+        combination_index = self.map_to_index(desired_combination_n_hot)
+        full_list[combination_index] = 1
+        return full_list
 
 def nCr(n, r):
     r = min(r, n-r)
