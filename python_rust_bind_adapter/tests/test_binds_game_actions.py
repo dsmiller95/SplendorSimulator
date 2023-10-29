@@ -25,14 +25,14 @@ def test_constructs_inspectable_game():
     game = splendor_simulation.SplendorGame(config, 4)
     assert game.turn_n == 0, "turn should be 0"
     assert game.active_player_index == 0, "active player should be 0"
-    assert game.active_player().points == 0, "active player should have 0 points"
-    assert game.active_player().resources[splendor_simulation.SplendorResourceType.Ruby] == 0, "active player should have 0 rubies"
+    assert game.active_player.points == 0, "active player should have 0 points"
+    assert game.active_player.resources[splendor_simulation.SplendorResourceType.Ruby] == 0, "active player should have 0 rubies"
 
-    assert game.bank[splendor_simulation.SplendorResourceType.Ruby] == 5, "bank should have 5 rubies"
-    assert game.bank[splendor_simulation.SplendorResourceType.Sapphire] == 5, "bank should have 5 Sapphires"
-    assert game.bank[splendor_simulation.SplendorResourceType.Emerald] == 5, "bank should have 5 Emeralds"
-    assert game.bank[splendor_simulation.SplendorResourceType.Diamond] == 5, "bank should have 5 Diamonds"
-    assert game.bank[splendor_simulation.SplendorResourceType.Onyx] == 5, "bank should have 5 Onyx"
+    assert game.bank[splendor_simulation.SplendorResourceType.Ruby] == 7, "bank should have 5 rubies"
+    assert game.bank[splendor_simulation.SplendorResourceType.Sapphire] == 7, "bank should have 5 Sapphires"
+    assert game.bank[splendor_simulation.SplendorResourceType.Emerald] == 7, "bank should have 5 Emeralds"
+    assert game.bank[splendor_simulation.SplendorResourceType.Diamond] == 7, "bank should have 5 Diamonds"
+    assert game.bank[splendor_simulation.SplendorResourceType.Onyx] == 7, "bank should have 5 Onyx"
     assert game.bank[splendor_simulation.SplendorResourceType.Gold] == 5, "bank should have 5 Gold"
 
     assert len(game.cards_by_level[0]) == 4, "there should be 4 level 1 cards"

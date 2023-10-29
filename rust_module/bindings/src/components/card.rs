@@ -8,40 +8,34 @@ pub struct SplendorCard {
     wrapped: TieredCard,
 }
 
-impl SplendorCard {
-    pub fn new(card: TieredCard) -> SplendorCard {
+impl From<TieredCard> for SplendorCard {
+    fn from(card: TieredCard) -> Self {
         SplendorCard {
             wrapped: card,
         }
     }
 }
 
-impl From<TieredCard> for SplendorCard {
-    fn from(card: TieredCard) -> Self {
-        SplendorCard::new(card)
-    }
-}
-
 #[pymethods]
 impl SplendorCard {
     #[getter]
-    fn get_id(&self) -> PyResult<u32> {
-        Ok(self.wrapped.card.id)
+    fn get_id(&self) -> u32 {
+        self.wrapped.card.id
     }
     #[getter]
-    fn get_tier(&self) -> PyResult<u8> {
-        Ok(self.wrapped.tier)
+    fn get_tier(&self) -> u8 {
+        self.wrapped.tier
     }
     #[getter]
-    fn get_costs(&self) -> PyResult<SplendorResourceCost> {
-        Ok(self.wrapped.card.cost.into())
+    fn get_costs(&self) -> SplendorResourceCost {
+        self.wrapped.card.cost.into()
     }
     #[getter]
-    fn get_returns(&self) -> PyResult<SplendorResourceCost> {
-        Ok(self.wrapped.card.returns.into())
+    fn get_returns(&self) -> SplendorResourceCost {
+        self.wrapped.card.returns.into()
     }
     #[getter]
-    fn get_points(&self) -> PyResult<i8> {
-        Ok(self.wrapped.card.points)
+    fn get_points(&self) -> i8 {
+        self.wrapped.card.points
     }
 }

@@ -24,11 +24,11 @@ impl From<ResourceTokenToTypeConversionError> for PyErr {
 }
 
 
-impl TryInto<ResourceType> for SplendorResourceType {
+impl TryFrom<SplendorResourceType> for ResourceType  {
     type Error = ResourceTokenToTypeConversionError;
 
-    fn try_into(self) -> Result<ResourceType, Self::Error> {
-        let token : ResourceTokenType = self.into();
+    fn try_from(value: SplendorResourceType) -> Result<Self, Self::Error> {
+        let token : ResourceTokenType = value.into();
         match token {
             ResourceTokenType::CostType(resource_type) => Ok(resource_type),
             token => Err(ResourceTokenToTypeConversionError(token)),
@@ -36,9 +36,9 @@ impl TryInto<ResourceType> for SplendorResourceType {
     }
 }
 
-impl Into<ResourceTokenType> for SplendorResourceType {
-    fn into(self) -> ResourceTokenType {
-        match self {
+impl From<SplendorResourceType> for ResourceTokenType {
+    fn from(value: SplendorResourceType) -> Self {
+        match value {
             SplendorResourceType::Emerald => ResourceTokenType::CostType(ResourceType::Emerald),
             SplendorResourceType::Sapphire => ResourceTokenType::CostType(ResourceType::Sapphire),
             SplendorResourceType::Ruby => ResourceTokenType::CostType(ResourceType::Ruby),

@@ -1,5 +1,5 @@
-use std::cmp::min;
-use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_NOBLES, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT};
+use std::cmp::{max, min};
+use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_NOBLES, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT, ResourceTokenType};
 use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData, PutError};
 use crate::game_model::actor::Actor;
 use crate::game_model::card::CardRow;
@@ -11,6 +11,7 @@ pub struct GameModel {
     pub game_config: GameConfig,
 
     pub total_turns_taken: u32,
+    pub active_player: usize,
 
     /// assume the 1st actor in this list is the player whose turn it is.
     pub actors: [Option<Actor>; MAX_PLAYER_COUNT],
@@ -23,25 +24,36 @@ pub struct GameModel {
 
 impl GameModel {
     pub fn new(config: GameConfig, player_count: usize, rand_seed: Option<i64>) -> GameModel {
-        let min_count = min(player_count, MAX_PLAYER_COUNT);
+        let clamped_player_count = max(2, min(MAX_PLAYER_COUNT, player_count));
+
         let actors = std::array::from_fn(|i| {
-            if i < min_count {
+            if i < clamped_player_count {
                 Some(Actor::new())
             } else {
                 None
             }
         });
 
+        let base_token_count = match clamped_player_count {
+            2 => 4,
+            3 => 5,
+            4 => 7,
+            _ => panic!("player count must be between 2 and 4 inclusive"),
+        };
+        let mut bank_resources = [base_token_count; RESOURCE_TOKEN_COUNT];
+        bank_resources[ResourceTokenType::Gold] = 5; // gold tokens
+
         GameModel {
             game_config: config,
 
             total_turns_taken: 0,
+            active_player: 0,
             card_rows: std::array::from_fn(|_| CardRow::new()),
 
 
             actors,
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
-            bank_resources: [0; RESOURCE_TOKEN_COUNT],
+            bank_resources,
             card_rows_sized: std::array::from_fn(|_| CardRow::new()),
         }
     }
@@ -59,6 +71,11 @@ impl GameModel {
             }
         };
         Some(mut_ref)
+    }
+
+    pub fn get_active_player(&self) -> &Actor {
+        self.actors[self.active_player].as_ref()
+            .expect("active player is managed to only point to a non-None actor, if there is at least one actor.")
     }
 }
 

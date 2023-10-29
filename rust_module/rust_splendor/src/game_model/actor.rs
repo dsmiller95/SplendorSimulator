@@ -1,7 +1,7 @@
 use crate::constants::{MAX_RESERVED_CARDS, RESOURCE_TOKEN_COUNT, RESOURCE_TYPE_COUNT};
 use crate::game_model::game_components::{Card, Noble};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Actor {
     pub purchased_cards: Vec<Card>,
     pub claimed_nobles: Vec<Noble>,

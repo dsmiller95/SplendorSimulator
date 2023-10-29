@@ -2,9 +2,11 @@ mod game;
 mod turn;
 mod config;
 mod components;
+mod actor;
 
 use pyo3::prelude::*;
 use rust_splendor;
+use crate::actor::SplendorActor;
 use crate::components::card::SplendorCard;
 use crate::components::resource_cost::SplendorResourceCost;
 use crate::components::resource_type::SplendorResourceType;
@@ -45,6 +47,7 @@ fn splendor_simulation(_py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<SplendorConfig>()?;
     m.add_class::<SplendorGame>()?;
+    m.add_class::<SplendorActor>()?;
     m.add_class::<SplendorTurn>()?;
     Ok(())
 }

@@ -87,6 +87,7 @@ mod tests {
     use crate::constants::ResourceType::Diamond;
     use super::*;
     use ResourceTokenType::*;
+    use crate::constants::RESOURCE_TOKEN_COUNT;
     use crate::game_actions::player_scoped_game_data::CanPlayerScope;
 
     use super::BankTransactionError::*;
@@ -171,7 +172,7 @@ mod tests {
     #[test]
     fn when_withdraw_empty_bank__fail_not_enough_bank() {
         let mut game = crate::game_actions::test_utils::get_test_game(2);
-        game.bank_resources[Gold] = 0;
+        game.bank_resources = [0; RESOURCE_TOKEN_COUNT];
         game.actors[PlayerSelection1].as_mut().unwrap().resource_tokens[Gold] = 1;
 
         let transaction = BankTransaction{
