@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use rust_splendor;
+use rust_splendor::constants::CardTier;
 use rust_splendor::game_model::game_config::TieredCard;
 use crate::components::resource_cost::SplendorResourceCost;
 
@@ -24,7 +25,11 @@ impl SplendorCard {
     }
     #[getter]
     fn get_tier(&self) -> u8 {
-        self.wrapped.tier
+        match self.wrapped.tier {
+            CardTier::CardTier1 => 1,
+            CardTier::CardTier2 => 2,
+            CardTier::CardTier3 => 3
+        }
     }
     #[getter]
     fn get_costs(&self) -> SplendorResourceCost {

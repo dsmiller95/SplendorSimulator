@@ -1,4 +1,6 @@
 use std::cmp::{max, min};
+use rand::prelude::SliceRandom;
+use rand_chacha::rand_core::SeedableRng;
 use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_NOBLES, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT, ResourceTokenType};
 use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData, PutError};
 use crate::game_model::actor::Actor;
@@ -19,12 +21,15 @@ pub struct GameModel {
 
     pub available_nobles: [Option<Noble>; MAX_NOBLES],
     pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
-    pub card_rows_sized: [CardRow; CARD_TIER_COUNT], // todo: delet this
 }
 
 impl GameModel {
-    pub fn new(config: GameConfig, player_count: usize, rand_seed: Option<i64>) -> GameModel {
+    pub fn new(config: GameConfig, player_count: usize, rand_seed: Option<u64>) -> GameModel {
         let clamped_player_count = max(2, min(MAX_PLAYER_COUNT, player_count));
+        let mut rng = match rand_seed {
+            None => rand_chacha::ChaCha8Rng::from_entropy(),
+            Some(seed) => rand_chacha::ChaCha8Rng::seed_from_u64(seed),
+        };
 
         let actors = std::array::from_fn(|i| {
             if i < clamped_player_count {
@@ -43,25 +48,34 @@ impl GameModel {
         let mut bank_resources = [base_token_count; RESOURCE_TOKEN_COUNT];
         bank_resources[ResourceTokenType::Gold] = 5; // gold tokens
 
+        let mut card_rows : [CardRow; CARD_TIER_COUNT] = std::array::from_fn(|_| CardRow::new());
+
+        // TODO performance memory: we may be able to avoid the clone here. do we need to keep track of every card in config, or can we move all the config's cards into the game?
+        let mut all_cards = config.all_cards.clone();
+        all_cards.shuffle(&mut rng);
+
+        for tiered_card in all_cards {
+            card_rows[tiered_card.tier].fill_with_single(tiered_card.card);
+        }
+
         GameModel {
             game_config: config,
 
             total_turns_taken: 0,
             active_player: 0,
-            card_rows: std::array::from_fn(|_| CardRow::new()),
+            card_rows,
 
 
             actors,
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
             bank_resources,
-            card_rows_sized: std::array::from_fn(|_| CardRow::new()),
         }
     }
 
     fn get_mut_card_slot(&mut self, card_pick: &GlobalCardPick) -> Option<&mut Option<Card>> {
         let mut_ref = match card_pick {
             GlobalCardPick::OnBoard(card_pick) => {
-                &mut self.card_rows_sized[card_pick.tier]
+                &mut self.card_rows[card_pick.tier]
                     [card_pick.pick]
             }
             GlobalCardPick::Reserved(reserved) => {
@@ -83,7 +97,7 @@ impl HasCards for GameModel {
     fn get_card_pick(&self, card_pick: &GlobalCardPick) -> Option<&Card> {
         match card_pick {
             GlobalCardPick::OnBoard(card_pick) => {
-                self.card_rows_sized[card_pick.tier]
+                self.card_rows[card_pick.tier]
                     [card_pick.pick]
                     .as_ref()
             }

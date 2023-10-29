@@ -1,3 +1,4 @@
+use crate::constants::CardTier;
 use crate::game_model::game_components::{Card, Noble};
 
 #[derive(Debug, Clone)]
@@ -10,7 +11,7 @@ pub struct GameConfig {
 
 #[derive(Debug, Clone)]
 pub struct TieredCard{
-    pub tier: u8,
+    pub tier: CardTier,
     pub card: Card,
 }
 

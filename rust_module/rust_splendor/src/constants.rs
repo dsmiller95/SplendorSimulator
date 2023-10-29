@@ -3,7 +3,7 @@ pub const MAX_INVENTORY_TOKENS : i8 = 10;
 
 use std::ops::{Index, IndexMut};
 use seq_macro::seq;
-
+use std::slice::Iter;
 macro_rules! sequential_enum {
     ($const_name:ident, $enum_name:ident, $count:expr) => {
         pub const $const_name: usize = $count;
@@ -13,6 +13,16 @@ macro_rules! sequential_enum {
                 #(
                     $enum_name~N,
                 )*
+            }
+            impl $enum_name {
+                pub fn iterator() -> Iter<'static, $enum_name> {
+                    static VALS: [$enum_name; $const_name] = [
+                        #(
+                            $enum_name::$enum_name~N,
+                        )*
+                    ];
+                    VALS.iter()
+                }
             }
         });
     }
@@ -42,6 +52,7 @@ macro_rules! indexable_sequential_enum {
     }
 }
 indexable_sequential_enum!(CARD_COUNT_PER_TIER, OpenCardPickInTier, 4);
+
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CardPickInTier {

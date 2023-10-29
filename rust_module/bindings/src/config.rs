@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyType;
 use serde::Deserialize;
 use rust_splendor;
+use rust_splendor::constants::CardTier;
 use rust_splendor::game_model::game_components::{Card, Noble};
 use rust_splendor::game_model::game_config::{GameConfig, TieredCard};
 use crate::components::card::SplendorCard;
@@ -64,6 +65,12 @@ impl SplendorConfig{
                 record.diamond_return,
                 record.onyx_return,
             ];
+            let card_tier = match record.card_level {
+                1 => Some(CardTier::CardTier1),
+                2 => Some(CardTier::CardTier2),
+                3 => Some(CardTier::CardTier3),
+                _ => None,
+            };
 
             match record.card_type.as_str() {
                 "Noble" => {
@@ -77,7 +84,7 @@ impl SplendorConfig{
                 },
                 "Regular" => {
                     config.all_cards.push(TieredCard{
-                        tier: record.card_level,
+                        tier: card_tier.expect(format!("Card tier must be between 1 and 3 inclusive for a card entry, got: {}", record.card_level).as_str()),
                         card: Card{
                             id: record.id,
                             cost,
@@ -119,6 +126,8 @@ struct SplendorConfigFormat {
 
 #[cfg(test)]
 mod test {
+    use rust_splendor::constants::CardTier;
+
     #[test]
     fn test_parse_config_csv() {
         let csv = r"
@@ -137,9 +146,9 @@ Card ID,Card Type,Card Level,Ruby Cost,Emerald Cost,Sapphire Cost,Diamond Cost,O
         let config = super::SplendorConfig::parse_config_csv_internal(csv.to_string()).unwrap();
         assert_eq!(config.all_cards.len(), 7);
         assert_eq!(config.all_cards[0].card.id, 11);
-        assert_eq!(config.all_cards[0].tier, 1);
+        assert_eq!(config.all_cards[0].tier, CardTier::CardTier1);
         assert_eq!(config.all_cards[6].card.id, 17);
-        assert_eq!(config.all_cards[6].tier, 3);
+        assert_eq!(config.all_cards[6].tier, CardTier::CardTier3);
 
         assert_eq!(config.all_nobles.len(), 3);
         assert_eq!(config.all_nobles[0].id, 1);

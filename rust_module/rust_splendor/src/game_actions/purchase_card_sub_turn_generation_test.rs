@@ -25,7 +25,7 @@ mod tests {
     fn when_empty_card__produce_none() {
         // arrange
         let mut game = get_test_game(MAX_PLAYER_COUNT);
-        game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = None;
+        game.card_rows[CardTier1].open_cards[OpenCardPickInTier2] = None;
 
         let turn = Turn::PurchaseCard(OnBoard(CardPickOnBoard {
             tier: CardTier1,
@@ -62,7 +62,7 @@ mod tests {
         actor.resource_tokens = player_bank;
         actor.resources_from_cards = player_persistent;
 
-        game.card_rows_sized[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
+        game.card_rows[CardTier1].open_cards[OpenCardPickInTier2] = Some(card);
 
         let turn = Turn::PurchaseCard(CardPickOnBoard{
             tier: CardTier1,

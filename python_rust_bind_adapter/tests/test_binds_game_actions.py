@@ -35,8 +35,27 @@ def test_constructs_inspectable_game():
     assert game.bank[splendor_simulation.SplendorResourceType.Onyx] == 7, "bank should have 5 Onyx"
     assert game.bank[splendor_simulation.SplendorResourceType.Gold] == 5, "bank should have 5 Gold"
 
-    assert len(game.cards_by_level[0]) == 4, "there should be 4 level 1 cards"
-    assert len(game.cards_by_level[2]) == 4, "there should be 4 level 3 cards"
+    card_row_one = game.get_card_row(1)
+    assert len(card_row_one) == 4, "there should be 4 level 1 card slots"
+    assert len([x for x in card_row_one if x != None]) == 3, "there should be 3 level 1 cards"
+    card_row_three = game.get_card_row(3)
+    assert len(card_row_three) == 4, "there should be 4 level 3 card slots"
+    assert len([x for x in card_row_three if x != None]) == 1, "there should be 1 level 3 cards"
+
+
+def test_when_different_seed__different_cards():
+    config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
+    game_base = splendor_simulation.SplendorGame(config, 4, 1)
+    game_diff_seed = splendor_simulation.SplendorGame(config, 4, 2)
+    game_same_seed = splendor_simulation.SplendorGame(config, 4, 1)
+
+    base_card_row = game_base.get_card_row(1)
+    diff_card_row = game_diff_seed.get_card_row(1)
+    same_card_row = game_same_seed.get_card_row(1)
+    first_card_in_row = next(i for i, x in enumerate(base_card_row) if x != None)
+    assert base_card_row[first_card_in_row] != None, "row 1 should have one non-none card"
+    assert base_card_row[first_card_in_row].id != diff_card_row[first_card_in_row].id, "first card in row 1 should be different when different seed"
+    assert base_card_row[first_card_in_row].id == same_card_row[first_card_in_row].id, "first card in row 1 should be same when same seed"
 
 def test_construct_game_and_takes_pick_three():
     config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
