@@ -144,7 +144,7 @@ def test_when_picked_many_tokens__can_purchase_card():
     Onyx = splendor_simulation.SplendorResourceType.Onyx
     Gold = splendor_simulation.SplendorResourceType.Gold
 
-    location_of_card_15 = game.cards_by_level[1].index(lambda x: x.id == 15)
+    location_of_card_15 = next(i for i,v in enumerate(game.get_card_row(2)) if v != None and v.id == 15)
 
     turn_1 = splendor_simulation.SplendorTurn.new_take_two(Emerald)
     turn_2 = splendor_simulation.SplendorTurn.new_take_two(Sapphire)
