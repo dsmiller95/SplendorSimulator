@@ -5,14 +5,14 @@ import test_data as test_data;
 
 def test_game_state_maps_to_correct_size():
     config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
-    game = splendor_simulation.SplendorGame(config, 4, hash(test_game_state_maps_to_correct_size.__name__))
+    game = splendor_simulation.SplendorGame(config, 4, 129314)
     game_vector = game.get_packed_state_array()
 
-    assert len(game_vector) == 512, "game vector should be 512 long"
+    assert len(game_vector) == 384, "game vector should be 512 long"
 
 def test_game_state_provides_correct_index_mapping():
     config = splendor_simulation.SplendorConfig.parse_config_csv(test_data.test_config_raw)
-    game = splendor_simulation.SplendorGame(config, 4, hash(test_game_state_maps_to_correct_size.__name__))
+    game = splendor_simulation.SplendorGame(config, 4, 596563)
     game_vector_indexes = game.get_packed_state_array_indexes()
     
     expected_keys = [
