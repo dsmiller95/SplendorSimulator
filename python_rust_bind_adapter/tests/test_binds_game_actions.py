@@ -8,15 +8,16 @@ def test_parses_config_data():
     
     assert config.cards[0].id == 11, "first card should have id 11"
     assert config.cards[6].id == 17, "last card should have id 17"
-    assert config.cards[0].costs[splendor_simulation.SplendorResourceType.Ruby] == 1, "first card should cost 1 Ruby"
-    assert config.cards[0].costs[splendor_simulation.SplendorResourceType.Sapphire] == 0, "first card should cost 0 Sapphire"
+
+    assert config.cards[0].costs[splendor_simulation.SplendorResourceType.Ruby] == 0, "first card should cost 0 Ruby"
+    assert config.cards[0].costs[splendor_simulation.SplendorResourceType.Sapphire] == 1, "first card should cost 0 Sapphire"
 
     assert len(config.nobles) == 3, "there should be 3 nobles"
     assert config.nobles[0].id == 1, "first noble should have id 1"
     assert config.nobles[2].id == 3, "last noble should have id 3"
     assert config.nobles[0].points == 3, "first noble should have 3 points"
-    assert config.nobles[0].costs[splendor_simulation.SplendorResourceType.Ruby] == 0, "first noble should cost 0 Ruby"
-    assert config.nobles[0].costs[splendor_simulation.SplendorResourceType.Sapphire] == 0, "first noble should cost 3 Sapphire"
+    assert config.nobles[0].costs[splendor_simulation.SplendorResourceType.Ruby] == 3, "first noble should cost 3 Ruby"
+    assert config.nobles[0].costs[splendor_simulation.SplendorResourceType.Diamond] == 0, "first noble should cost 3 Diamond"
 
 
 def test_constructs_inspectable_game():
