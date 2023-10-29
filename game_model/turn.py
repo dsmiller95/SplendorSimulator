@@ -6,6 +6,7 @@ from game_data.game_config_data import GameConfigData
 from game_model.resource_types import ResourceType
 from game_model.turn_actions import add_reserved_card, purchase_card
 from utilities.print_utils import stringify_resources
+import math
 
 class Action_Type(IntEnum):
     TAKE_THREE_UNIQUE = 0,
@@ -203,32 +204,22 @@ class Turn:
         player.sum_points += chosen_noble.points
 
     def _discard_down(self, game_state: Game, player: Actor):
-        # first discard outright if values round to >1
-
-        #remove its ability to voluntarily discard, but keep its ability to choose what will be discarded if it goes over 7 tokens
-        '''
-        self.last_discarded_optional = 0
-        for discard_command in self._discard_commands:
-           true_amount = min(player.resource_tokens[discard_command[0].value], round(discard_command[1]))
-           if true_amount <= 0:
-               continue
-           game_state.give_tokens_to_player(player, discard_command[0].value, -true_amount)
-           self.last_discarded_optional += true_amount
-        '''
-        
         total_tokens = sum(player.resource_tokens)
         if total_tokens <= game_config.max_resource_tokens:
             return
 
         self.last_discarded_mandatory = 0
-        for try_num in range(5):
+        for try_num in range(5): # TODO: why try more than once??
             for next_discard in self._discard_commands:
-                if player.resource_tokens[next_discard[0].value] > 0:
+                max_discard = math.ceil(next_discard[1])
+                while player.resource_tokens[next_discard[0].value] > 0 and max_discard > 0:
                     total_tokens -= 1
+                    max_discard -= 1
                     game_state.give_tokens_to_player(player, next_discard[0].value, -1)
                     self.last_discarded_mandatory += 1
                     if total_tokens <= game_config.max_resource_tokens:
                         return
+        
 
         raise RuntimeError("could not discard down enough. error in discard down algorithm")
     
