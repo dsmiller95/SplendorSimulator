@@ -121,4 +121,4 @@ def test_game_state_input_correct_length_flat_map():
 def test_game_state_input_correct_length_raw_data():
     empty_input = GamestateInputVector()
     flat_map = empty_input.flat_map()
-    assert len(flat_map.aggregate_list) == 512 # TODO replace with correct value
+    assert len(flat_map.aggregate_list) == 384
