@@ -35,7 +35,7 @@ impl SubTurnAction {
             failure_mode: SubTurnFailureMode::MustAllSucceed
         }
     }
-    pub fn do_sub_turn<T: PlayerScopedGameData>(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed>{
+    pub fn do_sub_turn<'a, T: PlayerScopedGameData<'a>>(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed>{
         match self {
             SubTurnAction::TransactTokens(bank_transactions) => {
                 let any_transact_failed = bank_transactions
@@ -63,7 +63,7 @@ impl SubTurnAction {
 }
 
 impl SubTurn{
-    pub fn can_complete<T: PlayerScopedGameData>(&self, game: &T) -> bool {
+    pub fn can_complete<'a, T: PlayerScopedGameData<'a>>(&self, game: &T) -> bool {
         match &self.action {
             SubTurnAction::TransactTokens(bank_transactions) => match self.failure_mode {
                 SubTurnFailureMode::MustAllSucceed => {

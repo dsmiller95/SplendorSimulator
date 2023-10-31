@@ -8,7 +8,7 @@ use crate::components::resource_type::SplendorResourceType;
 
 #[pyclass]
 pub struct SplendorTurn {
-    wrapped: Turn,
+    pub wrapped: Turn,
 }
 
 

@@ -2,7 +2,7 @@ use crate::constants::{MAX_RESERVED_CARDS, PlayerCardPick, PlayerSelection, Reso
 use crate::game_actions::knowable_game_data::PutError;
 use crate::game_model::game_components::Card;
 
-pub trait PlayerScopedGameData {
+pub trait PlayerScopedGameData<'a> {
 
     fn bank_resources(&self) -> &ResourceTokenBank;
     fn bank_resources_mut(&mut self) -> &mut ResourceTokenBank;
@@ -29,14 +29,15 @@ pub trait PlayerScopedGameData {
 }
 
 pub trait CanPlayerScope: Sized {
-    type ScopedGameData: PlayerScopedGameData;
-    fn scope_to(self, player: PlayerSelection) -> Option<Self::ScopedGameData>;
-    fn extract_self(scoped: Self::ScopedGameData) -> Self;
+    type ScopedGameData<'a>: PlayerScopedGameData<'a> where Self: 'a;
+    fn scope_to(&mut self, player: PlayerSelection) -> Option<Self::ScopedGameData<'_>>;
+    fn on_player<T>(mut self, player:PlayerSelection, f: impl FnOnce(&mut Self::ScopedGameData<'_>) -> T) -> (Self, T) {
+        let result = {
+            let mut scoped = self.scope_to(player)
+                .expect("Player must exist");
+            f(&mut scoped)
+        };
 
-    fn on_player<T>(self, player:PlayerSelection, f: impl FnOnce(&mut Self::ScopedGameData) -> T) -> (Self, T) {
-        let mut scoped = self.scope_to(player)
-            .expect("Player must exist");
-        let result = f(&mut scoped);
-        (Self::extract_self(scoped), result)
+        (self, result)
     }
 }

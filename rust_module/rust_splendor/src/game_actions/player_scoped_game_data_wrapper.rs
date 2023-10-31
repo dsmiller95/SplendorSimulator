@@ -3,14 +3,14 @@ use crate::constants::{MAX_RESERVED_CARDS, PlayerSelection, ResourceAmountFlags,
 use crate::game_actions::knowable_game_data::{KnowableActorData, KnowableGameData, PutError};
 use crate::game_model::game_components::Card;
 
-pub struct PlayerScopedGameDataWrapper<T: KnowableGameData<ActorType>, ActorType: KnowableActorData>
+pub struct PlayerScopedGameDataWrapper<'a, T: KnowableGameData<ActorType>, ActorType: KnowableActorData>
 {
-    game: T,
+    game: &'a mut T,
     player: PlayerSelection,
     phantom: PhantomData<ActorType>
 }
 
-impl<'a, T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScopedGameDataWrapper<T, ActorType> {
+impl<'a, T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScopedGameDataWrapper<'_, T, ActorType> {
     fn get_actor(&self) -> &ActorType {
         self.game
             .get_actor_at_index(self.player)
@@ -30,7 +30,7 @@ use crate::game_model::game_full::GameModel;
 use crate::constants::PlayerCardPick;
 
 
-impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScopedGameData for PlayerScopedGameDataWrapper<T, ActorType> {
+impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScopedGameData<'_> for PlayerScopedGameDataWrapper<'_, T, ActorType> {
     delegate! {
         to self.game {
             fn bank_resources(&self) -> &ResourceTokenBank;
@@ -66,9 +66,9 @@ impl<T: KnowableGameData<ActorType>, ActorType : KnowableActorData> PlayerScoped
     }
 }
 impl CanPlayerScope for GameModel {
-    type ScopedGameData = PlayerScopedGameDataWrapper<GameModel, Actor>;
+    type ScopedGameData<'a> = PlayerScopedGameDataWrapper<'a, GameModel, Actor>;
 
-    fn scope_to(self, player: PlayerSelection) -> Option<Self::ScopedGameData> {
+    fn scope_to(&mut self, player: PlayerSelection) -> Option<Self::ScopedGameData<'_>> {
         if self.get_actor_at_index(player).is_none() {
             return None;
         }
@@ -77,11 +77,5 @@ impl CanPlayerScope for GameModel {
             player,
             phantom: PhantomData
         })
-    }
-
-    fn extract_self(scoped: Self::ScopedGameData) -> Self {
-        match scoped {
-            PlayerScopedGameDataWrapper { game, .. } => game
-        }
     }
 }

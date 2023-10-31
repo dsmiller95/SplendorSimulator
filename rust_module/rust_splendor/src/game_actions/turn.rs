@@ -20,7 +20,7 @@ pub enum Turn {
     Noop, // reserved for testing, player passes their turn
 }
 
-pub trait GameTurn<T: PlayerScopedGameData> {
+pub trait GameTurn<'a, T: PlayerScopedGameData<'a>> {
     fn take_turn(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed>;
     /// Perform any validation that can be applied to self-data alone
     fn is_valid(&self) -> bool;
@@ -37,8 +37,8 @@ pub enum TurnPlanningFailed{
     CantTakeCard,
 }
 
-impl Turn {
-    pub(crate) fn get_sub_turns<T: PlayerScopedGameData>
+impl<'a> Turn {
+    pub(crate) fn get_sub_turns<T: PlayerScopedGameData<'a>>
         (&self, game: &T) -> Result<Vec<SubTurn>, TurnPlanningFailed> {
         use crate::game_actions::turn::TurnPlanningFailed::*;
         
@@ -157,7 +157,7 @@ impl Turn {
         }
     }
 }
-impl<T: PlayerScopedGameData> GameTurn<T> for Turn {
+impl<'a, T: PlayerScopedGameData<'a>> GameTurn<'a, T> for Turn {
     fn take_turn(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed> {
 
         let Ok(sub_turns) = self.get_sub_turns(game) else {

@@ -2,9 +2,9 @@ use crate::constants::{MAX_INVENTORY_TOKENS, ResourceTokenType, ResourceType};
 use crate::constants::ResourceTokenType::CostType;
 use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
 
-impl BankTransaction {
+impl<'a> BankTransaction {
     pub fn can_transact<T>(&self, game: &T) -> Result<(), BankTransactionError>
-        where T: PlayerScopedGameData
+        where T: PlayerScopedGameData<'a>
     {
         let bank_resources = game.bank_resources();
         let player_resources = game.owned_resources();
@@ -31,7 +31,7 @@ impl BankTransaction {
     }
 
     pub fn transact<T>(&self, game: &mut T) -> Result<BankTransactionSuccess, BankTransactionError>
-        where T: PlayerScopedGameData
+        where T: PlayerScopedGameData<'a>
     {
         self.can_transact(game)?;
 

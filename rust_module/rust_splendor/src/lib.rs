@@ -5,6 +5,7 @@
 pub mod game_model;
 pub mod game_actions;
 pub mod constants;
+mod wrapper_test;
 
 #[allow(dead_code)]
 fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {

@@ -9,6 +9,7 @@ use crate::actor::SplendorActor;
 use crate::components::card::SplendorCard;
 use crate::components::resource_bank::SplendorResourceBank;
 use crate::config::SplendorConfig;
+use crate::turn::SplendorTurn;
 
 #[pyclass]
 pub struct SplendorGame {
@@ -68,5 +69,14 @@ impl SplendorGame {
                     )
             })
             .collect()
+    }
+
+    fn take_turn(&mut self, turn: &SplendorTurn) -> PyResult<()> {
+        let turn = &turn.wrapped;
+
+        todo!()
+        // self.wrapped_game.take_turn(&turn).map_err(|e| {
+        //     PyValueError::new_err(format!("Error taking turn: {}", e))
+        //})
     }
 }

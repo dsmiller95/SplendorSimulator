@@ -4,7 +4,7 @@ use crate::game_actions::player_scoped_game_data::PlayerScopedGameData;
 
 /// check if the card can move from one place to another
 /// does not check to see if the player has the resources to do so
-pub fn can_transact_card<T: PlayerScopedGameData>(game: &T, transaction: &CardTransaction) -> Result<(), CardTransactionError>
+pub fn can_transact_card<'a, T: PlayerScopedGameData<'a>>(game: &T, transaction: &CardTransaction) -> Result<(), CardTransactionError>
 {
     game.get_card_pick(&transaction.get_card_pick())
         .ok_or(CardTransactionError::CardDoesNotExist)?;
@@ -23,14 +23,14 @@ pub fn can_transact_card<T: PlayerScopedGameData>(game: &T, transaction: &CardTr
 }
 
 impl CardTransaction {
-    pub fn can_transact<T: PlayerScopedGameData>(&self, game: &T) -> Result<(), CardTransactionError>{
+    pub fn can_transact<'a, T: PlayerScopedGameData<'a>>(&self, game: &T) -> Result<(), CardTransactionError>{
         can_transact_card(game, self)
     }
 }
 
 /// move the card from one place to another
 /// does not check to see if the player has the resources to do so, nor does it modify the player's resources
-pub fn transact_card<T: PlayerScopedGameData>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
+pub fn transact_card<'a, T: PlayerScopedGameData<'a>>(game: &mut T, transaction: &CardTransaction) -> Result<CardTransactionSuccess, CardTransactionError>
 {
     can_transact_card(game, transaction)?;
 
