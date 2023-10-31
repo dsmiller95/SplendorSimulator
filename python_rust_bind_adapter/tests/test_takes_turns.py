@@ -21,14 +21,14 @@ def test_construct_game_and_takes_pick_three():
 
     assert game.turn_n == 1, "turn should be 1"
     assert game.active_player_index == 1, "active player should be 1"
-    active_player = game.active_player
-    assert active_player.points == 0, "active player should have 0 points"
-    assert active_player.resources[Ruby] == 1, "active player should have 1 Ruby"
-    assert active_player.resources[Sapphire] == 1, "active player should have 1 Sapphire"
-    assert active_player.resources[Emerald] == 1, "active player should have 1 Emerald"
-    assert active_player.resources[Diamond] == 0, "active player should have 0 Diamond"
-    assert active_player.resources[Onyx] == 0, "active player should have 0 Onyx"
-    assert active_player.resources[Gold] == 0, "active player should have 0 Gold"
+    changed_player = game.get_player_at(0)
+    assert changed_player.points == 0, "active player should have 0 points"
+    assert changed_player.resources[Ruby] == 1, "active player should have 1 Ruby"
+    assert changed_player.resources[Sapphire] == 1, "active player should have 1 Sapphire"
+    assert changed_player.resources[Emerald] == 1, "active player should have 1 Emerald"
+    assert changed_player.resources[Diamond] == 0, "active player should have 0 Diamond"
+    assert changed_player.resources[Onyx] == 0, "active player should have 0 Onyx"
+    assert changed_player.resources[Gold] == 0, "active player should have 0 Gold"
 
 
 

@@ -1,8 +1,9 @@
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rust_splendor;
 use rust_splendor::constants::CardTier::*;
-use rust_splendor::constants::{CardPickInTier, CardPickOnBoard, GlobalCardPick, OpenCardPickInTier};
-use rust_splendor::game_actions::knowable_game_data::HasCards;
+use rust_splendor::constants::{CardPickInTier, CardPickOnBoard, GlobalCardPick, OpenCardPickInTier, PlayerSelection};
+use rust_splendor::game_actions::knowable_game_data::{HasCards, KnowableGameData};
 use rust_splendor::game_actions::turn::GameTurn;
 use rust_splendor::game_actions::turn_result::{TurnFailed};
 use rust_splendor::game_model::game_config::TieredCard;
@@ -42,6 +43,17 @@ impl SplendorGame {
     #[getter]
     fn get_active_player(&self) -> SplendorActor {
         self.wrapped_game.get_active_player().clone().into()
+    }
+    fn get_player_at(&self, player_index: usize) -> PyResult<SplendorActor> {
+        let player_index = PlayerSelection::iterator()
+            .nth(player_index)
+            .ok_or(PyValueError::new_err("player index out of bounds"))?
+            .clone();
+
+        let active_player =self.wrapped_game.get_actor_at_index(player_index)
+            .ok_or(PyValueError::new_err("player index out of bounds"))?;
+
+        Ok(active_player.clone().into())
     }
     #[getter]
     fn get_bank(&self) -> SplendorResourceBank {
