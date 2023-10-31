@@ -39,9 +39,10 @@ mod tests {
         assert_eq!(actor.iterate_reserved_cards().count(), 0);
 
         let turn = Turn::ReserveCard(card_pick);
-        let (game, turn_result) = game.on_player(player_n, |scoped| {
-            turn.take_turn(scoped)
-        });
+        let turn_result = {
+            let mut scoped = game.expect_scope_to(player_n);
+            turn.take_turn(&mut scoped)
+        };
 
         assert_eq!(turn_result, Ok(TurnSuccess::Success));
 
@@ -71,9 +72,10 @@ mod tests {
         actor.resource_tokens[Gold] = MAX_INVENTORY_TOKENS;
 
         let turn = Turn::ReserveCard(card_pick);
-        let (game, turn_result) = game.on_player(player_n, |scoped| {
-            turn.take_turn(scoped)
-        });
+        let turn_result = {
+            let mut scoped = game.expect_scope_to(player_n);
+            turn.take_turn(&mut scoped)
+        };
         assert_eq!(turn_result, Ok(TurnSuccess::SuccessPartial));
 
         let actor = game.get_actor_at_index(player_n).unwrap();
@@ -110,9 +112,11 @@ mod tests {
         assert_eq!(actor.iterate_reserved_cards().count(), 3);
 
         let turn = Turn::ReserveCard(card_pick);
-        let (game, turn_result) = game.on_player(player_n, |scoped| {
-            turn.take_turn(scoped)
-        });
+
+        let turn_result = {
+            let mut scoped = game.expect_scope_to(player_n);
+            turn.take_turn(&mut scoped)
+        };
         assert_eq!(turn_result, Err(TurnFailed::FailureNoModification));
         let actor = game.get_actor_at_index(player_n).unwrap();
         assert_eq!(actor.iterate_reserved_cards().count(), 3);

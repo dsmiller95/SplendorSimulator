@@ -139,9 +139,10 @@ mod tests {
             selection_type: Reserve(card_pick),
         };
 
-        let (game, result) = game.on_player(player_n, |scoped| {
-            transact_card(scoped, &transaction)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(player_n);
+            transact_card(&mut scoped, &transaction)
+        };
 
         assert_eq!(result, Ok(FullTransaction));
 
@@ -175,9 +176,10 @@ mod tests {
             selection_type: Reserve(card_pick),
         };
 
-        let (game, result) = game.on_player(player_n, |scoped| {
-            transact_card(scoped, &transaction)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(player_n);
+            transact_card(&mut scoped, &transaction)
+        };
 
         assert_eq!(result, Ok(FullTransaction));
 

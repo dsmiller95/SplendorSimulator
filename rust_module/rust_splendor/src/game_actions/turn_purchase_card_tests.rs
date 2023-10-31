@@ -23,9 +23,10 @@ mod tests {
             pick: OpenCard(OpenCardPickInTier2),
         }));
 
-        let (_, turn_result) = game.on_player(PlayerSelection2, |scoped| {
-            turn.can_take_turn(scoped)
-        });
+        let turn_result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection2);
+            turn.can_take_turn(&mut scoped)
+        };
 
         assert_eq!(turn_result, false);
     }
@@ -52,9 +53,10 @@ mod tests {
             pick: OpenCard(OpenCardPickInTier2)
         }));
 
-        let (game, turn_result) = game.on_player(PlayerSelection2, |scoped| {
-            turn.take_turn(scoped)
-        });
+        let turn_result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection2);
+            turn.take_turn(&mut scoped)
+        };
 
         assert_eq!(turn_result, expected_result);
         if expected_result == Ok(TurnSuccess::Success) {

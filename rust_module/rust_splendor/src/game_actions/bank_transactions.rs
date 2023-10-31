@@ -104,9 +104,10 @@ mod tests {
             amount: 1
         };
 
-        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
-            transaction.transact(scoped)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection1);
+            transaction.transact(&mut scoped)
+        };
 
         assert_eq!(result, Ok(FullTransaction));
         assert_eq!(game.bank_resources[Diamond], 6);
@@ -124,9 +125,10 @@ mod tests {
             amount: 1
         };
 
-        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
-            transaction.transact(scoped)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection1);
+            transaction.transact(&mut scoped)
+        };
 
         assert_eq!(result, Err(NotEnoughResourcesInPlayer));
         assert_eq!(game.bank_resources[Diamond], 5);
@@ -142,9 +144,9 @@ mod tests {
         };
 
         let panic_result = panic::catch_unwind(|| {
-            let (_, _) = game.on_player(PlayerSelection3, |scoped| {
-                transaction.transact(scoped)
-            });
+            let mut game_owned = game;
+            let mut scoped = game_owned.expect_scope_to(PlayerSelection3);
+            transaction.transact(&mut scoped)
         });
 
         assert!(panic_result.is_err());
@@ -161,9 +163,10 @@ mod tests {
             amount: -1
         };
 
-        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
-            transaction.transact(scoped)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection1);
+            transaction.transact(&mut scoped)
+        };
 
         assert_eq!(result, Ok(FullTransaction));
         assert_eq!(game.bank_resources[Diamond], 4);
@@ -179,10 +182,10 @@ mod tests {
             resource: CostType(Diamond),
             amount: -1
         };
-
-        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
-            transaction.transact(scoped)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection1);
+            transaction.transact(&mut scoped)
+        };
 
         assert_eq!(result, Err(NotEnoughResourcesInBank));
         assert_eq!(game.bank_resources[Gold], 0);
@@ -200,9 +203,10 @@ mod tests {
             amount: -1
         };
 
-        let (game, result) = game.on_player(PlayerSelection1, |scoped| {
-            transaction.transact(scoped)
-        });
+        let result = {
+            let mut scoped = game.expect_scope_to(PlayerSelection1);
+            transaction.transact(&mut scoped)
+        };
 
         assert_eq!(result, Err(MaxTokensPerPlayerExceeded));
         assert_eq!(game.bank_resources[Diamond], 5);

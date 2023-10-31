@@ -31,13 +31,8 @@ pub trait PlayerScopedGameData<'a> {
 pub trait CanPlayerScope: Sized {
     type ScopedGameData<'a>: PlayerScopedGameData<'a> where Self: 'a;
     fn scope_to(&mut self, player: PlayerSelection) -> Option<Self::ScopedGameData<'_>>;
-    fn on_player<T>(mut self, player:PlayerSelection, f: impl FnOnce(&mut Self::ScopedGameData<'_>) -> T) -> (Self, T) {
-        let result = {
-            let mut scoped = self.scope_to(player)
-                .expect("Player must exist");
-            f(&mut scoped)
-        };
-
-        (self, result)
+    fn expect_scope_to(&mut self, player: PlayerSelection) -> Self::ScopedGameData<'_> {
+        self.scope_to(player)
+            .expect("Player must exist")
     }
 }
