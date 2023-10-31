@@ -79,3 +79,9 @@ impl CanPlayerScope for GameModel {
         })
     }
 }
+
+impl GameModel {
+    pub fn scope_to_active_player(&mut self) -> Option<<GameModel as CanPlayerScope>::ScopedGameData<'_>> {
+        self.scope_to(self.get_active_player_selection())
+    }
+}

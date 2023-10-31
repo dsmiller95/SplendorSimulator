@@ -9,6 +9,8 @@ pub trait KnowableGameData<ActorType> : HasCards
     fn get_actor_at_index(&self, index: PlayerSelection) -> Option<&ActorType>;
     fn get_actor_at_index_mut(&mut self, index: PlayerSelection) -> Option<&mut ActorType>;
     
+    fn get_active_player_selection(&self) -> PlayerSelection;
+    
     fn bank_resources(&self) -> &[i8; RESOURCE_TOKEN_COUNT];
     fn bank_resources_mut(&mut self) -> &mut [i8; RESOURCE_TOKEN_COUNT];
 }

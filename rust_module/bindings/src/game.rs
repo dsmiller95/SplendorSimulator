@@ -3,6 +3,8 @@ use rust_splendor;
 use rust_splendor::constants::CardTier::*;
 use rust_splendor::constants::{CardPickInTier, CardPickOnBoard, GlobalCardPick, OpenCardPickInTier};
 use rust_splendor::game_actions::knowable_game_data::HasCards;
+use rust_splendor::game_actions::turn::GameTurn;
+use rust_splendor::game_actions::turn_result::{TurnFailed};
 use rust_splendor::game_model::game_config::TieredCard;
 use rust_splendor::game_model::game_full::GameModel;
 use crate::actor::SplendorActor;
@@ -71,12 +73,29 @@ impl SplendorGame {
             .collect()
     }
 
-    fn take_turn(&mut self, turn: &SplendorTurn) -> PyResult<()> {
+    fn take_turn(&mut self, turn: &SplendorTurn) -> PyResult<String> {
         let turn = &turn.wrapped;
 
-        todo!()
-        // self.wrapped_game.take_turn(&turn).map_err(|e| {
-        //     PyValueError::new_err(format!("Error taking turn: {}", e))
-        //})
+        let mut scoped = self.wrapped_game.scope_to_active_player()
+            .ok_or(GameTurnFailure::MissingPlayer)?;
+        let turn_result = turn.take_turn(&mut scoped)
+            .map_err(|x| GameTurnFailure::TurnFailure(x))?;
+
+        self.wrapped_game.advance_player();
+
+        Ok(format!("Turn success: {:?}, next player: {:?}", turn_result, self.wrapped_game.active_player))
+    }
+}
+
+#[derive(Debug)]
+enum GameTurnFailure {
+    MissingPlayer,
+    TurnFailure(TurnFailed),
+}
+
+impl From<GameTurnFailure> for PyErr {
+    fn from(value: GameTurnFailure) -> Self {
+        use pyo3::exceptions::PyValueError;
+        PyValueError::new_err(format!("Game turn error: {:?}", value))
     }
 }

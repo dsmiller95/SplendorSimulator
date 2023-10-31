@@ -91,6 +91,12 @@ impl GameModel {
         self.actors[self.active_player].as_ref()
             .expect("active player is managed to only point to a non-None actor, if there is at least one actor.")
     }
+
+    pub fn advance_player(&mut self) {
+        let actor_count = self.actors.iter().position(|x| x.is_none()).unwrap_or(MAX_PLAYER_COUNT);
+        self.active_player = (self.active_player + 1) % actor_count;
+        self.total_turns_taken += 1;
+    }
 }
 
 impl HasCards for GameModel {
@@ -142,6 +148,13 @@ impl KnowableGameData<Actor> for GameModel {
 
     fn get_actor_at_index_mut(&mut self, index: PlayerSelection) -> Option<&mut Actor> {
         self.actors[index].as_mut()
+    }
+
+    fn get_active_player_selection(&self) -> PlayerSelection {
+        PlayerSelection::iterator()
+            .nth(self.active_player)
+            .expect("active player must be within bounds")
+            .clone()
     }
 
     fn bank_resources(&self) -> &[i8; 6] {
