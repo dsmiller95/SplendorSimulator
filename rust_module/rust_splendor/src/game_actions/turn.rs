@@ -27,7 +27,7 @@ pub trait GameTurn<'a, T: PlayerScopedGameData<'a>> {
     fn can_take_turn(&self, game: &T) -> bool;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TurnPlanningFailed{
     #[allow(dead_code)]
     UnknownError,
@@ -160,9 +160,7 @@ impl Turn {
 impl<'a, T: PlayerScopedGameData<'a>> GameTurn<'a, T> for Turn {
     fn take_turn(&self, game: &mut T) -> Result<TurnSuccess, TurnFailed> {
 
-        let Ok(sub_turns) = self.get_sub_turns(game) else {
-            return Err(TurnFailed::FailureNoModification)
-        };
+        let sub_turns = self.get_sub_turns(game)?;
 
         let mut is_first_turn = true;
         let mut success_mode: Option<TurnSuccess> = None;

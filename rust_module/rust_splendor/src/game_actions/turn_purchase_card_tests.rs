@@ -9,7 +9,7 @@ mod tests {
     use crate::constants::OpenCardPickInTier::OpenCardPickInTier2;
     use crate::constants::PlayerSelection::*;
     use crate::game_actions::player_scoped_game_data::CanPlayerScope;
-    use crate::game_actions::turn::{GameTurn, Turn};
+    use crate::game_actions::turn::{GameTurn, Turn, TurnPlanningFailed};
     use crate::game_actions::turn_result::{TurnFailed, TurnSuccess};
     use crate::game_model::game_components::Card;
 
@@ -75,7 +75,7 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
             Card::new().with_cost([1, 0, 1, 0, 0]),
-            Err(TurnFailed::FailureNoModification),
+            Err(TurnFailed::FailureToPlan(TurnPlanningFailed::CantSpendTokens)),
             [1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0],
         );
@@ -127,7 +127,7 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 4, 4, 0, 5],
             Card::new().with_cost([0, 1, 1, 0, 7]),
-            Err(TurnFailed::FailureNoModification),
+            Err(TurnFailed::FailureToPlan(TurnPlanningFailed::CantSpendTokens)),
             [1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0],
         );

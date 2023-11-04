@@ -1,3 +1,5 @@
+use crate::game_actions::turn::TurnPlanningFailed;
+
 #[derive(Debug, PartialEq)]
 pub enum TurnSuccess {
     /// The full and complete effects of the turn have been applied
@@ -13,6 +15,14 @@ pub enum TurnFailed{
     FailureNoModification,
     /// The turn was partially applied, and the modified game state is now invalid
     FailurePartialModification,
+    
+    FailureToPlan(TurnPlanningFailed),
+}
+
+impl From<TurnPlanningFailed> for TurnFailed {
+    fn from(failure: TurnPlanningFailed) -> Self {
+        TurnFailed::FailureToPlan(failure)
+    }
 }
 
 impl TurnSuccess {
