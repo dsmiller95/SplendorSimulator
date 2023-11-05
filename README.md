@@ -14,7 +14,7 @@ source setup_conda.sh
 
 with a venv in Windows (after installing Python 3.11 on your own)
 ```bash
-source setup_windows.sh
+source setup_venv_windows.sh
 ```
 
 Run:
@@ -48,10 +48,10 @@ Prerequisites:
 
 Setup + develop:
 ```bash
-source rust_dev.sh
+source dev_rust.sh
 ```
 
 Run tests on the python binding. Will build the rust project
 ```bash
-source rust_test.sh
+source test_rust.sh
 ```
