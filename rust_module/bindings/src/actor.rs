@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use rust_splendor;
+use rust_splendor::game_actions::knowable_game_data::KnowableActorData;
 use rust_splendor::game_model::actor::Actor;
 use crate::components::resource_bank::SplendorResourceBank;
 
@@ -20,7 +21,7 @@ impl From<Actor> for SplendorActor {
 impl SplendorActor {
     #[getter]
     fn get_points(&self) -> i8 {
-        self.wrapped.current_points
+        self.wrapped.get_points()
     }
 
     #[getter]

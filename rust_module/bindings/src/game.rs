@@ -7,7 +7,7 @@ use rust_splendor::game_actions::knowable_game_data::{HasCards, KnowableGameData
 use rust_splendor::game_actions::turn::GameTurn;
 use rust_splendor::game_actions::turn_result::{TurnFailed};
 use rust_splendor::game_model::game_config::TieredCard;
-use rust_splendor::game_model::game_full::GameModel;
+use rust_splendor::game_model::game_full::{GameCreationFailure, GameModel};
 use crate::actor::SplendorActor;
 use crate::components::card::SplendorCard;
 use crate::components::resource_bank::SplendorResourceBank;
@@ -24,8 +24,10 @@ impl SplendorGame {
     // implicit clone on config
     #[new]
     fn new(config: SplendorConfig, player_n: usize, rand_seed: Option<u64>) -> PyResult<SplendorGame> {
+
         Ok(SplendorGame {
-            wrapped_game: GameModel::new(config.wrapped_config, player_n, rand_seed),
+            wrapped_game: GameModel::new(config.wrapped_config, player_n, rand_seed)
+                .map_err(|e| PyValueError::new_err(format!("cannot create game: {:?}", e)))?,
         })
     }
     fn get_packed_state_array(&self) -> PyResult<Vec<f32>> {
@@ -37,8 +39,8 @@ impl SplendorGame {
         self.wrapped_game.total_turns_taken
     }
     #[getter]
-    fn get_active_player_index(&self) -> u32 {
-        self.wrapped_game.total_turns_taken
+    fn get_active_player_index(&self) -> usize {
+        self.wrapped_game.active_player
     }
     #[getter]
     fn get_active_player(&self) -> SplendorActor {

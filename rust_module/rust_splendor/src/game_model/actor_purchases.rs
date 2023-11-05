@@ -36,6 +36,12 @@ impl KnowableActorData for Actor {
         self.purchased_cards.push(card);
         Ok(())
     }
+
+    fn get_points(&self) -> i8 {
+        // sum of points from cards and nobles
+        self.purchased_cards.iter().map(|x| x.points).sum::<i8>() +
+            self.claimed_nobles.iter().map(|x| x.points).sum::<i8>()
+    }
 }
 #[cfg(test)]
 mod tests {

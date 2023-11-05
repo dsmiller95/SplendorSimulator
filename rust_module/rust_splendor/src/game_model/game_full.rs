@@ -3,6 +3,7 @@ use rand::prelude::SliceRandom;
 use rand_chacha::rand_core::SeedableRng;
 use crate::constants::{CARD_TIER_COUNT, GlobalCardPick, MAX_NOBLES, MAX_PLAYER_COUNT, PlayerSelection, RESOURCE_TOKEN_COUNT, ResourceTokenType};
 use crate::game_actions::knowable_game_data::{HasCards, KnowableGameData, PutError};
+use crate::game_actions::turn_result::TurnSuccess::Success;
 use crate::game_model::actor::Actor;
 use crate::game_model::card::CardRow;
 use crate::game_model::game_components::{Card, Noble};
@@ -23,9 +24,20 @@ pub struct GameModel {
     pub bank_resources: [i8; RESOURCE_TOKEN_COUNT],
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum GameCreationFailure{
+    TooManyPlayers,
+    TooFewPlayers,
+}
+
 impl GameModel {
-    pub fn new(config: GameConfig, player_count: usize, rand_seed: Option<u64>) -> GameModel {
-        let clamped_player_count = max(2, min(MAX_PLAYER_COUNT, player_count));
+    pub fn new(config: GameConfig, player_count: usize, rand_seed: Option<u64>) -> Result<GameModel, GameCreationFailure> {
+        let clamped_player_count = match player_count {
+            0 | 1 => Err(GameCreationFailure::TooFewPlayers),
+            2 | 3 | 4 => Ok(player_count),
+            _ => Err(GameCreationFailure::TooManyPlayers),
+        }?;
+
         let mut rng = match rand_seed {
             None => rand_chacha::ChaCha8Rng::from_entropy(),
             Some(seed) => rand_chacha::ChaCha8Rng::seed_from_u64(seed),
@@ -58,7 +70,7 @@ impl GameModel {
             card_rows[tiered_card.tier].fill_with_single(tiered_card.card);
         }
 
-        GameModel {
+        Ok(GameModel {
             game_config: config,
 
             total_turns_taken: 0,
@@ -69,7 +81,7 @@ impl GameModel {
             actors,
             available_nobles: std::array::from_fn(|_| Some(Noble::new())),
             bank_resources,
-        }
+        })
     }
 
     fn get_mut_card_slot(&mut self, card_pick: &GlobalCardPick) -> Option<&mut Option<Card>> {

@@ -31,6 +31,8 @@ pub trait KnowableActorData {
             .iter()
             .filter_map(|card| card.as_ref())
     }
+
+    fn get_points(&self) -> i8;
 }
 
 
