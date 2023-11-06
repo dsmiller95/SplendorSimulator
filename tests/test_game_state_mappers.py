@@ -79,7 +79,6 @@ def test_game_state_input_correct_length_flat_map():
         "tier_0_hidden_card_costs",
         "tier_0_hidden_card_returns",
         "tier_0_hidden_card_points",
-        "tier_0_points",
         "tier_1_open_card_0_costs",
         "tier_1_open_card_0_returns",
         "tier_1_open_card_0_points",
@@ -95,7 +94,6 @@ def test_game_state_input_correct_length_flat_map():
         "tier_1_hidden_card_costs",
         "tier_1_hidden_card_returns",
         "tier_1_hidden_card_points",
-        "tier_1_points",
         "tier_2_open_card_0_costs",
         "tier_2_open_card_0_returns",
         "tier_2_open_card_0_points",
@@ -111,7 +109,6 @@ def test_game_state_input_correct_length_flat_map():
         "tier_2_hidden_card_costs",
         "tier_2_hidden_card_returns",
         "tier_2_hidden_card_points",
-        "tier_2_points",
         "resources"
     ]
 
