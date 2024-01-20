@@ -1,8 +1,11 @@
-use crate::vectorization::ToVect;
+use crate::vectorization::*;
 
 impl<T: ToVect, const SIZE: usize> ToVect for [T; SIZE] {
     fn vect_size() -> usize { 
         T::vect_size() * SIZE
+    }
+    fn describe_slice() -> Vec<ToVectDescription>{
+        todo!()
     }
     fn populate_slice(&self, slice: &mut [f32]) {
         for (i, t) in self.iter().enumerate() {

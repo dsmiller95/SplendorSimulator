@@ -19,6 +19,7 @@ def test_game_state_provides_correct_index_mapping():
         "player_0_temp_resources",
         "player_0_perm_resources",
         "player_0_points",
+        "player_0_ordering",
         "player_0_reserved_card_0_costs",
         "player_0_reserved_card_0_returns",
         "player_0_reserved_card_0_points",
@@ -31,6 +32,7 @@ def test_game_state_provides_correct_index_mapping():
         "player_1_temp_resources",
         "player_1_perm_resources",
         "player_1_points",
+        "player_1_ordering",
         "player_1_reserved_card_0_costs",
         "player_1_reserved_card_0_returns",
         "player_1_reserved_card_0_points",
@@ -43,6 +45,7 @@ def test_game_state_provides_correct_index_mapping():
         "player_2_temp_resources",
         "player_2_perm_resources",
         "player_2_points",
+        "player_2_ordering",
         "player_2_reserved_card_0_costs",
         "player_2_reserved_card_0_returns",
         "player_2_reserved_card_0_points",
@@ -55,6 +58,7 @@ def test_game_state_provides_correct_index_mapping():
         "player_3_temp_resources",
         "player_3_perm_resources",
         "player_3_points",
+        "player_3_ordering",
         "player_3_reserved_card_0_costs",
         "player_3_reserved_card_0_returns",
         "player_3_reserved_card_0_points",
@@ -89,7 +93,6 @@ def test_game_state_provides_correct_index_mapping():
         "tier_0_hidden_card_costs",
         "tier_0_hidden_card_returns",
         "tier_0_hidden_card_points",
-        "tier_0_points",
         "tier_1_open_card_0_costs",
         "tier_1_open_card_0_returns",
         "tier_1_open_card_0_points",
@@ -105,7 +108,6 @@ def test_game_state_provides_correct_index_mapping():
         "tier_1_hidden_card_costs",
         "tier_1_hidden_card_returns",
         "tier_1_hidden_card_points",
-        "tier_1_points",
         "tier_2_open_card_0_costs",
         "tier_2_open_card_0_returns",
         "tier_2_open_card_0_points",
@@ -121,10 +123,11 @@ def test_game_state_provides_correct_index_mapping():
         "tier_2_hidden_card_costs",
         "tier_2_hidden_card_returns",
         "tier_2_hidden_card_points",
-        "tier_2_points",
         "resources"
     ]
 
+
+    actual_names = [x.name for x in game_vector_indexes]
     for expected in expected_keys:
-        assert expected in game_vector_indexes
+        assert expected in actual_names
 

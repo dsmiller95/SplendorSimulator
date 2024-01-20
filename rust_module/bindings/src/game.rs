@@ -13,7 +13,7 @@ use crate::components::card::SplendorCard;
 use crate::components::resource_bank::SplendorResourceBank;
 use crate::config::SplendorConfig;
 use crate::turn::SplendorTurn;
-use crate::vectorization::ToVect;
+use crate::vectorization::*;
 
 #[pyclass]
 pub struct SplendorGame {
@@ -38,6 +38,12 @@ impl SplendorGame {
         // construct a vector of floats set to 0.0
         let game_vector = vec![0.0; vect_size];
         Ok(game_vector)
+    }
+
+    fn get_packed_state_array_indexes(&self) -> PyResult<Vec<ToVectDescriptionIndexes>> {
+        let descriptions = GameModel::describe_slice();
+        let indexes = rollup_indexes(&descriptions);
+        Ok(indexes)
     }
 
     #[getter]
