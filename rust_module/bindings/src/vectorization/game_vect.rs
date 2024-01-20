@@ -2,12 +2,6 @@ use crate::vectorization::to_vect::*;
 use rust_splendor::{game_model::{game_full::GameModel, actor::Actor, card::CardRow, game_components::*}, constants::*};
 
 impl ToVect for GameModel {
-    fn vect_size() -> usize {
-        Option::<Actor>::vect_size() * MAX_PLAYER_COUNT
-        + Option::<Noble>::vect_size() * MAX_NOBLES
-        + RESOURCE_TOKEN_COUNT
-        + CardRow::vect_size() * CARD_TIER_COUNT
-    }
     fn describe_slice() -> Vec<ToVectDescription>{
         let mut result = vec![];
         
@@ -34,13 +28,6 @@ impl ToVect for GameModel {
 }
 
 impl ToVect for Actor{
-    fn vect_size() -> usize {
-        RESOURCE_TOKEN_COUNT
-        + RESOURCE_TYPE_COUNT
-        + 1
-        + 1
-        + Option::<Card>::vect_size() * MAX_RESERVED_CARDS
-    }
     fn describe_slice() -> Vec<ToVectDescription>{
         let mut result = vec![];
         result.extend(vec![ToVectDescription{
@@ -69,11 +56,6 @@ impl ToVect for Actor{
 }
 
 impl ToVect for Card{
-    fn vect_size() -> usize {
-        RESOURCE_TYPE_COUNT
-        + RESOURCE_TYPE_COUNT
-        + 1
-    }
     fn describe_slice() -> Vec<ToVectDescription>{
         let mut result = vec![];
         result.extend(vec![ToVectDescription{
@@ -96,10 +78,6 @@ impl ToVect for Card{
 }
 
 impl ToVect for Noble{
-    fn vect_size() -> usize {
-        RESOURCE_TYPE_COUNT
-        + 1
-    }
     fn describe_slice() -> Vec<ToVectDescription>{
         let mut result = vec![];
         result.extend(vec![ToVectDescription{
@@ -118,10 +96,6 @@ impl ToVect for Noble{
 }
 
 impl ToVect for CardRow{
-    fn vect_size() -> usize {
-        Option::<Card>::vect_size()
-        + Option::<Card>::vect_size() * CARD_COUNT_PER_TIER
-    }
     fn describe_slice() -> Vec<ToVectDescription>{
         let mut result = vec![];
         let card_description = Card::describe_slice();

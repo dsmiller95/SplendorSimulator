@@ -1,9 +1,12 @@
-use std::ops::Range;
-use std::borrow::Cow;
-
 
 pub trait ToVect {
-    fn vect_size() -> usize;
+    fn vect_size() -> usize{
+        let mut result = 0;
+        for desc in Self::describe_slice() {
+            result += desc.size;
+        }
+        result
+    }
     fn populate_slice(&self, slice: &mut [f32]);
     fn describe_slice() -> Vec<ToVectDescription>;
 }
