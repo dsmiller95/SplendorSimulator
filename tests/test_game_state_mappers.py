@@ -4,7 +4,7 @@ from game_model.AI_model.gamestate_input import GamestateInputVector
 def test_game_state_input_correct_length_flat_map():
     empty_input = GamestateInputVector()
     flat_map = empty_input.flat_map()
-    assert len(flat_map.keys()) == 107
+    assert len(flat_map.keys()) == 104
     expected_keys = [
         "player_0_temp_resources",
         "player_0_perm_resources",
@@ -114,8 +114,10 @@ def test_game_state_input_correct_length_flat_map():
 
     for expected in expected_keys:
         assert expected in flat_map
+    for actual in flat_map:
+        assert actual in expected_keys
         
 def test_game_state_input_correct_length_raw_data():
     empty_input = GamestateInputVector()
     flat_map = empty_input.flat_map()
-    assert len(flat_map.aggregate_list) == 384
+    assert len(flat_map.aggregate_list) == 381
