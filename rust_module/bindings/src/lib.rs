@@ -3,6 +3,7 @@ mod turn;
 mod config;
 mod components;
 mod actor;
+mod vectorization;
 
 use pyo3::prelude::*;
 use rust_splendor;

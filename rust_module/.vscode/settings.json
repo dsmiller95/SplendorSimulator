@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.linkedProjects": [
+        ".\\bindings\\Cargo.toml",
+        ".\\rust_splendor\\Cargo.toml",
+        ".\\Cargo.toml",
+    ]
+}

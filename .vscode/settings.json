@@ -10,8 +10,7 @@
         "argmax"
     ],
     "rust-analyzer.linkedProjects": [
-        ".\\rust_splendor\\Cargo.toml",
-        ".\\rust_splendor\\Cargo.toml"
+        ".\\rust_module\\Cargo.toml",
     ],
     "rust-analyzer.showUnlinkedFileNotification": false
 }

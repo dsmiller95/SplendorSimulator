@@ -13,6 +13,7 @@ use crate::components::card::SplendorCard;
 use crate::components::resource_bank::SplendorResourceBank;
 use crate::config::SplendorConfig;
 use crate::turn::SplendorTurn;
+use crate::vectorization::ToVect;
 
 #[pyclass]
 pub struct SplendorGame {
@@ -24,14 +25,19 @@ impl SplendorGame {
     // implicit clone on config
     #[new]
     fn new(config: SplendorConfig, player_n: usize, rand_seed: Option<u64>) -> PyResult<SplendorGame> {
-
         Ok(SplendorGame {
             wrapped_game: GameModel::new(config.wrapped_config, player_n, rand_seed)
                 .map_err(|e| PyValueError::new_err(format!("cannot create game: {:?}", e)))?,
         })
     }
+    // get an array of floats which represent the entire visible game state
+    // intended to be used as input to a neural network
     fn get_packed_state_array(&self) -> PyResult<Vec<f32>> {
-        Ok(vec![22.0])
+        let game_model = &self.wrapped_game;
+        let vect_size = GameModel::vect_size();
+        // construct a vector of floats set to 0.0
+        let game_vector = vec![0.0; vect_size];
+        Ok(game_vector)
     }
 
     #[getter]
