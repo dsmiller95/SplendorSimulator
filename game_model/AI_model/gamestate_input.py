@@ -40,6 +40,7 @@ class GamestateInputVector:
             player_vect.temp_resources = player.resource_tokens
             player_vect.perm_resources = player.resource_persistent
             player_vect.points = [player.sum_points]
+            player_vect.ordering = [i]
 
             for j,card in enumerate(player.reserved_cards):
                 if card is None:
@@ -113,10 +114,12 @@ class PlayerVector:
         self.temp_resources = [None]*6
         self.perm_resources = [None]*5
         self.points = [None]
+        self.ordering = [None]
         self.reserved_cards = [CardVector() for x in range(3)]
 
     def flat_map_into(self, prefix: str, into_dict: BetterParamDict[list[float]]):
         into_dict[prefix + "_temp_resources"] = self.temp_resources
         into_dict[prefix + "_perm_resources"] = self.perm_resources
         into_dict[prefix + "_points"] = self.points
+        into_dict[prefix + "_ordering"] = self.ordering
         flat_map_group(self.reserved_cards, prefix + "_reserved_card_", into_dict)
