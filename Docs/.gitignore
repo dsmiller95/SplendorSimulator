@@ -1,0 +1,20 @@
+# Ref: https://github.com/trustedsec/Obsidian-Vault-Structure/blob/main/.gitignore
+
+# to exclude Obsidian workspace settings (including plugin and hotkey configurations)
+.obsidian/**/*
+
+# OR only to exclude workspace cache
+.obsidian/workspace/*
+
+# Include suggested community plugins
+!.obsidian/community-plugins.json
+
+# Exclude plugins
+# .obsidian/plugins/*
+
+# This file is used to keep track of last auto backup/pull
+.obsidian-git-data
+
+# Add below lines to exclude OS settings and caches
+.trash/
+.DS_Store
